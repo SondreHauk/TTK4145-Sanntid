@@ -1,7 +1,7 @@
 package bcast
 
 import (
-	"github.com/SondreHauk/TTK4145-Sanntid/source/network/conn"
+	"github.com/SondreHauk/TTK4145-Sanntid/network/conn"
 	"encoding/json"
 	"fmt"
 	"net"
