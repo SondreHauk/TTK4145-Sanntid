@@ -1,4 +1,4 @@
-# TTK4145-Sanntid: The Elevators are Evolving...
+# TTK4145-Sanntid: The Elevators are Evolving
 
 ## Main Task
 Create software for controlling multiple elevators working in parallel across multiple floors.
