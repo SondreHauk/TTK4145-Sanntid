@@ -2,7 +2,7 @@ package elevator
 
 import (
 	"localElevator/elevio"
-	"localElevator/requests"
+	//"localElevator/requests"
 	"time"
 )
 
@@ -17,19 +17,25 @@ const (
 	OBSTRUCTED = 3
 )
 
-type elevator_unit struct {
-	floor     int
-	direction int
-	state     int
-	requests  [4][3]bool
+const(
+	NUM_FLOORS = 4
+	NUM_BUTTONS = 3
+)
+
+type Elevator struct {
+	Floor     int
+	Direction int
+	State     int
+	Requests  [4][3]bool
 }
 
-func init_elevator(elev elevator_unit){
-	for elevtio.GetFloor() == -1{
-		time.Sleep(elevio._pollRate)
+//Drives down to the nearest floor and updates floor indicator
+func ElevatorInit(elev Elevator){
+	for elevio.GetFloor() == -1{
+		time.Sleep(time.Millisecond*20)
 		elevio.SetMotorDirection(elevio.MD_Down)
 	}
 	elevio.SetMotorDirection(elevio.MD_Stop)
-	elev.floor = elevio.GetFloor()
-	
+	elev.Floor = elevio.GetFloor()
+	elevio.SetFloorIndicator(elev.Floor)
 }
