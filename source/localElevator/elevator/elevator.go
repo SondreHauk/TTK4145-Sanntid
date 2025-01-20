@@ -2,12 +2,20 @@ package elevator
 
 import (
 	"localElevator/elevio"
-	requests "localElevator/requestst"
+	"localElevator/requests"
+	"time"
 )
 
 // This module should contain the elevator struct and some actions that the elevator can perform
 // What should the elevator struct contain (floor, direction, state, id, etc.)?
 // What actions should the elevator be able to perform (open door, close door, move, etc.)?
+
+const (
+	IDLE = 0
+	MOVING = 1
+	DOOR_OPEN = 2
+	OBSTRUCTED = 3
+)
 
 type elevator_unit struct {
 	floor     int
@@ -16,20 +24,12 @@ type elevator_unit struct {
 	requests  [4][3]bool
 }
 
-func init_elevator(){
-
-}
-
-func lights(elev elevator_unit){
-	elevio.SetFloorIndicator(elev.floor)
-	for req := range elev.requests{
-		elevio.SetButtonLamp(elevio.BT_Cab,elev.floor,)
-}
-
-func door_open(){
-
-}
-
-func door_close(){
+func init_elevator(elev elevator_unit){
+	for elevtio.GetFloor() == -1{
+		time.Sleep(elevio._pollRate)
+		elevio.SetMotorDirection(elevio.MD_Down)
+	}
+	elevio.SetMotorDirection(elevio.MD_Stop)
+	elev.floor = elevio.GetFloor()
 	
 }
