@@ -1,7 +1,12 @@
 package main
 
-import "Driver-go/elevio"
-import "fmt"
+import (
+	//"fmt"
+	"localElevator/elevator"
+	"localElevator/elevio"
+	"localElevator/lights"
+	//"time"
+)
 
 func main(){
 
@@ -9,21 +14,24 @@ func main(){
 
     elevio.Init("localhost:15657", numFloors)
     
-    var d elevio.MotorDirection = elevio.MD_Up
+    //var d elevio.MotorDirection = elevio.MD_Up
     //elevio.SetMotorDirection(d)
-    
-    drv_buttons := make(chan elevio.ButtonEvent)
-    drv_floors  := make(chan int)
+    elev := elevator.Elevator{}
+    //go elevator.Elevator_init(elev)
+    /*drv_buttons := make(chan elevio.ButtonEvent)
+    drv_floors  := make(chan i   elevator.ElevatorInit(elev)nt)
     drv_obstr   := make(chan bool)
     drv_stop    := make(chan bool)    
     
     go elevio.PollButtons(drv_buttons)
     go elevio.PollFloorSensor(drv_floors)
     go elevio.PollObstructionSwitch(drv_obstr)
-    go elevio.PollStopButton(drv_stop)
+    go elevio.PollStopButton(drv_stop)*/
+    elevator.ElevatorInit(elev)
+    lights.LightsInit(elev)
+ 
     
-    
-    for {
+    /*for {
         select {
         case a := <- drv_buttons:
             fmt.Printf("%+v\n", a)
@@ -55,5 +63,5 @@ func main(){
                 }
             }
         }
-    }    
+    }*/  
 }
