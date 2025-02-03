@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"os"
 	"time"
-
-	"github.com/SondreHauk/TTK4145-Sanntid/network/bcast"
-	"github.com/SondreHauk/TTK4145-Sanntid/network/localip"
-	"github.com/SondreHauk/TTK4145-Sanntid/network/peers"
+	"source/network/bcast"
+	"source/network/localip"
+	"source/network/peers"
 )
 
 type HelloMsg struct{
