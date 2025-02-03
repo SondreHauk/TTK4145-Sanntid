@@ -3,7 +3,7 @@ package fsm
 // This module should contain the finite state machine for the local elevator
 
 import (
-	"elevator"
+	"source/localElevator/elevator"
 	"elevio"
 	"requests"
 	"fmt"

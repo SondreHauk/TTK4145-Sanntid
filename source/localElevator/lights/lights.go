@@ -1,8 +1,8 @@
 package lights
 
 import (
-	"localElevator/elevator"
-	"localElevator/elevio"
+	"source/localElevator/elevator"
+	"source/localElevator/elevio"
 )
 
 func LightsInit(elev elevator.Elevator){

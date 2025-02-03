@@ -1,5 +1,5 @@
 package doors
-import "localElevator/elevator"
+import "source/localElevator/elevator"
 
 func door_open(elev elevator_unit){
 

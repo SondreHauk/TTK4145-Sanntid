@@ -7,7 +7,7 @@
 package assigner
 
 import (
-	"localElevator/elevator"
+	"source/localElevator/elevator"
 )
 
 type Button int
