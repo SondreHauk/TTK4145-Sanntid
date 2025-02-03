@@ -15,7 +15,10 @@ import (
 func FSM(){
 	for{
 		switch {
-			
+			case elevator.Behaviour == elevator.EB_IDLE:
+			case elevator.Behaviour == elevator.EB_MOVING:
+			case elevator.Behaviour == elevator.EB_DOOR_OPEN:
+			case elevator.Behaviour == elevator.EB_OBSTRUCTED:			
 		}
 	}
 }
