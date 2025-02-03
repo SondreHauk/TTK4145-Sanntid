@@ -10,20 +10,6 @@ import (
 // What should the elevator struct contain (floor, direction, state, id, etc.)?
 // What actions should the elevator be able to perform (open door, close door, move, etc.)?
 
-type State int
-
-const (
-	IDLE State = iota
-	MOVING
-	DOOR_OPEN
-	OBSTRUCTED
-)
-
-const(
-	NUM_FLOORS = 4    //n
-	NUM_BUTTONS = 3	  //m
-)
-
 type Elevator struct {
 	Floor     int
 	Direction Direction
