@@ -70,22 +70,33 @@ func requests_chooseDirection(e Elevator) DirnBehaviourPair {
     }
 }
 
-func requests_shouldStop(e Elevator){
+func requests_shouldStop(e Elevator) bool {
     switch(e.Direction){
     case D_Down:
         return
-            e.requests[e.floor][B_HallDown] ||
-            e.requests[e.floor][B_Cab]      ||
+            e.Requests[e.Floor][B_HallDown] ||
+            e.Requests[e.Floor][B_Cab]      ||
             !requests_below(e);
     case D_Up:
         return
-            e.requests[e.floor][B_HallUp]   ||
-            e.requests[e.floor][B_Cab]      ||
+            e.Requests[e.Floor][B_HallUp]   ||
+            e.Requests[e.Floor][B_Cab]      ||
             !requests_above(e);
     case D_Stop:
     default:
         return 1;
     }
+
+    switch(e.Directio) {
+	case D_Down:
+		return e.requests[e.Floor][B_HallDown] || e.requests[e.Floor][B_Cab] || !requestsBelow(e)
+	case D_Up:
+		return e.requests[e.Floor][B_HallUp] || e.requests[e.Floor][B_Cab] || !requestsAbove(e)
+	case D_Stop:
+		return true
+	}
+	return false
+}
 }
 
 int requests_shouldClearImmediately(Elevator e, int btn_floor, Button btn_type){
