@@ -1,12 +1,22 @@
 package elevator
 
-type ElevatorBehaviour int
+type ElevatorState int
 
 const (
-    	EB_IDLE ElevatorBehaviour = iota
-    	EB_MOVING
-    	EB_DOOR_OPEN
-	EB_OBSTRUCTED
+    IDLE ElevatorState = iota
+	MOVING_PAST_FLOOR
+	MOVING_BETWEEN_FLOORS
+	DOOR_OPEN
+	EMERGENCY_AT_FLOOR
+	EMERGENCY_IN_SHAFT
+	
+
+    MOVING_BETWEEN_FLOORS
+    EMERGENCY_IN_SHAFT
+	IDLE
+	DOOR_OPEN
+	MOVING_PAST_FLOOR
+	EMERGENCY_AT_FLOOR
 )
 
 const(
