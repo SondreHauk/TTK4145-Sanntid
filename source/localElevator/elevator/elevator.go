@@ -10,6 +10,21 @@ import (
 // What should the elevator struct contain (floor, direction, state, id, etc.)?
 // What actions should the elevator be able to perform (open door, close door, move, etc.)?
 
+type ElevatorBehaviour int
+type Direction int
+
+const (
+    EB_Idle ElevatorBehaviour = iota
+    EB_Moving
+    EB_DoorOpen
+)
+
+const(
+	D_Stop Direction = iota
+	D_Down
+	D_Up
+)
+
 const (
 	IDLE = 0
 	MOVING = 1
@@ -24,9 +39,9 @@ const(
 
 type Elevator struct {
 	Floor     int
-	Direction int
-	State     int
-	Requests  [4][3]bool
+	Direction Direction
+	Behavior  ElevatorBehaviour
+	Requests  [NUM_FLOORS][NUM_BUTTONS]bool
 }
 
 //Drives down to the nearest floor and updates floor indicator
