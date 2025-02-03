@@ -10,11 +10,13 @@ import (
 // What should the elevator struct contain (floor, direction, state, id, etc.)?
 // What actions should the elevator be able to perform (open door, close door, move, etc.)?
 
+type State int
+
 const (
-	IDLE = 0
-	MOVING = 1
-	DOOR_OPEN = 2
-	OBSTRUCTED = 3
+	IDLE State = iota
+	MOVING
+	DOOR_OPEN
+	OBSTRUCTED
 )
 
 const(
@@ -25,12 +27,12 @@ const(
 type Elevator struct {
 	Floor     int
 	Direction int
-	State     int
+	State     State
 	Requests  [4][3]bool
 }
 
 //Drives down to the nearest floor and updates floor indicator
-func ElevatorInit(elev Elevator){
+func (elev *Elevator)ElevatorInit(){
 	for elevio.GetFloor() == -1{
 		time.Sleep(time.Millisecond*20)
 		elevio.SetMotorDirection(elevio.MD_Down)
@@ -40,11 +42,11 @@ func ElevatorInit(elev Elevator){
 	elevio.SetFloorIndicator(elev.Floor)
 }
 
-func MoveFloor(elev Elevator, fl int){
+//Moves to floor fl and updates floor indicators along the way.
+func (elev *Elevator)MoveFloor(fl int){
 	elev.Floor = elevio.GetFloor()
-	
 	if elev.Floor == -1{
-		ElevatorInit(elev)
+		elev.ElevatorInit()
 	}
 	
 	if elev.Floor < fl{
@@ -62,4 +64,12 @@ func MoveFloor(elev Elevator, fl int){
 	}
 	elevio.SetMotorDirection(elevio.MD_Stop)
 	elevio.SetFloorIndicator(elev.Floor)
+}
+
+func (elev *Elevator)OpenDoor(){
+	elevio.SetDoorOpenLamp(true)
+}
+
+func (elev *Elevator)CloseDoor(){
+	elevio.SetDoorOpenLamp(false)
 }
