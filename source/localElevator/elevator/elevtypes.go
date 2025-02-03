@@ -16,6 +16,12 @@ const(
 	D_Up
 )
 
+const(
+	B_HallDown btn = iota
+	B_HallUp
+	B_Cab
+)
+
 const (
 	IDLE = 0
 	MOVING = 1
