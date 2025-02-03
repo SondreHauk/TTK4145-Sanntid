@@ -1,8 +1,6 @@
 package elevator
 
 type ElevatorBehaviour int
-type Direction int
-type Button int
 
 const (
     	EB_IDLE ElevatorBehaviour = iota
