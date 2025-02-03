@@ -12,11 +12,11 @@ func LightsInit(elev elevator.Elevator){
 		}
 	}
 }
-/*
-func lights(elev elevator_unit){
-	elevio.SetFloorIndicator(elev.floor)
-	for req := range elev.requests{
-		elevio.SetButtonLamp(elevio.BT_Cab, elev.floor,)
+
+func LightsHallRequests(elev elevator.Elevator){
+	for fl := range elev.Requests{
+		for btn := range fl{
+			elevio.SetButtonLamp(elevio.ButtonType(btn),fl,elev.Requests[fl][btn])
+		}
 	}
 }
-	*/
