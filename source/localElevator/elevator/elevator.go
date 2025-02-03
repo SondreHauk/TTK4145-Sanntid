@@ -26,9 +26,9 @@ const(
 
 type Elevator struct {
 	Floor     int
-	Direction int
-	State     State
-	Requests  [4][3]bool
+	Direction Direction
+	Behavior  ElevatorBehaviour
+	Requests  [NUM_FLOORS][NUM_BUTTONS]bool
 }
 
 //Drives down to the nearest floor and updates floor indicator
@@ -41,6 +41,7 @@ func (elev *Elevator)ElevatorInit(){
 	elev.Floor = elevio.GetFloor()
 	elevio.SetFloorIndicator(elev.Floor)
 }
+
 
 //Moves to floor fl and updates floor indicators along the way.
 func (elev *Elevator)MoveFloor(fl int){
