@@ -2,31 +2,25 @@ package elevator
 
 type ElevatorBehaviour int
 type Direction int
-type btn int
+type Button int
 
 const (
-    EB_Idle ElevatorBehaviour = iota
-    EB_Moving
-    EB_DoorOpen
+    	EB_IDLE ElevatorBehaviour = iota
+    	EB_MOVING
+    	EB_DOOR_OPEN
+	EB_OBSTRUCTED
 )
 
 const(
-	D_Stop Direction = iota
-	D_Down
-	D_Up
+	D_STOP Direction = iota
+	D_DOWN
+	D_UP
 )
 
 const(
-	B_HallDown btn = iota
-	B_HallUp
-	B_Cab
-)
-
-const (
-	IDLE = 0
-	MOVING = 1
-	DOOR_OPEN = 2
-	OBSTRUCTED = 3
+	B_HALL_DOWN Button = iota
+	B_HALL_UP
+	B_CAB
 )
 
 const(
