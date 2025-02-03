@@ -5,8 +5,7 @@ import (
 	"net"
 	"sort"
 	"time"
-
-	"github.com/SondreHauk/TTK4145-Sanntid/network/conn"
+	"source/network/conn"
 )
 
 type PeerUpdate struct {
