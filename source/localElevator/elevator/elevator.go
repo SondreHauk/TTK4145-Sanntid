@@ -18,8 +18,8 @@ const (
 )
 
 const(
-	NUM_FLOORS = 4
-	NUM_BUTTONS = 3
+	NUM_FLOORS = 4    //n
+	NUM_BUTTONS = 3	  //m
 )
 
 type Elevator struct {
@@ -37,5 +37,29 @@ func ElevatorInit(elev Elevator){
 	}
 	elevio.SetMotorDirection(elevio.MD_Stop)
 	elev.Floor = elevio.GetFloor()
+	elevio.SetFloorIndicator(elev.Floor)
+}
+
+func MoveFloor(elev Elevator, fl int){
+	elev.Floor = elevio.GetFloor()
+	
+	if elev.Floor == -1{
+		ElevatorInit(elev)
+	}
+	
+	if elev.Floor < fl{
+		elevio.SetMotorDirection(elevio.MD_Up)
+	}else if elev.Floor > fl{
+		elevio.SetMotorDirection(elevio.MD_Down)
+	}
+	
+	for elev.Floor != fl{
+		if elevio.GetFloor() != -1{
+			elevio.SetFloorIndicator(elev.Floor)
+		}
+		time.Sleep(time.Millisecond*20)
+		elev.Floor = elevio.GetFloor()
+	}
+	elevio.SetMotorDirection(elevio.MD_Stop)
 	elevio.SetFloorIndicator(elev.Floor)
 }

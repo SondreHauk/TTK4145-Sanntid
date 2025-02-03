@@ -1,15 +1,16 @@
 package main
 
 import (
-	//"fmt"
+	. "fmt"
 	"localElevator/elevator"
 	"localElevator/elevio"
 	"localElevator/lights"
-	//"time"
+	"time"
 )
 
 func main(){
-
+    Println()
+    time.Sleep(time.Millisecond)
     numFloors := 4
 
     elevio.Init("localhost:15657", numFloors)
@@ -29,7 +30,11 @@ func main(){
     go elevio.PollStopButton(drv_stop)*/
     elevator.ElevatorInit(elev)
     lights.LightsInit(elev)
- 
+    elevator.MoveFloor(elev,2)
+    elevator.MoveFloor(elev,1)
+    elevator.MoveFloor(elev,3)
+    elevator.MoveFloor(elev,0)
+    
     
     /*for {
         select {
