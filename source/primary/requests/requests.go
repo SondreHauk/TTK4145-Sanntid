@@ -7,7 +7,7 @@ import (
 
 type DirnBehaviourPair struct {
     Dirn     MotorDirection
-    Behavior Behavior
+    Behavior ElevatorBehaviour
 }
 
 func RequestsAbove(e Elevator) bool {
@@ -43,42 +43,42 @@ func RequestsHere(e Elevator) bool{
 
 func RequestsChooseDirection(e Elevator) DirnBehaviourPair {
     switch(e.Direction){
-	case D_Up:
+	case MD_Up:
 		if RequestsAbove(e) {
-			return DirnBehaviourPair{MD_Up, EB_Moving}
+			return DirnBehaviourPair{MD_Up, EB_MOVING}
 		} else if RequestsHere(e) {
-			return DirnBehaviourPair{MD_Down, EB_DoorOpen}
+			return DirnBehaviourPair{MD_Down, EB_DOOR_OPEN}
 		} else if RequestsBelow(e) {
-			return DirnBehaviourPair{MD_Down, EB_Moving}
+			return DirnBehaviourPair{MD_Down, EB_MOVING}
 		}
-	case D_Down:
+	case MD_Down:
 		if RequestsBelow(e) {
-			return DirnBehaviourPair{MD_Down, EB_Moving}
+			return DirnBehaviourPair{MD_Down, EB_MOVING}
 		} else if RequestsHere(e) {
-			return DirnBehaviourPair{MD_Up, EB_DoorOpen}
+			return DirnBehaviourPair{MD_Up, EB_DOOR_OPEN}
 		} else if RequestsAbove(e) {
-			return DirnBehaviourPair{MD_Up, EB_Moving}
+			return DirnBehaviourPair{MD_Up, EB_MOVING}
 		}
-	case D_Stop:
+	case MD_Stop:
 		if RequestsHere(e) {
-			return DirnBehaviourPair{MD_Stop, EB_DoorOpen}
+			return DirnBehaviourPair{MD_Stop, EB_DOOR_OPEN}
 		} else if RequestsAbove(e) {
-			return DirnBehaviourPair{MD_Up, EB_Moving}
+			return DirnBehaviourPair{MD_Up, EB_MOVING}
 		} else if RequestsBelow(e) {
-			return DirnBehaviourPair{MD_Down, EB_Moving}
+			return DirnBehaviourPair{MD_Down, EB_MOVING}
 		}
     default:
-        return DirnBehaviourPair{MD_Stop, EB_Idle}
+        return DirnBehaviourPair{MD_Stop, EB_IDLE}
     }
 }
 
 func RequestsShouldStop(e Elevator) bool {
     switch(e.Direction) {
-	case D_Down:
+	case MD_Down:
 		return e.Requests[e.Floor][BT_HallDown] || e.Requests[e.Floor][BT_Cab] || !RequestsBelow(e)
-	case D_Up:
+	case MD_Up:
 		return e.Requests[e.Floor][BT_HallUp] || e.Requests[e.Floor][BT_Cab] || !RequestsAbove(e)
-	case D_Stop:
+	case MD_Stop:
 		return true
 	}
 	return true
