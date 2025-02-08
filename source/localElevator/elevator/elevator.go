@@ -10,16 +10,15 @@ import (
 // What should the elevator struct contain (floor, direction, state, id, etc.)?
 // What actions should the elevator be able to perform (open door, close door, move, etc.)?
 
-type Elevator struct {
+/* type Elevator struct {
 	Floor     int
 	Direction elevio.MotorDirection
 	State  ElevatorState
 	Requests  [NUM_FLOORS][NUM_BUTTONS]bool
-	//IsConnected bool  ??
-}
+} */
 
 //Drives down to the nearest floor and updates floor indicator
-func (elev *Elevator)ElevatorInit(){
+func ElevatorInit(elev Elevator){
 	for elevio.GetFloor() == -1{
 		time.Sleep(time.Millisecond*20)
 		elevio.SetMotorDirection(elevio.MD_Down)
@@ -31,10 +30,10 @@ func (elev *Elevator)ElevatorInit(){
 
 
 //Moves to floor fl without checking queue. Mostly for testing
-func (elev *Elevator)MoveFloor(fl int){
+func MoveFloor(elev Elevator, fl int){
 	elev.Floor = elevio.GetFloor()
 	if elev.Floor == -1{
-		elev.ElevatorInit()
+		ElevatorInit(elev)
 	}
 	
 	if elev.Floor < fl{

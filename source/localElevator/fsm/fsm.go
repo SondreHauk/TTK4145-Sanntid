@@ -6,14 +6,15 @@ import (
 	"source/localElevator/elevator"
 	"source/localElevator/elevio"
 	"source/primary/requests"
-	//"source/localElevator/elevio"
-	/* "source/primary/requests"
-	"fmt"
-	"time" */)
+	. "source/localElevator/config"
+)
 
+type FsmChansType struct{
+	Elevator chan Elevator
+	AtFloor chan int
+}
 
-
-func AtFloor(elev elevator.Elevator){
+func AtFloor(elev Elevator){
 	switch currentState{
 		case elevator.MOVING:
 			if requests.ShouldStop(elev){
@@ -32,4 +33,8 @@ func AtFloor(elev elevator.Elevator){
 func OnButtonPress(ButtonPress ButtonEvent){
 	switch ButtonPress:
 	case 
+}
+
+func Run(chans FsmChans){
+
 }
