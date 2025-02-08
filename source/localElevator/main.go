@@ -1,11 +1,14 @@
 package main
 
 import (
-	//"fmt"
+	"fmt"
+	"os"
+	"os/signal"
 	"source/localElevator/elevator"
 	"source/localElevator/elevio"
+	"source/localElevator/fsm"
 	"source/localElevator/lights"
-    "source/localElevator/fsm"
+
 	//"source/localElevator/requests"
 	"time"
 )
@@ -16,30 +19,33 @@ const (
     NUM_BUTTONS=elevator.NUM_BUTTONS
 )
 
-func main(){
-    elevio.Init("localhost:15657", elevator.NUM_FLOORS)
+func kill(){
+    ch := make(chan os.Signal)
+    signal.Notify(ch, os.Interrupt)
     
+    //Blocks until an interrupt is received on ch
+    select{
+    case <-ch:
+        elevio.SetMotorDirection(elevio.MD_Stop)
+        os.Exit(1) //Terminates with error (Keyboard-interrupt etc)
+    }
+}
+
+func main(){
+    //Initializations
+    elevio.Init("localhost:15657", elevator.NUM_FLOORS)
     elev := elevator.Elevator{}    
     lights.LightsInit(elev)
     elev.ElevatorInit()
-    ButtonChan := make(chan elevio.ButtonEvent)
     
-    for{
-        // One part for Requests
-        //requests.Update()
-       /*  PrevRequests:= make([][]int,NUM_FLOORS)
-        for f:=0; f<NUM_FLOORS;f++{
-            for b:=0; b<NUM_BUTTONS; b++{
-                inp:=elevio.GetButton()
-            }
-        } */
-        go elevio.PollButtons(ButtonChan)
-        select{
-        case ButtonPress:=<-ButtonChan:
-            fsm.OnButtonPress(ButtonPress)
-        }
+    //Channels
+    ButtonChan := make(chan elevio.ButtonEvent)
+    ElevChan := make(chan elevator.Elevator)
+    
+    //Goroutines    
+    go elevio.PollButtons(ButtonChan)
+    go kill()
 
-        // One part for FloorSensor
-        time.Sleep(SleepTime)
-    }
+    //Blocking. Deadlock if no goroutines are running.
+    select{}
 }
