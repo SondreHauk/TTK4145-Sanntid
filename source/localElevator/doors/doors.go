@@ -1,10 +1,13 @@
 package doors
-import "source/localElevator/elevator"
 
-func door_open(elev elevator_unit){
+import "source/localElevator/elevio"
 
+//Shell function that does not alter state
+func Open(){
+	elevio.SetDoorOpenLamp(true)
 }
 
-func door_close(){
-	
+//Shell function that does not alter state
+func Close(){
+	elevio.SetDoorOpenLamp(false)
 }

@@ -4,21 +4,32 @@ package fsm
 
 import (
 	"source/localElevator/elevator"
-	"elevio"
-	"requests"
+	"source/localElevator/elevio"
+	"source/primary/requests"
+	//"source/localElevator/elevio"
+	/* "source/primary/requests"
 	"fmt"
-	"time"
-)
+	"time" */)
 
 
 
-func FSM(){
-	for{
-		switch {
-			case elevator.Behaviour == elevator.EB_IDLE:
-			case elevator.Behaviour == elevator.EB_MOVING:
-			case elevator.Behaviour == elevator.EB_DOOR_OPEN:
-			case elevator.Behaviour == elevator.EB_OBSTRUCTED:			
+func AtFloor(elev elevator.Elevator){
+	switch currentState{
+		case elevator.MOVING:
+			if requests.ShouldStop(elev){
+				elevio.SetMotorDirection(elevio.MD_Stop)
+				doors.Open(elev)
+				elev.State=elevator.DOOR_OPEN
+				requests.ClearCurrentFloor(elev)
+			}
+			break
+		default:
+			break
 		}
 	}
+}
+
+func OnButtonPress(ButtonPress ButtonEvent){
+	switch ButtonPress:
+	case 
 }

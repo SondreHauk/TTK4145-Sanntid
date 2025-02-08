@@ -13,7 +13,9 @@ func LightsInit(elev elevator.Elevator){
 	}
 }
 
-func LightsHallRequests(elev elevator.Elevator){
+//Updates cab and floor lights wrt current request matrix.
+//Will be called often.
+func Update(elev elevator.Elevator){
 	for fl := range elev.Requests{
 		for btn := range fl{
 			elevio.SetButtonLamp(elevio.ButtonType(btn),fl,elev.Requests[fl][btn])

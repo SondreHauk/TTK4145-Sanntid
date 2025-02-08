@@ -12,7 +12,7 @@ import (
 
 type Elevator struct {
 	Floor     int
-	Direction MotorDirection
+	Direction elevio.MotorDirection
 	State  ElevatorState
 	Requests  [NUM_FLOORS][NUM_BUTTONS]bool
 	//IsConnected bool  ??
@@ -20,44 +20,36 @@ type Elevator struct {
 
 //Drives down to the nearest floor and updates floor indicator
 func (elev *Elevator)ElevatorInit(){
-	for GetFloor() == -1{
+	for elevio.GetFloor() == -1{
 		time.Sleep(time.Millisecond*20)
-		SetMotorDirection(MD_Down)
+		elevio.SetMotorDirection(elevio.MD_Down)
 	}
-	SetMotorDirection(MD_Stop)
-	elev.Floor = GetFloor()
-	SetFloorIndicator(elev.Floor)
+	elevio.SetMotorDirection(elevio.MD_Stop)
+	elev.Floor = elevio.GetFloor()
+	elevio.SetFloorIndicator(elev.Floor)
 }
 
 
-//Moves to floor fl and updates floor indicators along the way.
+//Moves to floor fl without checking queue. Mostly for testing
 func (elev *Elevator)MoveFloor(fl int){
-	elev.Floor = GetFloor()
+	elev.Floor = elevio.GetFloor()
 	if elev.Floor == -1{
 		elev.ElevatorInit()
 	}
 	
 	if elev.Floor < fl{
-		SetMotorDirection(MD_Up)
+		elevio.SetMotorDirection(elevio.MD_Up)
 	}else if elev.Floor > fl{
-		SetMotorDirection(MD_Down)
+		elevio.SetMotorDirection(elevio.MD_Down)
 	}
 	
 	for elev.Floor != fl{
-		if GetFloor() != -1{
-			SetFloorIndicator(elev.Floor)
+		if elevio.GetFloor() != -1{
+			elevio.SetFloorIndicator(elev.Floor)
 		}
 		time.Sleep(time.Millisecond*20)
-		elev.Floor = GetFloor()
+		elev.Floor = elevio.GetFloor()
 	}
-	SetMotorDirection(MD_Stop)
-	SetFloorIndicator(elev.Floor)
-}
-
-func (elev *Elevator)OpenDoor(){
-	SetDoorOpenLamp(true)
-}
-
-func (elev *Elevator)CloseDoor(){
-	SetDoorOpenLamp(false)
+	elevio.SetMotorDirection(elevio.MD_Stop)
+	elevio.SetFloorIndicator(elev.Floor)
 }
