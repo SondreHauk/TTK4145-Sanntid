@@ -2,7 +2,6 @@ package requests
 
 import (
 	. "source/localElevator/config"
-	"source/localElevator/elevio"
 )
 
 //import ("localElevator/elevio")
