@@ -4,7 +4,6 @@ import (
 	"os"
 	"os/signal"
 	"source/localElevator/elevator"
-	el "source/localElevator/elevator"
 	"source/localElevator/elevio"
 	"source/localElevator/fsm"
 	"source/localElevator/lights"
@@ -26,8 +25,8 @@ func kill() {
 func main() {
 	//Channels
 	FsmChans := fsm.FsmChansType{
-		Elevator: make(chan Elevator),
-        AtFloor:  make(chan int),
+		ElevatorChan: make(chan Elevator),
+        AtFloorChan:  make(chan int),
 	}
 
 	ButtonChan := make(chan elevio.ButtonEvent)
@@ -36,10 +35,11 @@ func main() {
 	elevio.Init("localhost:15657", NUM_FLOORS)
 	elev := Elevator{}
 	lights.LightsInit(elev)
-	el.ElevatorInit(elev)
+	elevator.ElevatorInit(elev)
 
 	//Goroutines
 	go elevio.PollButtons(ButtonChan)
+	go elevio.PollFloorSensor(FsmChans.AtFloorChan)
 	go fsm.Run(elev, FsmChans)
 	go kill()
 

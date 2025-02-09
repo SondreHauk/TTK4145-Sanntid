@@ -24,6 +24,12 @@ const(
 	STOP = 0
 )
 
+const(
+	BTN_HALL_UP = iota
+	BTN_HALL_DOWN
+	BTN_CAB
+)
+
 type Elevator struct {
 	Floor     int
 	Direction int

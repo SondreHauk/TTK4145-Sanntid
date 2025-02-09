@@ -1,8 +1,8 @@
 package elevator
 
 import (
+	. "source/localElevator/config"
 	"source/localElevator/elevio"
-	//"localElevator/requests"
 	"time"
 )
 
