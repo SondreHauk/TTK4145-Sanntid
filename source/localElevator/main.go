@@ -41,6 +41,7 @@ func main() {
 	go elevio.PollButtons(ButtonChan)
 	go elevio.PollFloorSensor(FsmChans.AtFloorChan)
 	go fsm.Run(elev, FsmChans)
+	go lights.Update(elev)
 	go kill()
 
 	//Blocking. Deadlock if no goroutines are running.

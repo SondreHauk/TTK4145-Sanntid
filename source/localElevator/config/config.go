@@ -1,5 +1,8 @@
 package config
-import "time"
+
+import (
+	"time"
+)
 
 type ElevatorState int
 
@@ -24,15 +27,15 @@ const(
 	STOP = 0
 )
 
-const(
-	BTN_HALL_UP = iota
-	BTN_HALL_DOWN
-	BTN_CAB
-)
-
 type Elevator struct {
 	Floor     int
 	Direction int
 	State  ElevatorState
 	Requests  [NUM_FLOORS][NUM_BUTTONS]bool
+}
+
+type Order struct {
+	Floor int
+	Button int
+	Done bool
 }

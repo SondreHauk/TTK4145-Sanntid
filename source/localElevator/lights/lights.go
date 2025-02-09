@@ -4,6 +4,7 @@ import (
 	. "source/localElevator/config"
 	//source/localElevator/elevator"
 	"source/localElevator/elevio"
+	"time"
 )
 
 func LightsInit(elev Elevator){
@@ -17,19 +18,16 @@ func LightsInit(elev Elevator){
 //Updates cab and floor lights wrt current request matrix.
 //Will be called often.
 func Update(elev Elevator){
-	for fl := range elev.Requests{
-		for btn := range fl{
+	for fl := range NUM_FLOORS{
+		for btn := range NUM_BUTTONS{
 			elevio.SetButtonLamp(elevio.ButtonType(btn),fl,elev.Requests[fl][btn])
 		}
 	}
 }
 
-/* func StopAtFloor(elev Elevator){
-	elevio.SetFloorIndicator(elev.Floor)
+//Turns on the door light and resets the timer
+//Lights go off after 3 seconds
+func OpenDoor(timer *time.Timer){
 	elevio.SetDoorOpenLamp(true)
-	
+	timer.Reset(3*time.Second)
 }
-
-func DrivePastFloor(elev Elevator){
-	elevio.SetFloorIndicator(elev.Floor)
-} */
