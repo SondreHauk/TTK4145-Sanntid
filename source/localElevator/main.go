@@ -11,7 +11,7 @@ import (
 )
 
 func kill() {
-	ch := make(chan os.Signal)
+	ch := make(chan os.Signal,1)
 	signal.Notify(ch, os.Interrupt)
 
 	//Blocks until an interrupt is received on ch
