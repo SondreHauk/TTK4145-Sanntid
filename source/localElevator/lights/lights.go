@@ -5,7 +5,6 @@ import (
 	//source/localElevator/elevator"
 	"source/localElevator/elevio"
 	"time"
-	"fmt"
 )
 
 func LightsInit(elev Elevator){
@@ -37,14 +36,14 @@ func LightsInit(elev Elevator){
 
 //Turns on the door light and resets the timer
 //Lights go off after 3 seconds
-func OpenDoor(timer *time.Timer){
-	elevio.SetDoorOpenLamp(true)
-	timer.Stop()
-	timer.Reset(3*time.Second)
-	fmt.Println("Door open")
-}
+// func OpenDoor(timer *time.Timer){
+// 	elevio.SetDoorOpenLamp(true)
+// 	timer.Stop()
+// 	timer.Reset(3*time.Second)
+// 	fmt.Println("Door open")
+// }
 
-func OpenDoor2(){
+func OpenDoor(){
 	elevio.SetDoorOpenLamp(true)
 	time.Sleep(3*time.Second)
 	elevio.SetDoorOpenLamp(false)
