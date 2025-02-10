@@ -126,3 +126,52 @@ func Run(elev Elevator, ElevCh chan Elevator, AtFloorCh chan int, NewOrderCh cha
 		time.Sleep(20*time.Millisecond)
 	}
 }
+
+func Run2(elev Elevator, AtFloorCh <-chan int, NewOrderCh <-chan Order){
+	for{
+		select{
+		case NewOrder := <-NewOrderCh:
+			// Updates request matrix with new orders
+			elev.Requests[NewOrder.Floor][NewOrder.Button] = true
+
+			switch elev.State{
+			case IDLE:
+				// Set direction, and update state accordingly
+				elev.Direction = ChooseDirection(elev)
+				elevio.SetMotorDirection(elevio.MotorDirection(elev.Direction))
+				if elev.Direction == STOP {
+					lights.OpenDoor(DoorTimer)
+					elev.State = DOOR_OPEN
+				} else { // If direction is UP or DOWN
+					elev.State = MOVING
+				}
+
+			case MOVING: 
+				// Do nothing while elevator is moving.
+			case DOOR_OPEN:
+				// If door is open, clear pending orders at current floor
+				if elev.Floor == NewOrder.Floor {
+					requests.ClearFloor(elev, elev.Floor)
+				}
+
+		case elev.Floor = <- AtFloorCh:
+			elevio.SetFloorIndicator(elev.Floor)
+			if ShouldStop(elev){
+				elevio.SetMotorDirection(elevio.MD_Stop)
+				requests.ClearFloor(elev, elev.Floor)
+				lights.OpenDoor(DoorTimer)
+				elev.State = DOOR_OPEN
+			}
+			
+			switch elev.State{
+			case IDLE:
+				// Find order, set direction, and update state accordingly
+			case MOVING:
+				// Do nothing while elevator is moving.
+			case DOOR_OPEN:
+				// 
+			}
+		}
+	}
+}
+}

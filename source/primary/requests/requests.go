@@ -7,7 +7,7 @@ import (
 
 type DirnBehaviourPair struct {
     Dirn     MotorDirection
-    Behavior ElevatorBehaviour
+    State    ElevatorState
 }
 
 func RequestsAbove(e Elevator) bool {
