@@ -2,15 +2,15 @@ package requests
 
 import (
 	. "source/localElevator/config"
+	"source/localElevator/elevio"
+	"time"
 )
 
-//import ("localElevator/elevio")
-//This module should handle incoming requests and distribute them to the elevators
-//c=[1,2,3], c[:]=c
-
+//Clears Lights and Request Matrix
 func ClearFloor(elev Elevator, floor int) {
 	for btn := 0; btn < NUM_BUTTONS; btn++ {
 		elev.Requests[floor][btn] = false
+		elevio.SetButtonLamp(elevio.ButtonType(btn), floor, false)
 	}
 }
 
@@ -24,6 +24,13 @@ func ShouldStop(elev Elevator) {
 
 }
 
-func Update(elev Elevator, order Order) {
-	elev.Requests[order.Floor][order.Button] = true
+func Update(BtnCh chan elevio.ButtonEvent, FsmCh FsmChansType) {
+	for{
+		select {
+			case btn := <-BtnCh:
+				FsmCh.NewOrderChan<-Order{btn.Floor, int(btn.Button), false}
+				elevio.SetButtonLamp(elevio.ButtonType(btn.Button), btn.Floor, true) //THIS SIGNIFIES ORDER IS ACCEPTED. CHANGE
+		}
+		time.Sleep(20*time.Millisecond)
+	}
 }

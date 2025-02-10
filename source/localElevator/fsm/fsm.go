@@ -5,17 +5,13 @@ package fsm
 import (
 	. "source/localElevator/config"
 	//"source/localElevator/elevator"
+	"fmt"
 	"source/localElevator/elevio"
 	"source/localElevator/lights"
 	"source/localElevator/requests"
 	"time"
 )
 
-type FsmChansType struct {
-	ElevatorChan chan Elevator
-	AtFloorChan  chan int
-	NewOrderChan chan Order
-}
 
 func OrdersAbove(elev Elevator) bool {
 	for fl := elev.Floor + 1; fl < NUM_FLOORS; fl++ {
@@ -73,7 +69,7 @@ func Run(elev Elevator, chans FsmChansType) {
 			if NewOrder.Done {
 				requests.ClearFloor(elev, NewOrder.Floor)
 			} else {
-				requests.Update(elev, NewOrder)
+				elev.requests[NewOrder.Floor][NewOrder.Button] = true
 			}
 			switch elev.State {
 			case IDLE:
@@ -95,6 +91,7 @@ func Run(elev Elevator, chans FsmChansType) {
 				   			case EMERGENCY_IN_SHAFT: Bør kanskje legges til funksjonalitet her?*/
 			}
 
+			fmt.Println("NewOrder UPDATE")
 			chans.ElevatorChan <- elev //Update elevator state
 
 		case elev.Floor = <-chans.AtFloorChan:
@@ -103,7 +100,9 @@ func Run(elev Elevator, chans FsmChansType) {
 				elev.State = DOOR_OPEN
 				lights.OpenDoor(DoorTimer)
 				requests.ClearFloor(elev, elev.Floor)
+				fmt.Println("ShouldStop")
 			}
+			fmt.Println("AtFloor UPDATE")
 			chans.ElevatorChan <- elev //Update elevator state
 
 		case <-DoorTimer.C:
@@ -115,7 +114,9 @@ func Run(elev Elevator, chans FsmChansType) {
 				elev.State = MOVING
 				elevio.SetMotorDirection(elevio.MotorDirection(dir))
 			}
+			fmt.Println("DoorTimer UPDATE")
 			chans.ElevatorChan <- elev //Update elevator state
 		}
+		time.Sleep(20*time.Millisecond)
 	}
 }

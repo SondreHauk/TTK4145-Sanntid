@@ -39,3 +39,9 @@ type Order struct {
 	Button int
 	Done bool
 }
+
+type FsmChansType struct {
+	ElevatorChan chan Elevator
+	AtFloorChan  chan int
+	NewOrderChan chan Order
+}
