@@ -37,7 +37,7 @@ type Elevator struct {
 type Order struct {
 	Floor int
 	Button int
-	Done bool
+	//Done bool
 }
 
 type FsmChansType struct {
