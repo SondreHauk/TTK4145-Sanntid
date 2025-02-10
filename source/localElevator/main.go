@@ -27,13 +27,15 @@ func kill() {
 func main() {
 	fmt.Println("")
 	//Channels
-	FsmChans := FsmChansType{
+	/* FsmChans := FsmChansType{
 		ElevatorChan: make(chan Elevator),
         AtFloorChan:  make(chan int),
 		NewOrderChan: make(chan Order),
-	}
-
-	ButtonChan := make(chan elevio.ButtonEvent)
+	} */
+	ElevatorChan := make(chan Elevator,10)
+	AtFloorChan := make(chan int,10)
+	NewOrderChan := make(chan Order,10)
+	ButtonChan := make(chan elevio.ButtonEvent,10)
 	//Initializations
 	elevio.Init("localhost:15657", NUM_FLOORS)
 	elev := Elevator{}
@@ -43,21 +45,22 @@ func main() {
 	//Goroutines
 	
 	go elevio.PollButtons(ButtonChan)
-	go requests.Update(ButtonChan,FsmChans.NewOrderChan)
-	go elevio.PollFloorSensor(FsmChans.AtFloorChan)
-	go fsm.Run(elev, FsmChans)
+	go requests.Update(ButtonChan,NewOrderChan)
+	go elevio.PollFloorSensor(AtFloorChan)
+	go fsm.Run(elev, ElevatorChan, AtFloorChan, NewOrderChan)
 	go kill()
 
 	//Blocking. Deadlock if no goroutines are running.
-	for{
+	/* for{
 		select{
-			/* case a:= <-FsmChans.AtFloorChan:
-				fmt.Println(a) */
-			case a:= <-FsmChans.ElevatorChan:
+			case a:= <-AtFloorChan:
+				fmt.Println(a)
+			case a:= <-ElevatorChan:
 				fmt.Println(a.Floor)
-		
+			case a:= <-NewOrderChan:
+				fmt.Printf("New order at floor: %d",a.Floor)
 		}
 		time.Sleep(T_SLEEP)
-	}
+	} */
 	select{}
 }
