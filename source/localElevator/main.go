@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"os"
 	"os/signal"
 	. "source/localElevator/config"
@@ -10,10 +11,13 @@ import (
 	"source/localElevator/lights"
 	"source/localElevator/requests"
 	"time"
+	"fmt"
 )
-var T_SLEEP = 20*time.Millisecond
+
+var T_SLEEP = 20 * time.Millisecond
+
 func kill() {
-	ch := make(chan os.Signal,1)
+	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt)
 	//Blocks until an interrupt is received on ch
 	select {
@@ -24,25 +28,29 @@ func kill() {
 }
 
 func main() {
+	var port string
+	flag.StringVar(&port, "port", "", "Elevator port number")
+	flag.Parse()
+
 	//Channels
-	ElevatorChan := make(chan Elevator,10)
-	AtFloorChan := make(chan int,10)
-	NewOrderChan := make(chan Order,10)
-	ButtonChan := make(chan elevio.ButtonEvent,10)
-	
+	ElevatorChan := make(chan Elevator, 10)
+	AtFloorChan := make(chan int, 10)
+	NewOrderChan := make(chan Order, 10)
+	ButtonChan := make(chan elevio.ButtonEvent, 10)
+	fmt.Println(port)
 	//Initializations
-	elevio.Init("localhost:15657", NUM_FLOORS)
+	elevio.Init("localhost:"+ port, NUM_FLOORS)
 	elev := Elevator{}
 	lights.LightsInit(elev)
 	elevator.ElevatorInit(elev)
-	
+
 	//Goroutines
 	go elevio.PollButtons(ButtonChan)
-	go requests.Update(ButtonChan,NewOrderChan)
+	go requests.Update(ButtonChan, NewOrderChan)
 	go elevio.PollFloorSensor(AtFloorChan)
 	go fsm.Run(elev, ElevatorChan, AtFloorChan, NewOrderChan)
 	go kill()
 
 	//Blocking select
-	select{}
+	select {}
 }
