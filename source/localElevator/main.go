@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
 	. "source/localElevator/config"
@@ -25,17 +24,12 @@ func kill() {
 }
 
 func main() {
-	fmt.Println("")
 	//Channels
-	/* FsmChans := FsmChansType{
-		ElevatorChan: make(chan Elevator),
-        AtFloorChan:  make(chan int),
-		NewOrderChan: make(chan Order),
-	} */
 	ElevatorChan := make(chan Elevator,10)
 	AtFloorChan := make(chan int,10)
 	NewOrderChan := make(chan Order,10)
 	ButtonChan := make(chan elevio.ButtonEvent,10)
+	
 	//Initializations
 	elevio.Init("localhost:15657", NUM_FLOORS)
 	elev := Elevator{}
@@ -43,24 +37,12 @@ func main() {
 	elevator.ElevatorInit(elev)
 	
 	//Goroutines
-	
 	go elevio.PollButtons(ButtonChan)
 	go requests.Update(ButtonChan,NewOrderChan)
 	go elevio.PollFloorSensor(AtFloorChan)
 	go fsm.Run(elev, ElevatorChan, AtFloorChan, NewOrderChan)
 	go kill()
 
-	//Blocking. Deadlock if no goroutines are running.
-	/* for{
-		select{
-			case a:= <-AtFloorChan:
-				fmt.Println(a)
-			case a:= <-ElevatorChan:
-				fmt.Println(a.Floor)
-			case a:= <-NewOrderChan:
-				fmt.Printf("New order at floor: %d",a.Floor)
-		}
-		time.Sleep(T_SLEEP)
-	} */
+	//Blocking select
 	select{}
 }

@@ -121,6 +121,7 @@ func Run(elev Elevator, ElevCh chan Elevator, AtFloorCh chan int, NewOrderCh cha
 	}
 }
 
+
 // This is the bug. Direction and requests should only be updated when elevator arrives at a floor.
 // if elev.Floor == NewOrder.Floor{
 // 	requests.ClearFloor(&elev, elev.Floor)
