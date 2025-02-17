@@ -7,16 +7,49 @@ import (
 	"time"
 )
 
-//Clears Lights and Request Matrix
-func ClearFloor(elev *Elevator, floor int) {
-	/* elev.Requests[floor]= [NUM_BUTTONS]bool{} */
-	for btn := 0; btn < NUM_BUTTONS; btn++ {
-		elev.Requests[floor][btn] = false
-		elevio.SetButtonLamp(elevio.ButtonType(btn), floor, false)
+func OrdersAbove(elev Elevator) bool {
+	for fl := elev.Floor + 1; fl < NUM_FLOORS; fl++ {
+		for btn := 0; btn < NUM_BUTTONS; btn++ {
+			if elev.Requests[fl][btn] {
+				return true
+			}
+		}
 	}
-	//fmt.Printf("elev.Requests[%d] = %t\n",floor, elev.Requests[floor])
-	//fmt.Printf("Floor %d cleared\n", floor+1)
+	return false
 }
+
+func OrdersBelow(elev Elevator) bool {
+	for fl := elev.Floor - 1; fl >= 0; fl-- {
+		for btn := 0; btn < NUM_BUTTONS; btn++ {
+			if elev.Requests[fl][btn] {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func ClearFloor(elev *Elevator, floor int) {
+	// Clear only the hall button in the right direction
+	switch elev.Direction {
+		case UP: // Clear hall up
+			elev.Requests[floor][elevio.BT_HallUp] = false
+			elevio.SetButtonLamp(elevio.BT_HallUp, floor, false)
+			if !OrdersAbove(*elev) {
+				elev.Requests[floor][elevio.BT_HallDown] = false
+				elevio.SetButtonLamp(elevio.BT_HallDown, floor, false)
+			}
+		case DOWN: // Clear hall down
+			elev.Requests[floor][elevio.BT_HallDown] = false
+			elevio.SetButtonLamp(elevio.BT_HallDown, floor, false)
+			if !OrdersBelow(*elev) {
+				elev.Requests[floor][elevio.BT_HallUp] = false
+				elevio.SetButtonLamp(elevio.BT_HallUp, floor, false)
+			}
+	}
+	elev.Requests[floor][elevio.BT_Cab] = false
+	elevio.SetButtonLamp(elevio.BT_Cab, floor, false)
+}	
 
 func ClearAll(elev *Elevator) {
 	for fl := 0; fl < NUM_FLOORS; fl++ {

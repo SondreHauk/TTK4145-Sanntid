@@ -13,42 +13,19 @@ import (
 	"time"
 )
 
-
-func OrdersAbove(elev Elevator) bool {
-	for fl := elev.Floor + 1; fl < NUM_FLOORS; fl++ {
-		for btn := 0; btn < NUM_BUTTONS; btn++ {
-			if elev.Requests[fl][btn] {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func OrdersBelow(elev Elevator) bool {
-	for fl := elev.Floor - 1; fl >= 0; fl-- {
-		for btn := 0; btn < NUM_BUTTONS; btn++ {
-			if elev.Requests[fl][btn] {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 func ShouldStop(elev Elevator) bool {
 	switch elev.Direction {
 	case UP:
 		if elev.Floor==NUM_FLOORS-1{
 			return true
 		}else{
-			return elev.Requests[elev.Floor][elevio.BT_HallUp] || elev.Requests[elev.Floor][elevio.BT_Cab] || !OrdersAbove(elev)
+			return elev.Requests[elev.Floor][elevio.BT_HallUp] || elev.Requests[elev.Floor][elevio.BT_Cab] || !requests.OrdersAbove(elev)
 		}
 	case DOWN:
 		if elev.Floor==0{
 			return true
 		}else{
-			return elev.Requests[elev.Floor][elevio.BT_HallDown] || elev.Requests[elev.Floor][elevio.BT_Cab] || !OrdersBelow(elev)
+			return elev.Requests[elev.Floor][elevio.BT_HallDown] || elev.Requests[elev.Floor][elevio.BT_Cab] || !requests.OrdersBelow(elev)
 		}
 	case STOP:
 		return true
@@ -60,29 +37,29 @@ func ShouldStop(elev Elevator) bool {
 
 func ChooseDirection(elev Elevator) int {
 	// In case of orders above and below; choose direction at random
-	// Not very smaart, but it works
 	rand.Seed(time.Now().UnixNano())
 	r := rand.Intn(10)
 	if r % 2 == 0{
-		if OrdersAbove(elev) {
+		if requests.OrdersAbove(elev) {
 			return UP
-		} else if OrdersBelow(elev) {
+		} else if requests.OrdersBelow(elev) {
 			return DOWN
 		}
 	} else {
-		if OrdersBelow(elev) {
+		if requests.OrdersBelow(elev) {
 			return DOWN
-		} else if OrdersAbove(elev) {
+		} else if requests.OrdersAbove(elev) {
 			return UP
 		}
 	}
 	return STOP
 }
 
-func Run(elev *Elevator, /* ElevCh chan *Elevator, */ AtFloorCh chan int, NewOrderCh chan Order) {
+func Run(elev *Elevator, /* ElevCh chan *Elevator, */ AtFloorCh chan int, NewOrderCh chan Order, ObsCh chan bool) {
 	//ElevCh <- elev //Send updated elevator state to master
 	DoorTimer := time.NewTimer(T_DOOR_OPEN)
 	DoorTimer.Stop()
+	Obstructed := false
 	for {
 		select {
 		case NewOrder := <-NewOrderCh:
@@ -101,8 +78,11 @@ func Run(elev *Elevator, /* ElevCh chan *Elevator, */ AtFloorCh chan int, NewOrd
 				case MOVING: //NOOP
 				case DOOR_OPEN:
 					if elev.Floor == NewOrder.Floor {
-						requests.ClearFloor(elev, elev.Floor)
-						DoorTimer.Reset(T_DOOR_OPEN)
+						elev.Requests[elev.Floor][NewOrder.Button] = false
+						elevio.SetButtonLamp(elevio.ButtonType(NewOrder.Button), elev.Floor, false)
+						if !Obstructed{
+							DoorTimer.Reset(T_DOOR_OPEN)
+						}
 					}
 			}
 			//ElevCh <- elev //Send updated elevator state to master
@@ -112,6 +92,7 @@ func Run(elev *Elevator, /* ElevCh chan *Elevator, */ AtFloorCh chan int, NewOrd
 			if ShouldStop(*elev) {
 				elevio.SetMotorDirection(elevio.MD_Stop)
 				requests.ClearFloor(elev, elev.Floor)
+				elev.Direction = STOP
 				elevio.SetDoorOpenLamp(true)
 				DoorTimer.Reset(T_DOOR_OPEN)
 				elev.State = DOOR_OPEN
@@ -129,6 +110,19 @@ func Run(elev *Elevator, /* ElevCh chan *Elevator, */ AtFloorCh chan int, NewOrd
 				elev.State = MOVING
 			}
 			//ElevCh <- elev //Send updated elevator state to master
+		
+		case ObsEvent:= <-ObsCh:
+			if elev.State==DOOR_OPEN{
+				switch ObsEvent{
+					case true:
+						Obstructed = true
+						DoorTimer.Stop()
+					case false:
+						Obstructed = false
+						DoorTimer.Reset(T_DOOR_OPEN)
+				}
+			}
+			
 		}
 		time.Sleep(T_SLEEP)
 	}
