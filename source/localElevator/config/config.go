@@ -19,7 +19,10 @@ const(
 	NUM_BUTTONS = 3
 )
 
-const SleepTime time.Duration = time.Millisecond * 20
+const (
+	T_SLEEP = time.Millisecond*20
+	T_DOOR_OPEN = time.Second*3	
+)
 
 const(
 	UP = 1
@@ -37,7 +40,6 @@ type Elevator struct {
 type Order struct {
 	Floor int
 	Button int
-	//Done bool
 }
 
 type FsmChansType struct {

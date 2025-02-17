@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"math/rand"
 	"source/localElevator/elevio"
-	"source/localElevator/lights"
 	"source/localElevator/requests"
 	"time"
 )
@@ -63,8 +62,8 @@ func ChooseDirection(elev Elevator) int {
 	// In case of orders above and below; choose direction at random
 	// Not very smaart, but it works
 	rand.Seed(time.Now().UnixNano())
-	rand := rand.Intn(10)
-	if rand % 2 == 0{
+	r := rand.Intn(10)
+	if r % 2 == 0{
 		if OrdersAbove(elev) {
 			return UP
 		} else if OrdersBelow(elev) {
@@ -80,116 +79,57 @@ func ChooseDirection(elev Elevator) int {
 	return STOP
 }
 
-
-//TODO: Fix spontainous elevator spasm bug when buttons are pressed at the same time
-func Run(elev Elevator, ElevCh chan Elevator, AtFloorCh chan int, NewOrderCh chan Order){
-	for{
-		select{
-			case NewOrder := <-NewOrderCh:
-				elev.Requests[NewOrder.Floor][NewOrder.Button] = true
-				fmt.Println("New order received")
-			
-			case elev.Floor = <-AtFloorCh:
-				elevio.SetFloorIndicator(elev.Floor)
-				if ShouldStop(elev){
-					elevio.SetMotorDirection(elevio.MD_Stop)
-					lights.OpenDoor()
-					requests.ClearFloor(&elev, elev.Floor)
-					elev.State = DOOR_OPEN
-				}
-
-			default:
-				switch elev.State{
-					case IDLE:
-						elev.Direction = ChooseDirection(elev)
-						elevio.SetMotorDirection(elevio.MotorDirection(elev.Direction))
-
-					case MOVING:
-						// NOOP
-
-					case DOOR_OPEN:
-						elev.Direction = ChooseDirection(elev)
-						if elev.Direction == STOP {
-							elev.State = IDLE
-						} else {
-							elevio.SetMotorDirection(elevio.MotorDirection(elev.Direction))
-							elev.State = MOVING
-						}
+func Run(elev *Elevator, /* ElevCh chan *Elevator, */ AtFloorCh chan int, NewOrderCh chan Order) {
+	//ElevCh <- elev //Send updated elevator state to master
+	DoorTimer := time.NewTimer(T_DOOR_OPEN)
+	DoorTimer.Stop()
+	for {
+		select {
+		case NewOrder := <-NewOrderCh:
+			elev.Requests[NewOrder.Floor][NewOrder.Button] = true
+			switch elev.State {
+				case IDLE:
+					elev.Direction = ChooseDirection(*elev)
+					elevio.SetMotorDirection(elevio.MotorDirection(elev.Direction))
+					if elev.Direction == STOP {
+						elevio.SetDoorOpenLamp(true)
+						DoorTimer.Reset(T_DOOR_OPEN)
+						elev.State = DOOR_OPEN
+					} else {
+						elev.State = MOVING
+					}
+				case MOVING: //NOOP
+				case DOOR_OPEN:
+					if elev.Floor == NewOrder.Floor {
+						requests.ClearFloor(elev, elev.Floor)
+						DoorTimer.Reset(T_DOOR_OPEN)
+					}
 			}
-		time.Sleep(20 * time.Millisecond)
+			//ElevCh <- elev //Send updated elevator state to master
+
+		case elev.Floor = <-AtFloorCh:
+			elevio.SetFloorIndicator(elev.Floor)
+			if ShouldStop(*elev) {
+				elevio.SetMotorDirection(elevio.MD_Stop)
+				requests.ClearFloor(elev, elev.Floor)
+				elevio.SetDoorOpenLamp(true)
+				DoorTimer.Reset(T_DOOR_OPEN)
+				elev.State = DOOR_OPEN
+			}
+			//ElevCh <- elev //Send updated elevator state to master
+
+		case <-DoorTimer.C:
+
+			elevio.SetDoorOpenLamp(false)
+			elev.Direction = ChooseDirection(*elev)
+			if elev.Direction == STOP {
+				elev.State = IDLE
+			} else {
+				elevio.SetMotorDirection(elevio.MotorDirection(elev.Direction))
+				elev.State = MOVING
+			}
+			//ElevCh <- elev //Send updated elevator state to master
 		}
+		time.Sleep(T_SLEEP)
 	}
 }
-
-
-// This is the bug. Direction and requests should only be updated when elevator arrives at a floor.
-// if elev.Floor == NewOrder.Floor{
-// 	requests.ClearFloor(&elev, elev.Floor)
-// 	lights.OpenDoor2()
-// 	elev.State = DOOR_OPEN
-// } else {
-// 	elev.Direction = ChooseDirection(elev)
-// 	elevio.SetMotorDirection(elevio.MotorDirection(elev.Direction))
-// 	elev.State = MOVING
-// }
-
-// func Run(elev Elevator, ElevCh chan Elevator, AtFloorCh chan int, NewOrderCh chan Order) {
-// 	ElevCh <- elev //Update elevator state
-// 	DoorTimer := time.NewTimer(3 * time.Second)
-// 	DoorTimer.Stop()
-// 	fmt.Println("")
-// 	for {
-// 		select {
-// 		case NewOrder := <-NewOrderCh:
-// 			/* if NewOrder.Done {
-// 				requests.ClearFloor(elev, NewOrder.Floor)
-// 			} else { */
-// 				elev.Requests[NewOrder.Floor][NewOrder.Button] = true
-// 			/* } */
-			
-// 			switch elev.State {
-// 				case IDLE:
-// 					elev.Direction = ChooseDirection(elev)
-// 					elevio.SetMotorDirection(elevio.MotorDirection(elev.Direction))
-// 					if elev.Direction == STOP {
-// 						lights.OpenDoor(DoorTimer)
-// 						elev.State = DOOR_OPEN
-// 					} else {
-// 						elev.State = MOVING
-// 					}
-// 				case MOVING: //NOOP
-// 				case DOOR_OPEN:
-// 					if elev.Floor == NewOrder.Floor {
-// 						requests.ClearFloor(&elev, elev.Floor)
-// 						lights.OpenDoor(DoorTimer)
-// 					}
-// 			}
-
-// 			ElevCh <- elev //Update elevator state
-
-// 		case elev.Floor = <-AtFloorCh:
-// 			elevio.SetFloorIndicator(elev.Floor)
-// 			if ShouldStop(elev) {
-// 				elevio.SetMotorDirection(elevio.MD_Stop)
-// 				requests.ClearFloor(&elev, elev.Floor)
-				
-// 				lights.OpenDoor(DoorTimer)
-// 				elev.State = DOOR_OPEN
-// 			}
-// 			ElevCh <- elev //Update elevator state
-
-// 		case <-DoorTimer.C:
-
-	// 	elevio.SetDoorOpenLamp(false)
-			// elev.Direction = ChooseDirection(elev)
-			// if elev.Direction == STOP {
-			// 	elev.State = IDLE
-			// } else {
-			// 	elevio.SetMotorDirection(elevio.MotorDirection(elev.Direction))
-			// 	elev.State = MOVING
-			// }
-			// ElevCh <- elev //Update elevator state
-// 		}
-// 		time.Sleep(20*time.Millisecond)
-// 	}
-// }

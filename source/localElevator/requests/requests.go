@@ -3,7 +3,6 @@ package requests
 import (
 	"fmt"
 	. "source/localElevator/config"
-	//"source/localElevator/elevator"
 	"source/localElevator/elevio"
 	"time"
 )
@@ -29,10 +28,10 @@ func Update(Receiver chan elevio.ButtonEvent, Transmitter chan Order) {
 	for{
 		select {
 			case btn := <-Receiver:
-				Transmitter<-Order{btn.Floor, int(btn.Button)}//, false}
+				Transmitter<-Order{Floor: btn.Floor, Button: int(btn.Button)}
 				elevio.SetButtonLamp(elevio.ButtonType(btn.Button), btn.Floor, true) //THIS SIGNIFIES ORDER IS ACCEPTED. CHANGE
 		}
-		time.Sleep(20*time.Millisecond)
+		time.Sleep(T_SLEEP)
 	}
 }
 
