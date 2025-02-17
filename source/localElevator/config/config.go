@@ -42,3 +42,10 @@ type Order struct {
 	Floor int
 	Button int
 }
+
+type Message struct {
+	// ID spesific paramters
+	ID int
+	// Parameters for all
+	Heartbeat string
+}

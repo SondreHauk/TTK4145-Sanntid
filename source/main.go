@@ -10,6 +10,8 @@ import (
 	"source/localElevator/fsm"
 	"source/localElevator/inits"
 	"source/localElevator/requests"
+	"source/backup"
+	"source/primary"
 )
 
 func kill(StopButtonCh<-chan bool){
@@ -55,17 +57,27 @@ func main() {
 	go fsm.Run(&elev, /* ElevatorChan, */ AtFloorChan, NewOrderChan, ObstructionChan)
 	go kill(StopChan)
 
+	//Message testing
+	MsgChan := make(chan Message)
+	go primary.MsgTX(20020, MsgChan)
+	go backup.MsgRX(20020, MsgChan)
+
+	for {
+		select {
+		case msg := <-MsgChan:
+			// Process and print received message
+			fmt.Printf("Message received: ID = %d, Heartbeat = %s\n", msg.ID, msg.Heartbeat)
+		}
+	}
 	//Primary backup protocol
 	/*go backup(listens to bcast from primary) */
 
-	//Blocking select
+	/* //Blocking select
 	select {
 		/* 
 		case primary dead
 			if next in queue:
 				go primary
-		*/
-		
-	}
-	//
+		}*/
+	//select {}
 }
