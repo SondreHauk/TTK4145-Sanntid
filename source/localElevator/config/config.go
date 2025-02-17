@@ -20,6 +20,7 @@ const(
 )
 
 const (
+	T_HEARTBEAT = time.Millisecond*500
 	T_SLEEP = time.Millisecond*20
 	T_DOOR_OPEN = time.Second*3	
 )
@@ -40,10 +41,4 @@ type Elevator struct {
 type Order struct {
 	Floor int
 	Button int
-}
-
-type FsmChansType struct {
-	ElevatorChan chan Elevator
-	AtFloorChan  chan int
-	NewOrderChan chan Order
 }

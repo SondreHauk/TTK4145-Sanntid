@@ -4,8 +4,6 @@ package fsm
 
 import (
 	. "source/localElevator/config"
-	//"source/localElevator/elevator"
-	//"source/localElevator/elevator"
 	"fmt"
 	"math/rand"
 	"source/localElevator/elevio"
@@ -57,6 +55,7 @@ func ChooseDirection(elev Elevator) int {
 
 func Run(elev *Elevator, /* ElevCh chan *Elevator, */ AtFloorCh chan int, NewOrderCh chan Order, ObsCh chan bool) {
 	//ElevCh <- elev //Send updated elevator state to master
+	HeartbeatTimer := time.NewTimer(T_HEARTBEAT)
 	DoorTimer := time.NewTimer(T_DOOR_OPEN)
 	DoorTimer.Stop()
 	Obstructed := false
@@ -122,8 +121,11 @@ func Run(elev *Elevator, /* ElevCh chan *Elevator, */ AtFloorCh chan int, NewOrd
 						DoorTimer.Reset(T_DOOR_OPEN)
 				}
 			}
-			
+		case <-HeartbeatTimer.C:
+			//ElevCh <- elev //Send updated elevator state to master
+			HeartbeatTimer.Reset(T_HEARTBEAT)
 		}
+
 		time.Sleep(T_SLEEP)
 	}
 }

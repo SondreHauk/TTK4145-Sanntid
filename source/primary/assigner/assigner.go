@@ -8,6 +8,7 @@ package assigner
 
 import (
 	"source/localElevator/elevator"
+	."source/localElevator/config"
 )
 
 type Button int
@@ -28,13 +29,6 @@ const (
 	EB_Moving
 	EB_DoorOpen
 )
-
-type Elevator struct {
-	floor     int
-	dirn      Direction
-	behaviour Behaviour
-	requests  [N_FLOORS][N_BUTTONS]bool
-}
 
 type ClearedRequestFunc func(Button, int)
 

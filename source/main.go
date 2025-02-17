@@ -6,22 +6,23 @@ import (
 	"os"
 	"os/signal"
 	. "source/localElevator/config"
-	"source/localElevator/elevator"
 	"source/localElevator/elevio"
 	"source/localElevator/fsm"
-	"source/localElevator/lights"
+	"source/localElevator/inits"
 	"source/localElevator/requests"
 )
 
 func kill(StopButtonCh<-chan bool){
 	KeyboardInterruptCh := make(chan os.Signal, 1)
 	signal.Notify(KeyboardInterruptCh, os.Interrupt)
-	//Blocks until an interrupt is received on ch
+	
 	select {
-	case <-KeyboardInterruptCh:
+	case <-KeyboardInterruptCh:		
+		fmt.Println("Keyboard interrupt")
 	case <-StopButtonCh:
+		fmt.Println("Stop button pressed")	
 	}
-	fmt.Println("Interrupt received")
+
 	elevio.SetMotorDirection(elevio.MD_Stop)
 	os.Exit(1) 
 }
@@ -42,8 +43,8 @@ func main() {
 	//Initializations
 	elevio.Init("localhost:"+ port, NUM_FLOORS)
 	elev := Elevator{}
-	lights.LightsInit()
-	elevator.ElevatorInit(&elev)
+	inits.LightsInit()
+	inits.ElevatorInit(&elev)
 
 	//Goroutines
 	go requests.Update(ButtonChan, NewOrderChan)
@@ -54,6 +55,17 @@ func main() {
 	go fsm.Run(&elev, /* ElevatorChan, */ AtFloorChan, NewOrderChan, ObstructionChan)
 	go kill(StopChan)
 
+	//Primary backup protocol
+	/*go backup(listens to bcast from primary) */
+
 	//Blocking select
-	select {}
+	select {
+		/* 
+		case primary dead
+			if next in queue:
+				go primary
+		*/
+		
+	}
+	//
 }
