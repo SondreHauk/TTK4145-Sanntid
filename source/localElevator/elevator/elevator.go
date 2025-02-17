@@ -3,7 +3,7 @@ package elevator
 import (
 	. "source/localElevator/config"
 	"source/localElevator/elevio"
-	"time"
+	/* "time" */
 )
 
 // This module should contain the elevator struct and some actions that the elevator can perform
@@ -18,22 +18,25 @@ import (
 } */
 
 //Drives down to the nearest floor and updates floor indicator
-func ElevatorInit(elev Elevator){
-	for elevio.GetFloor() == -1{
-		time.Sleep(time.Millisecond*20)
+func ElevatorInit(elev *Elevator){
+	currentFloor := elevio.GetFloor()
+	if currentFloor == -1{
+		ch:=make(chan int)
+		go elevio.PollFloorSensor(ch)
 		elevio.SetMotorDirection(elevio.MD_Down)
+		select{case currentFloor = <-ch:}
+		elevio.SetMotorDirection(elevio.MD_Stop)
 	}
-	elevio.SetMotorDirection(elevio.MD_Stop)
-	elev.Floor = elevio.GetFloor()
+	elev.Floor = currentFloor
 	elevio.SetFloorIndicator(elev.Floor)
 }
 
 
-//Moves to floor fl without checking queue. Mostly for testing
+/* //Moves to floor fl without checking queue. Mostly for testing
 func MoveFloor(elev Elevator, fl int){
 	elev.Floor = elevio.GetFloor()
 	if elev.Floor == -1{
-		ElevatorInit(elev)
+		ElevatorInit(&elev)
 	}
 	
 	if elev.Floor < fl{
@@ -51,4 +54,4 @@ func MoveFloor(elev Elevator, fl int){
 	}
 	elevio.SetMotorDirection(elevio.MD_Stop)
 	elevio.SetFloorIndicator(elev.Floor)
-}
+} */

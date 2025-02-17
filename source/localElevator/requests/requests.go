@@ -15,7 +15,7 @@ func ClearFloor(elev *Elevator, floor int) {
 		elevio.SetButtonLamp(elevio.ButtonType(btn), floor, false)
 	}
 	//fmt.Printf("elev.Requests[%d] = %t\n",floor, elev.Requests[floor])
-	fmt.Printf("Floor %d cleared\n", floor+1)
+	//fmt.Printf("Floor %d cleared\n", floor+1)
 }
 
 func ClearAll(elev *Elevator) {

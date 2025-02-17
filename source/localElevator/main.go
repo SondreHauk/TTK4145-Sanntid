@@ -39,8 +39,8 @@ func main() {
 	//Initializations
 	elevio.Init("localhost:"+ port, NUM_FLOORS)
 	elev := Elevator{}
-	lights.LightsInit(elev)
-	elevator.ElevatorInit(elev)
+	lights.LightsInit()
+	elevator.ElevatorInit(&elev)
 
 	//Goroutines
 	go elevio.PollButtons(ButtonChan)

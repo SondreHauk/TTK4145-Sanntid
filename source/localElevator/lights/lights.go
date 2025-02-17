@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func LightsInit(elev Elevator){
+func LightsInit(){
 	for fl:=0; fl<NUM_FLOORS; fl++{
 		for btn:=0; btn<NUM_BUTTONS; btn++{
 			elevio.SetButtonLamp(elevio.ButtonType(btn),fl,false)
