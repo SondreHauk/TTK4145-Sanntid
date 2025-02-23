@@ -7,7 +7,7 @@ import (
 
 
 func MsgRX(port int, msg chan Message) {
-		bcast.Receiver(port, msg)
+			bcast.Receiver(port, msg)
 }
 // Listen for heartbeats from primary
 // Update state and acknowlegde to primary

@@ -44,6 +44,40 @@ func Transmitter(port int, chans ...interface{}) {
 	}
 }
 
+func TransmitterModified(port int, chans ...interface{}) {
+	checkArgs(chans...)
+	typeNames := make([]string, len(chans))
+	selectCases := make([]reflect.SelectCase, len(typeNames))
+	for i, ch := range chans {
+		selectCases[i] = reflect.SelectCase{
+			Dir:  reflect.SelectRecv,
+			Chan: reflect.ValueOf(ch),
+		}
+		typeNames[i] = reflect.TypeOf(ch).Elem().String()
+	}
+
+	conn := conn.DialBroadcastUDP(port)
+	addr, _ := net.ResolveUDPAddr("udp4", fmt.Sprintf("255.255.255.255:%d", port))
+
+	go func() {
+	for {
+		chosen, value, _ := reflect.Select(selectCases)
+		jsonstr, _ := json.Marshal(value.Interface())
+		ttj, _ := json.Marshal(typeTaggedJSON{
+			TypeId: typeNames[chosen],
+			JSON:   jsonstr,
+		})
+		if len(ttj) > bufSize {
+		    panic(fmt.Sprintf(
+		        "Tried to send a message longer than the buffer size (length: %d, buffer size: %d)\n\t'%s'\n"+
+		        "Either send smaller packets, or go to network/bcast/bcast.go and increase the buffer size",
+		        len(ttj), bufSize, string(ttj)))
+		}
+		conn.WriteTo(ttj, addr)	
+	}
+	}()
+}
+
 // Matches type-tagged JSON received on `port` to element types of `chans`, then
 // sends the decoded value on the corresponding channel
 func Receiver(port int, chans ...interface{}) {

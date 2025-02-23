@@ -30,8 +30,11 @@ func kill(StopButtonCh<-chan bool){
 }
 
 func main() {
+	// Initialize from command line with: go run main.go -port=15657 -id=1
 	var port string
+	var id string
 	flag.StringVar(&port, "port", "", "Elevator port number")
+	flag.StringVar(&id, "id","", "Elevator port")
 	flag.Parse()
 
 	//Channels
@@ -58,10 +61,11 @@ func main() {
 	go kill(StopChan)
 
 	//Message testing
-	MsgChan := make(chan Message)
+	MsgChan := make(chan Message, 100)
 	go primary.MsgTX(20020, MsgChan)
 	go backup.MsgRX(20020, MsgChan)
 
+	//This should happen in backup module
 	for {
 		select {
 		case msg := <-MsgChan:

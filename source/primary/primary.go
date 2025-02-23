@@ -7,9 +7,11 @@ import (
 )
 
 func MsgTX(port int, msg chan Message){
-	for{
-		msg <- Message{ID: 1, Heartbeat: "Alive"}
-		bcast.Transmitter(port, msg)
-		time.Sleep(T_HEARTBEAT)
-	}
+	go func(){
+		for{
+			msg <- Message{ID: 1, Heartbeat: "Alive"}
+			bcast.TransmitterModified(port, msg)
+			time.Sleep(T_HEARTBEAT)
+		}
+	}()
 }
