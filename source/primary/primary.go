@@ -4,6 +4,8 @@ import (
 	//"source/network/bcast"
 	. "source/localElevator/config"
 	"time"
+	"source/network/peers"
+	"fmt"
 )
 
 func MsgBcastTX(msg chan Message, id int){
@@ -11,5 +13,19 @@ func MsgBcastTX(msg chan Message, id int){
 	for {
 		msg <- Message{ID: id, Heartbeat: "Alive"}
 		time.Sleep(T_HEARTBEAT)
+	}
+}
+
+func Run(peerUpdateChan <-chan peers.PeerUpdate){
+	var activePeers peers.PeerUpdate
+	for {
+		select{
+		case activePeers = <-peerUpdateChan:
+			fmt.Printf("Peer update:\n")
+			fmt.Printf("  Peers:    %q\n", activePeers.Peers)
+			fmt.Printf("  New:      %q\n", activePeers.New)
+			fmt.Printf("  Lost:     %q\n", activePeers.Lost)
+		}
+		// <- new order
 	}
 }

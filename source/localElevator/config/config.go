@@ -36,7 +36,7 @@ type Elevator struct {
 	Direction int
 	State  ElevatorState
 	Requests  [NUM_FLOORS][NUM_BUTTONS]bool
-	ID int
+	ID string
 }
 
 type Order struct {

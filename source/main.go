@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+
 	//"strconv"
 	. "source/localElevator/config"
 	"source/localElevator/elevio"
 	"source/localElevator/fsm"
 	"source/localElevator/inits"
 	"source/localElevator/requests"
+	"source/primary"
+
 	//"source/backup"
 	//"source/primary"
 	//"source/network/bcast"
@@ -38,6 +41,7 @@ func main() {
 	var id string
 	flag.StringVar(&port, "port", "", "Elevator port number")
 	flag.StringVar(&id, "id","", "Elevator port")
+	// If not valid ID, kill.
 	flag.Parse()
 
 	//Channels
@@ -77,15 +81,6 @@ func main() {
 
 	go peers.Transmitter(20030, id, TransmitEnable)
 	go peers.Receiver(20030, PeerUpdateChan)
-
-	for {
-		select {
-		case p := <-PeerUpdateChan:
-			fmt.Printf("Peer update:\n")
-			fmt.Printf("  Peers:    %q\n", p.Peers)
-			fmt.Printf("  New:      %q\n", p.New)
-			fmt.Printf("  Lost:     %q\n", p.Lost)
-	}
-	}
+	go primary.Run(PeerUpdateChan)
 	select {}
 }

@@ -3,7 +3,6 @@ package inits
 import (
 	. "source/localElevator/config"
 	"source/localElevator/elevio"
-	"strconv"
 )
 
 func ElevatorInit(elev *Elevator, id string){
@@ -15,7 +14,7 @@ func ElevatorInit(elev *Elevator, id string){
 		select{case currentFloor = <-ch:}
 		elevio.SetMotorDirection(elevio.MD_Stop)
 	}
-	elev.ID, _= strconv.Atoi(id)
+	elev.ID = id
 	elev.Direction = int(elevio.MD_Stop)
 	elev.State = IDLE
 	elev.Floor = currentFloor
