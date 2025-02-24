@@ -3,11 +3,12 @@ package fsm
 // This module should contain the finite state machine for the local elevator
 
 import (
-	. "source/localElevator/config"
 	"math/rand"
+	. "source/localElevator/config"
 	"source/localElevator/elevio"
 	"source/localElevator/requests"
 	"time"
+	//"fmt"
 )
 
 func ShouldStop(elev Elevator) bool {
@@ -50,6 +51,38 @@ func ChooseDirection(elev Elevator) int {
 	return STOP
 }
 
+func TimeUntilPickup(elev Elevator, NewOrder Order) time.Duration{
+	duration := time.Duration(0)
+	elev.Requests[NewOrder.Floor][NewOrder.Button]=true
+	// Determines initial state
+	switch elev.State {
+	case IDLE:
+		elev.Direction = ChooseDirection(elev)
+		if elev.Direction == STOP && elev.Floor == NewOrder.Floor{
+			return duration
+		}
+	case MOVING:
+		duration += T_TRAVEL / 2
+		elev.Floor += int(elev.Direction)
+	case DOOR_OPEN:
+		duration -= T_DOOR_OPEN / 2
+	}
+
+	for {
+		if ShouldStop(elev) {
+			if elev.Floor == NewOrder.Floor{
+				return duration
+			}else{
+				requests.ClearFloor(&elev, elev.Floor) //Changes do not propagate back to main
+				duration += T_DOOR_OPEN
+				elev.Direction = ChooseDirection(elev)
+			}
+		}
+		elev.Floor += int(elev.Direction)
+		duration += T_TRAVEL
+	}
+}
+
 func Run(elev *Elevator, /* ElevCh chan *Elevator, */ AtFloorCh chan int, NewOrderCh chan Order, ObsCh chan bool) {
 	//ElevCh <- elev //Send updated elevator state to master
 	HeartbeatTimer := time.NewTimer(T_HEARTBEAT)
@@ -59,6 +92,7 @@ func Run(elev *Elevator, /* ElevCh chan *Elevator, */ AtFloorCh chan int, NewOrd
 	for {
 		select {
 		case NewOrder := <-NewOrderCh:
+			//fmt.Println("Time until pickup: ",TimeUntilPickup(*elev,NewOrder))
 			elev.Requests[NewOrder.Floor][NewOrder.Button] = true
 			switch elev.State {
 				case IDLE:

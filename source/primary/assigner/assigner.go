@@ -45,6 +45,19 @@ func TimeToIdle(elev Elevator) time.Duration {
 	}
 }
 
-func AssignElevator(Peers *PeerUpdate){
-	elevCopies:=Peer
+//Uses TimeToIdle to find the optimal elevator for NewOrder
+func ChooseElevator(Elevators []Elevator, NewOrder Order)int{
+	
+	elevCopies := Elevators[:]
+	bestTime := time.Duration(1<<31) // inf
+	bestElev := 0
+
+	//
+	for i := 0; i < len(elevCopies); i++{
+		if fsm.TimeUntilPickup(elevCopies[i],NewOrder)<bestTime{
+			bestElev = i
+			bestTime = TimeToIdle(elevCopies[i])
+		}
+	}
+	return bestElev
 }

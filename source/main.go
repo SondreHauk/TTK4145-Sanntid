@@ -12,8 +12,8 @@ import (
 	"source/localElevator/inits"
 	"source/localElevator/requests"
 	"source/primary"
-	"source/primary/assigner"
-	"time"
+	/* "source/primary/assigner"
+	"time" */
 )
 
 func kill(StopButtonCh<-chan bool){
@@ -64,7 +64,7 @@ func main() {
 	go primary.MsgTX(20020, MsgChan)
 	go backup.MsgRX(20020, MsgChan)
 	
-	go assigner.TimeToIdle(elev)
+	//go assigner.TimeToIdle(elev)
 	
 	/* for {
 		if elev.Floor!=-1 {
@@ -86,5 +86,5 @@ func main() {
 			if next in queue:
 				go primary
 		}*/
-	//select {}
+	select {}
 }

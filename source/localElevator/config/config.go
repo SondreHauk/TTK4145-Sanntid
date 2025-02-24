@@ -52,3 +52,7 @@ type Message struct {
 	// Parameters for all
 	Heartbeat string
 }
+
+func DeepCopyElev(elev Elevator){
+	
+}
