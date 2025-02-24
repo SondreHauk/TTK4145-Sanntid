@@ -92,20 +92,20 @@ func requestsShouldStop(e Elevator) bool {
 	return false
 }
 
-func timeToIdle(e Elevator) int {
+func timeToIdle(e *Elevator) int {//endra til pass by reference
 	duration := 0
 	// Enters the switch case once to determine the initial state of the elevator
-	switch e.behaviour {
-	case EB_Idle:
-		e.dirn = requestsChooseDirection(e)
-		if e.dirn == D_Stop {
+	switch e.State {
+	case IDLE:
+		e.Direction = requestsChooseDirection(e)
+		if e.Direction == STOP {
 			return duration
 		}
-	case EB_Moving:
+	case MOVING:
 		duration += TRAVEL_TIME / 2
-		e.floor += int(e.dirn)
-	case EB_DoorOpen:
-		duration -= DOOR_OPEN_TIME / 2
+		e.Floor += int(e.Direction)
+	case DOOR_OPEN:
+		duration -= T_DOOR_OPEN / 2
 	}
 	// Adds exectution time for the elevator to reach IDLE (clear all pending requests).
 	for {
