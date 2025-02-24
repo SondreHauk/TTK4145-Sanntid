@@ -17,13 +17,16 @@ const (
 const(
 	NUM_FLOORS = 4
 	NUM_BUTTONS = 3
+	NUM_ELEVATORS = 1 // FOR NOW
 )
 
 const (
 	T_HEARTBEAT = time.Millisecond*500
 	T_SLEEP = time.Millisecond*20
-	T_DOOR_OPEN = time.Second*3	
+	T_DOOR_OPEN = time.Second*3
+	T_TRAVEL = time.Second*2 	//Approximate time to travel from floor i to floor i+-1
 	T_TIMEOUT = time.Second*2
+
 )
 
 const(
@@ -39,8 +42,10 @@ const(
 )
 
 type Elevator struct {
+	Id 	int
 	Floor     int
 	Direction int
+	PrevDirection int
 	State  ElevatorState
 	Requests  [NUM_FLOORS][NUM_BUTTONS]bool
 	ID string
@@ -52,7 +57,7 @@ type Order struct {
 }
 
 type Message struct {
-	// ID spesific paramters
+	// ID specific paramters
 	ID int
 	// Parameters for all
 	Heartbeat string

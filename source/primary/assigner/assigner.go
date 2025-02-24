@@ -7,117 +7,56 @@
 package assigner
 
 import (
-	"source/localElevator/elevator"
-	."source/localElevator/config"
+	. "source/localElevator/config"
+	"source/localElevator/fsm"
+	"source/localElevator/requests"
+	"time"
 )
 
-type Button int
-type Direction int
-
-const (
-	D_Stop Direction  = 0
-	N_FLOORS 	      = 3 
-	N_BUTTONS         = 4 
-	TRAVEL_TIME       = 5
-	DOOR_OPEN_TIME    = 3
-)
-
-type Behaviour int
-
-const (
-	EB_Idle Behaviour = iota
-	EB_Moving
-	EB_DoorOpen
-)
-
-type ClearedRequestFunc func(Button, int)
-
-func requestsClearAtCurrentFloor(e Elevator, onClearedRequest ClearedRequestFunc) Elevator {
-	for btn := Button(0); btn < N_BUTTONS; btn++ {
-		if e.requests[e.floor][btn] {
-			e.requests[e.floor][btn] = false
-			if onClearedRequest != nil {
-				onClearedRequest(btn, e.floor)
-			}
-		}
-	}
-	return e
-}
-
-func requestsChooseDirection(e Elevator) Direction {
-	DirnBehaviourPair requestsChooseDirection(e Elevator){
-		switch(e.dirn){
-		case D_Up:
-			return  requests_above(e) ? (DirnBehaviourPair){D_Up,   EB_Moving}   :
-					requests_here(e)  ? (DirnBehaviourPair){D_Down, EB_DoorOpen} :
-					requests_below(e) ? (DirnBehaviourPair){D_Down, EB_Moving}   :
-										(DirnBehaviourPair){D_Stop, EB_Idle}     ;
-		case D_Down:
-			return  requests_below(e) ? (DirnBehaviourPair){D_Down, EB_Moving}   :
-					requests_here(e)  ? (DirnBehaviourPair){D_Up,   EB_DoorOpen} :
-					requests_above(e) ? (DirnBehaviourPair){D_Up,   EB_Moving}   :
-										(DirnBehaviourPair){D_Stop, EB_Idle}     ;
-		case D_Stop: // there should only be one request in the Stop case. Checking up or down first is arbitrary.
-			return  requests_here(e)  ? (DirnBehaviourPair){D_Stop, EB_DoorOpen} :
-					requests_above(e) ? (DirnBehaviourPair){D_Up,   EB_Moving}   :
-					requests_below(e) ? (DirnBehaviourPair){D_Down, EB_Moving}   :
-										(DirnBehaviourPair){D_Stop, EB_Idle}     ;
-		default:
-			return (DirnBehaviourPair){D_Stop, EB_Idle};
-		}
-	}
-	
-	return D_Stop
-}
-
-func requestsShouldStop(e Elevator) bool {
-	// Placeholder logic for stopping decision
-	int requests_shouldStop(Elevator e){
-		switch(e.dirn){
-		case D_Down:
-			return
-				e.requests[e.floor][B_HallDown] ||
-				e.requests[e.floor][B_Cab]      ||
-				!requests_below(e);
-		case D_Up:
-			return
-				e.requests[e.floor][B_HallUp]   ||
-				e.requests[e.floor][B_Cab]      ||
-				!requests_above(e);
-		case D_Stop:
-		default:
-			return 1;
-		}
-	}
-	return false
-}
-
-func timeToIdle(e Elevator) int {
-	duration := 0
-	// Enters the switch case once to determine the initial state of the elevator
-	switch e.behaviour {
-	case EB_Idle:
-		e.dirn = requestsChooseDirection(e)
-		if e.dirn == D_Stop {
+//Creates a copy of the elevator and simulates executing remaining orders
+//NOT USED
+func TimeToIdle(elev Elevator) time.Duration {
+	duration := time.Duration(0)
+	// Determines initial state
+	switch elev.State {
+	case IDLE:
+		elev.Direction = fsm.ChooseDirection(elev)
+		if elev.Direction == STOP {
 			return duration
 		}
-	case EB_Moving:
-		duration += TRAVEL_TIME / 2
-		e.floor += int(e.dirn)
-	case EB_DoorOpen:
-		duration -= DOOR_OPEN_TIME / 2
+	case MOVING:
+		duration += T_TRAVEL / 2
+		elev.Floor += int(elev.Direction)
+	case DOOR_OPEN:
+		duration -= T_DOOR_OPEN / 2
 	}
-	// Adds exectution time for the elevator to reach IDLE (clear all pending requests).
+	
+	//Simulates remaining orders
 	for {
-		if requestsShouldStop(e) {
-			e = requestsClearAtCurrentFloor(e, nil)
-			duration += DOOR_OPEN_TIME
-			e.dirn = requestsChooseDirection(e)
-			if e.dirn == D_Stop {
+		if fsm.ShouldStop(elev) {
+			requests.ClearFloor(&elev, elev.Floor) //Changes do not propagate back to main
+			duration += T_DOOR_OPEN
+			elev.Direction = fsm.ChooseDirection(elev)
+			if elev.Direction == STOP {
 				return duration
 			}
 		}
-		e.floor += int(e.dirn)
-		duration += TRAVEL_TIME
+		elev.Floor += int(elev.Direction)
+		duration += T_TRAVEL
 	}
+}
+
+//Uses TimeToIdle to find the optimal elevator for NewOrder
+func ChooseElevator(Elevators []Elevator, NewOrder Order)int{
+	
+	bestTime := time.Hour //inf
+	bestElev := 0
+	
+	for i := 0; i < len(Elevators); i++{
+		if fsm.TimeUntilPickup(Elevators[i],NewOrder)<bestTime{
+			bestElev = i
+			bestTime = fsm.TimeUntilPickup(Elevators[i],NewOrder)
+		}
+	}
+	return bestElev
 }
