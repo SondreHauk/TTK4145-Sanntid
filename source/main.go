@@ -33,7 +33,7 @@ func kill(StopButtonCh<-chan bool){
 }
 
 func main() {
-	// Initialize from command line with: go run main.go -port=15657 -id=1
+	
 	var port string
 	var id string
 	flag.StringVar(&port, "port", "", "Elevator port number")

@@ -8,17 +8,6 @@ import (
 	"source/network/peers"
 )
 
-// func MsgBcastTX(msg chan Message, id int){
-// 	//go bcast.Transmitter(port, msg) // Start broadcasting in a separate goroutine
-// 	for {
-// 		msg <- Message{ID: id, Heartbeat: "Alive"}
-// 		time.Sleep(T_HEARTBEAT)
-// 	}
-// }
-
-// var Elevators = make(map[string]*Elevator)
-// var ActivePeers peers.PeerUpdate
-
 func printPeers(p peers.PeerUpdate){
 	fmt.Printf("Peer update:\n")
 	fmt.Printf("  Peers:    %q\n", p.Peers)
@@ -34,6 +23,7 @@ func Run(
 	
 	var activePeers peers.PeerUpdate
 	var elevators = make(map[string]Elevator)
+
 	for {
 		select{
 		case <- becomePrimary:
@@ -52,7 +42,6 @@ func Run(
 					fmt.Printf("Floor: %d\n", elevUpdate.Floor)
 
 				case <- HeartbeatTimer.C:
-					fmt.Println("Heartbeat timer primary")
 					primaryActiveChan <- "Hello from Primary"
 				}
 			}
