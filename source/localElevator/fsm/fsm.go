@@ -53,12 +53,19 @@ func ChooseDirection(elev Elevator) int {
 	return STOP
 }
 
-func Run(elev *Elevator, /* ElevCh chan *Elevator, */ AtFloorCh chan int, NewOrderCh chan Order, ObsCh chan bool) {
-	//ElevCh <- elev //Send updated elevator state to master
+func Run(
+	elev *Elevator, 
+	ElevCh chan <-Elevator, 
+	AtFloorCh <-chan int, 
+	NewOrderCh <-chan Order, 
+	ObsCh <-chan bool) {
+
+	ElevCh <- *elev
 	HeartbeatTimer := time.NewTimer(T_HEARTBEAT)
 	DoorTimer := time.NewTimer(T_DOOR_OPEN)
 	DoorTimer.Stop()
 	Obstructed := false
+	
 	for {
 		select {
 		case NewOrder := <-NewOrderCh:
@@ -84,7 +91,7 @@ func Run(elev *Elevator, /* ElevCh chan *Elevator, */ AtFloorCh chan int, NewOrd
 						}
 					}
 			}
-			//ElevCh <- elev //Send updated elevator state to master
+			ElevCh <- *elev
 
 		case elev.Floor = <-AtFloorCh:
 			elevio.SetFloorIndicator(elev.Floor)
@@ -96,7 +103,7 @@ func Run(elev *Elevator, /* ElevCh chan *Elevator, */ AtFloorCh chan int, NewOrd
 				DoorTimer.Reset(T_DOOR_OPEN)
 				elev.State = DOOR_OPEN
 			}
-			//ElevCh <- elev //Send updated elevator state to master
+			ElevCh <- *elev
 
 		case <-DoorTimer.C:
 
@@ -108,7 +115,7 @@ func Run(elev *Elevator, /* ElevCh chan *Elevator, */ AtFloorCh chan int, NewOrd
 				elevio.SetMotorDirection(elevio.MotorDirection(elev.Direction))
 				elev.State = MOVING
 			}
-			//ElevCh <- elev //Send updated elevator state to master
+			ElevCh <- *elev
 		
 		case ObsEvent:= <-ObsCh:
 			if elev.State==DOOR_OPEN{
@@ -122,7 +129,7 @@ func Run(elev *Elevator, /* ElevCh chan *Elevator, */ AtFloorCh chan int, NewOrd
 				}
 			}
 		case <-HeartbeatTimer.C:
-			//ElevCh <- elev //Send updated elevator state to master
+			ElevCh <- *elev
 			HeartbeatTimer.Reset(T_HEARTBEAT)
 		}
 

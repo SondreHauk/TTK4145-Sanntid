@@ -5,7 +5,7 @@ import (
 	"source/localElevator/elevio"
 )
 
-func ElevatorInit(elev *Elevator){
+func ElevatorInit(elev *Elevator, id string){
 	currentFloor := elevio.GetFloor()
 	if currentFloor == -1{
 		ch:=make(chan int)
@@ -14,6 +14,7 @@ func ElevatorInit(elev *Elevator){
 		select{case currentFloor = <-ch:}
 		elevio.SetMotorDirection(elevio.MD_Stop)
 	}
+	elev.ID = id
 	elev.Direction = int(elevio.MD_Stop)
 	elev.State = IDLE
 	elev.Floor = currentFloor
