@@ -66,17 +66,16 @@ func main() {
 	
 	go assigner.TimeToIdle(elev)
 	
-	for {
+	/* for {
 		if elev.Floor!=-1 {
 			fmt.Println("Time to idle: ",assigner.TimeToIdle(elev))
 		}
 		time.Sleep(time.Second)
-		/* select {
+		select {
 		case msg := <-MsgChan:
 			// Process and print received message
 			fmt.Printf("Message received: ID = %d, Heartbeat = %s\n", msg.ID, msg.Heartbeat)
-		} */
-	}
+	} */
 	//Primary backup protocol
 	/*go backup(listens to bcast from primary) */
 

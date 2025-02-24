@@ -45,12 +45,6 @@ func TimeToIdle(elev Elevator) time.Duration {
 	}
 }
 
-func AssignElevator(elevs chan *Elevator){
-	for{
-		select {
-		case e<-elevs:
-			if 
-			
-		}
-	}
+func AssignElevator(Peers *PeerUpdate){
+	elevCopies:=Peer
 }

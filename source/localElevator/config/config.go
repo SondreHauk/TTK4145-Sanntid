@@ -17,6 +17,7 @@ const (
 const(
 	NUM_FLOORS = 4
 	NUM_BUTTONS = 3
+	NUM_ELEVATORS = 1 // FOR NOW
 )
 
 const (
@@ -33,6 +34,7 @@ const(
 )
 
 type Elevator struct {
+	Id 	int
 	Floor     int
 	Direction int
 	State  ElevatorState
