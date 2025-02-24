@@ -52,7 +52,7 @@ func main() {
 	elevio.Init("localhost:"+ port, NUM_FLOORS)
 	elev := Elevator{}
 	inits.LightsInit()
-	inits.ElevatorInit(&elev)
+	inits.ElevatorInit(&elev, id)
 
 	//Goroutines
 	go requests.Update(ButtonChan, NewOrderChan)
@@ -72,11 +72,20 @@ func main() {
 	// go bcast.Transmitter(20020, TXchan)
 
 	//peers testing
-	TransmitEnable := make(chan bool, 10)
+	TransmitEnable := make(chan bool)
 	PeerUpdateChan := make(chan peers.PeerUpdate)
 
 	go peers.Transmitter(20030, id, TransmitEnable)
 	go peers.Receiver(20030, PeerUpdateChan)
 
+	for {
+		select {
+		case p := <-PeerUpdateChan:
+			fmt.Printf("Peer update:\n")
+			fmt.Printf("  Peers:    %q\n", p.Peers)
+			fmt.Printf("  New:      %q\n", p.New)
+			fmt.Printf("  Lost:     %q\n", p.Lost)
+	}
+	}
 	select {}
 }
