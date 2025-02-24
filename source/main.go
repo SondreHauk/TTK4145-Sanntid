@@ -11,7 +11,6 @@ import (
 	"source/localElevator/inits"
 	"source/localElevator/requests"
 	"source/primary"
-	"source/primary/assigner"
 	"source/backup"
 	"source/network/bcast"
 	"source/network/peers"
