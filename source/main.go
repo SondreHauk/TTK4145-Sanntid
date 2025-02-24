@@ -12,9 +12,9 @@ import (
 	"source/localElevator/inits"
 	"source/localElevator/requests"
 	"source/primary"
+	"source/primary/assigner"
 	/* "source/primary/assigner"
-	"time" */
-)
+	"time" */)
 
 func kill(StopButtonCh<-chan bool){
 	KeyboardInterruptCh := make(chan os.Signal, 1)
@@ -66,6 +66,22 @@ func main() {
 	
 	//go assigner.TimeToIdle(elev)
 	
+/* 	el:=make([]Elevator,2)					// HALLUP HALLDWN  CAB
+	el[0]=Elevator{Floor:2,Requests:[4][3]bool{{false, true, false}, //FLOOR 4
+											   {false, false, true}, //FLOOR 3
+											   {true, true, false}, //FLOOR 2
+										       {false, false, true}, //FLOOR 1
+											},
+					PrevDirection:UP}
+	el[1]=Elevator{Floor:3,Requests:[4][3]bool{{false, false, false},
+											   {false, true, false},
+											   {true, true, false},
+										       {false, false, false},
+											}}
+	fmt.Println(assigner.ChooseElevator(el,Order{0,1}))
+	fmt.Println("Time until pickup for el[0]: ",fsm.TimeUntilPickup(el[0],Order{0,1}))
+	fmt.Println("Time until pickup for el[1]: ",fsm.TimeUntilPickup(el[1],Order{0,1})) */
+
 	/* for {
 		if elev.Floor!=-1 {
 			fmt.Println("Time to idle: ",assigner.TimeToIdle(elev))

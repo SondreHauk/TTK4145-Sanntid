@@ -14,6 +14,7 @@ import (
 )
 
 //Creates a copy of the elevator and simulates executing remaining orders
+//NOT USED
 func TimeToIdle(elev Elevator) time.Duration {
 	duration := time.Duration(0)
 	// Determines initial state
@@ -48,15 +49,13 @@ func TimeToIdle(elev Elevator) time.Duration {
 //Uses TimeToIdle to find the optimal elevator for NewOrder
 func ChooseElevator(Elevators []Elevator, NewOrder Order)int{
 	
-	elevCopies := Elevators[:]
-	bestTime := time.Duration(1<<31) // inf
+	bestTime := time.Hour //inf
 	bestElev := 0
-
-	//
-	for i := 0; i < len(elevCopies); i++{
-		if fsm.TimeUntilPickup(elevCopies[i],NewOrder)<bestTime{
+	
+	for i := 0; i < len(Elevators); i++{
+		if fsm.TimeUntilPickup(Elevators[i],NewOrder)<bestTime{
 			bestElev = i
-			bestTime = TimeToIdle(elevCopies[i])
+			bestTime = fsm.TimeUntilPickup(Elevators[i],NewOrder)
 		}
 	}
 	return bestElev

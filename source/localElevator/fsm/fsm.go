@@ -3,13 +3,15 @@ package fsm
 // This module should contain the finite state machine for the local elevator
 
 import (
-	"math/rand"
+	"fmt"
 	. "source/localElevator/config"
 	"source/localElevator/elevio"
 	"source/localElevator/requests"
 	"time"
-	//"fmt"
 )
+func dummy(){
+	fmt.Println("")
+}
 
 func ShouldStop(elev Elevator) bool {
 	switch elev.Direction {
@@ -32,10 +34,8 @@ func ShouldStop(elev Elevator) bool {
 }
 
 func ChooseDirection(elev Elevator) int {
-	// In case of orders above and below; choose direction at random
-	rand.Seed(time.Now().UnixNano())
-	r := rand.Intn(10)
-	if r % 2 == 0{
+	// In case of orders above and below; choose last moving direction
+	if elev.PrevDirection == UP{
 		if requests.OrdersAbove(elev) {
 			return UP
 		} else if requests.OrdersBelow(elev) {
@@ -49,8 +49,10 @@ func ChooseDirection(elev Elevator) int {
 		}
 	}
 	return STOP
+
 }
 
+//Simulates elevator execution and returns approx time until pickup at NewOrder.Floor
 func TimeUntilPickup(elev Elevator, NewOrder Order) time.Duration{
 	duration := time.Duration(0)
 	elev.Requests[NewOrder.Floor][NewOrder.Button]=true
@@ -73,7 +75,9 @@ func TimeUntilPickup(elev Elevator, NewOrder Order) time.Duration{
 			if elev.Floor == NewOrder.Floor{
 				return duration
 			}else{
-				requests.ClearFloor(&elev, elev.Floor) //Changes do not propagate back to main
+				for btn:=0; btn<NUM_BUTTONS; btn++{
+					elev.Requests[elev.Floor][btn]=false
+				}
 				duration += T_DOOR_OPEN
 				elev.Direction = ChooseDirection(elev)
 			}
@@ -92,7 +96,7 @@ func Run(elev *Elevator, /* ElevCh chan *Elevator, */ AtFloorCh chan int, NewOrd
 	for {
 		select {
 		case NewOrder := <-NewOrderCh:
-			//fmt.Println("Time until pickup: ",TimeUntilPickup(*elev,NewOrder))
+			fmt.Println("Time until pickup: ",TimeUntilPickup(*elev,NewOrder))
 			elev.Requests[NewOrder.Floor][NewOrder.Button] = true
 			switch elev.State {
 				case IDLE:

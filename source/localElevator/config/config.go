@@ -37,6 +37,7 @@ type Elevator struct {
 	Id 	int
 	Floor     int
 	Direction int
+	PrevDirection int
 	State  ElevatorState
 	Requests  [NUM_FLOORS][NUM_BUTTONS]bool
 }
@@ -47,12 +48,8 @@ type Order struct {
 }
 
 type Message struct {
-	// ID spesific paramters
+	// ID specific paramters
 	ID int
 	// Parameters for all
 	Heartbeat string
-}
-
-func DeepCopyElev(elev Elevator){
-	
 }
