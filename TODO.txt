@@ -8,3 +8,5 @@ TODO
 ------------------------------------------------------------------------------ Peers
 ------------------------------------------------------------------------------ Basic primary and backup communication
 - WorldViewStruct
+- Transmit worldView as heartbeat from primary
+- Fix issue with primary takeover printing whole history of elev state updates
