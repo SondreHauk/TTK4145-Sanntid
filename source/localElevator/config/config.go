@@ -23,6 +23,7 @@ const (
 	T_HEARTBEAT = time.Millisecond*500
 	T_SLEEP = time.Millisecond*20
 	T_DOOR_OPEN = time.Second*3	
+	T_TIMEOUT = time.Second*2
 )
 
 const(
@@ -32,8 +33,9 @@ const(
 )
 
 const(
-	PORT_PEERS = 20030
-	PORT_BCAST_ELEV = 20020
+	PORT_PEERS = 20020
+	PORT_BCAST_ELEV = 20030
+	PORT_PRIMARY = 20040
 )
 
 type Elevator struct {

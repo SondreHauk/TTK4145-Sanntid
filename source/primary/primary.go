@@ -2,8 +2,8 @@ package primary
 
 import (
 	//"source/network/bcast"
+	"time"
 	"fmt"
-	"source/localElevator/config"
 	. "source/localElevator/config"
 	"source/network/peers"
 )
@@ -28,31 +28,34 @@ func printPeers(p peers.PeerUpdate){
 
 func Run(
 	peerUpdateChan <-chan peers.PeerUpdate,
-	elevStateChan <-chan config.Elevator){
+	elevStateChan <-chan Elevator,
+	becomePrimary <-chan bool,
+	primaryActiveChan chan <- string){
 	
 	var activePeers peers.PeerUpdate
 	var elevators = make(map[string]Elevator)
-	
 	for {
 		select{
-		case activePeers = <-peerUpdateChan:
-			printPeers(activePeers)
-			
-		case elevUpdate := <-elevStateChan:
-			elevators[elevUpdate.ID] = elevUpdate
+		case <- becomePrimary:
+			fmt.Println("Taking over as Primary")
+			HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
+			for{
+				select{
+				case activePeers = <-peerUpdateChan:
+					printPeers(activePeers)
+					
+				case elevUpdate := <-elevStateChan:
+					elevators[elevUpdate.ID] = elevUpdate
 
-			fmt.Println("Elevator State Updated")
-			fmt.Printf("ID: %s\n", elevUpdate.ID)
-			fmt.Printf("Floor: %d\n", elevUpdate.Floor)
-			//fmt.Printf("Direction: %s\n", directionToString(elevUpdate.Direction))
-			//fmt.Printf("State: %s\n", stateToString(elevUpdate.State))
-			//fmt.Println("Requests:")
-			//printRequests(elevUpdate.Requests)
+					fmt.Println("Elevator State Updated")
+					fmt.Printf("ID: %s\n", elevUpdate.ID)
+					fmt.Printf("Floor: %d\n", elevUpdate.Floor)
 
-		}		
+				case <- HeartbeatTimer.C:
+					fmt.Println("Heartbeat timer primary")
+					primaryActiveChan <- "Hello from Primary"
+				}
+			}
+		}
 	}
-		//case neworder = <- newOrderReceived:
-			//assignelev
-			//bcast order to right elev
-			//wait for ack
 }

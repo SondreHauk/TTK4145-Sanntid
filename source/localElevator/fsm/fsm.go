@@ -65,6 +65,7 @@ func Run(
 	DoorTimer := time.NewTimer(T_DOOR_OPEN)
 	DoorTimer.Stop()
 	Obstructed := false
+	
 	for {
 		select {
 		case NewOrder := <-NewOrderCh:

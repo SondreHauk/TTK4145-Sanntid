@@ -12,6 +12,7 @@ import (
 	"source/localElevator/inits"
 	"source/localElevator/requests"
 	"source/primary"
+	"source/backup"
 	"source/network/bcast"
 	"source/network/peers"
 )
@@ -47,6 +48,11 @@ func main() {
 	TransmitEnable := make(chan bool)
 	PeerUpdateChan := make(chan peers.PeerUpdate)
 
+	PrimaryTXChan := make(chan string, 10)
+	PrimaryRXChan := make(chan string, 10)
+
+	BecomePrimary := make(chan bool)
+
 	AtFloorChan := make(chan int, 1)
 	NewOrderChan := make(chan Order, 10)
 	ButtonChan := make(chan elevio.ButtonEvent, 10)
@@ -73,8 +79,11 @@ func main() {
 	go bcast.Receiver(PORT_BCAST_ELEV, ElevatorRXChan)
 	go peers.Transmitter(PORT_PEERS, id, TransmitEnable)
 	go peers.Receiver(PORT_PEERS, PeerUpdateChan)
+	go bcast.Transmitter(PORT_PRIMARY, PrimaryTXChan)
+	go bcast.Receiver(PORT_PRIMARY, PrimaryRXChan)
 
-	go primary.Run(PeerUpdateChan,ElevatorRXChan)
+	go backup.Run(PrimaryRXChan, BecomePrimary)
+	go primary.Run(PeerUpdateChan, ElevatorRXChan, BecomePrimary, PrimaryTXChan)
 	
 	// Blocking select
 	select {}
