@@ -4,7 +4,6 @@ package fsm
 
 import (
 	. "source/localElevator/config"
-	"fmt"
 	"math/rand"
 	"source/localElevator/elevio"
 	"source/localElevator/requests"
@@ -27,10 +26,8 @@ func ShouldStop(elev Elevator) bool {
 		}
 	case STOP:
 		return true
-	default:
-		fmt.Println("DEFAULT ERROR STOP")
-		return false
 	}
+	return false
 }
 
 func ChooseDirection(elev Elevator) int {

@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"source/backup"
 	. "source/localElevator/config"
 	"source/localElevator/elevio"
 	"source/localElevator/fsm"
 	"source/localElevator/inits"
 	"source/localElevator/requests"
-	"source/backup"
 	"source/primary"
+	"source/primary/assigner"
+	"time"
 )
 
 func kill(StopButtonCh<-chan bool){
@@ -47,7 +49,7 @@ func main() {
 	elev := Elevator{}
 	inits.LightsInit()
 	inits.ElevatorInit(&elev)
-
+	
 	//Goroutines
 	go requests.Update(ButtonChan, NewOrderChan)
 	go elevio.PollButtons(ButtonChan)
@@ -61,13 +63,19 @@ func main() {
 	MsgChan := make(chan Message)
 	go primary.MsgTX(20020, MsgChan)
 	go backup.MsgRX(20020, MsgChan)
-
+	
+	go assigner.TimeToIdle(elev)
+	
 	for {
-		select {
+		if elev.Floor!=-1 {
+			fmt.Println("Time to idle: ",assigner.TimeToIdle(elev))
+		}
+		time.Sleep(time.Second)
+		/* select {
 		case msg := <-MsgChan:
 			// Process and print received message
 			fmt.Printf("Message received: ID = %d, Heartbeat = %s\n", msg.ID, msg.Heartbeat)
-		}
+		} */
 	}
 	//Primary backup protocol
 	/*go backup(listens to bcast from primary) */
