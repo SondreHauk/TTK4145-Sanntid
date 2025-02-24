@@ -16,16 +16,23 @@ func MsgBcastTX(msg chan Message, id int){
 	}
 }
 
+func printPeers(p peers.PeerUpdate){
+	fmt.Printf("Peer update:\n")
+	fmt.Printf("  Peers:    %q\n", p.Peers)
+	fmt.Printf("  New:      %q\n", p.New)
+	fmt.Printf("  Lost:     %q\n", p.Lost)
+}
+
 func Run(peerUpdateChan <-chan peers.PeerUpdate){
 	var activePeers peers.PeerUpdate
 	for {
 		select{
 		case activePeers = <-peerUpdateChan:
-			fmt.Printf("Peer update:\n")
-			fmt.Printf("  Peers:    %q\n", activePeers.Peers)
-			fmt.Printf("  New:      %q\n", activePeers.New)
-			fmt.Printf("  Lost:     %q\n", activePeers.Lost)
+			printPeers(activePeers)
+		//case neworder = <- newOrderReceived:
+			//assignelev
+			//bcast order to right elev
+			//wait for ack
 		}
-		// <- new order
 	}
 }
