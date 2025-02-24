@@ -5,15 +5,16 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strconv"
+	//"strconv"
 	. "source/localElevator/config"
 	"source/localElevator/elevio"
 	"source/localElevator/fsm"
 	"source/localElevator/inits"
 	"source/localElevator/requests"
-	"source/backup"
-	"source/primary"
-	"source/network/bcast"
+	//"source/backup"
+	//"source/primary"
+	//"source/network/bcast"
+	"source/network/peers"
 )
 
 func kill(StopButtonCh<-chan bool){
@@ -62,16 +63,20 @@ func main() {
 	go fsm.Run(&elev, /* ElevatorChan, */ AtFloorChan, NewOrderChan, ObstructionChan)
 	go kill(StopChan)
 
-	//Message testing
-	TXchan := make(chan Message, 100)
-	RXchan := make(chan Message, 100)
+	//UDP bcast testing
+	// TXchan := make(chan Message, 100)
+	// RXchan := make(chan Message, 100)
+	// i, _ := strconv.Atoi(id)
+	// go backup.MsgBcastRX(20020, RXchan)
+	// go primary.MsgBcastTX(TXchan, int(i))
+	// go bcast.Transmitter(20020, TXchan)
 
-	i, _ := strconv.Atoi(id)
+	//peers testing
+	TransmitEnable := make(chan bool, 10)
+	PeerUpdateChan := make(chan peers.PeerUpdate)
 
-	go backup.MsgRX(20020, RXchan)
-	go primary.MsgTX(20020, TXchan, int(i))
-
-	go bcast.Transmitter(20020, TXchan)
+	go peers.Transmitter(20030, id, TransmitEnable)
+	go peers.Receiver(20030, PeerUpdateChan)
 
 	select {}
 }

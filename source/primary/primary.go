@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func MsgTX(port int, msg chan Message, id int){
+func MsgBcastTX(msg chan Message, id int){
 	//go bcast.Transmitter(port, msg) // Start broadcasting in a separate goroutine
 	for {
 		msg <- Message{ID: id, Heartbeat: "Alive"}

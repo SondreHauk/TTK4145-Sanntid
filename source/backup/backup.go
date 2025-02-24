@@ -7,7 +7,7 @@ import (
 )
 
 
-func MsgRX(port int, msg chan Message) {
+func MsgBcastRX(port int, msg chan Message) {
 	go bcast.Receiver(port, msg)
 	for {
 		msg_rx := <- msg
