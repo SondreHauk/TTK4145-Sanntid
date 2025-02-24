@@ -43,6 +43,10 @@ func main() {
 	//Channels
 	ElevatorTXChan := make(chan Elevator, 10)
 	ElevatorRXChan := make(chan Elevator)
+
+	TransmitEnable := make(chan bool)
+	PeerUpdateChan := make(chan peers.PeerUpdate)
+
 	AtFloorChan := make(chan int, 1)
 	NewOrderChan := make(chan Order, 10)
 	ButtonChan := make(chan elevio.ButtonEvent, 10)
@@ -55,7 +59,7 @@ func main() {
 	inits.LightsInit()
 	inits.ElevatorInit(&elev, id)
 
-	//Goroutines
+	// Goroutines Local elevator
 	go requests.Update(ButtonChan, NewOrderChan)
 	go elevio.PollButtons(ButtonChan)
 	go elevio.PollFloorSensor(AtFloorChan)
@@ -64,28 +68,13 @@ func main() {
 	go fsm.Run(&elev, ElevatorTXChan, AtFloorChan, NewOrderChan, ObstructionChan)
 	go kill(StopChan)
 
-	// Bcast elev state
+	// Goroutines communication
 	go bcast.Transmitter(PORT_BCAST_ELEV, ElevatorTXChan)
 	go bcast.Receiver(PORT_BCAST_ELEV, ElevatorRXChan)
-
-	//go backup.ElevtRX(PORT_BCAST_ELEV, ElevatorRXChan)
-	//go primary.ElevTX(ElevatorTXChan, id)
-
-
-	// Peers
-	TransmitEnable := make(chan bool)
-	PeerUpdateChan := make(chan peers.PeerUpdate)
 	go peers.Transmitter(PORT_PEERS, id, TransmitEnable)
 	go peers.Receiver(PORT_PEERS, PeerUpdateChan)
-	go primary.Run(PeerUpdateChan)
 
-	for{
-		select{
-		case e := <- ElevatorRXChan:
-			fmt.Printf(e.ID)
-			
-		}
-	}
+	go primary.Run(PeerUpdateChan,ElevatorRXChan)
 	
 	// Blocking select
 	select {}
