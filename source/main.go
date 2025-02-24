@@ -6,17 +6,13 @@ import (
 	"os"
 	"os/signal"
 
-	//"strconv"
 	. "source/localElevator/config"
 	"source/localElevator/elevio"
 	"source/localElevator/fsm"
 	"source/localElevator/inits"
 	"source/localElevator/requests"
 	"source/primary"
-
-	//"source/backup"
-	//"source/primary"
-	//"source/network/bcast"
+	"source/network/bcast"
 	"source/network/peers"
 )
 
@@ -41,11 +37,12 @@ func main() {
 	var id string
 	flag.StringVar(&port, "port", "", "Elevator port number")
 	flag.StringVar(&id, "id","", "Elevator port")
-	// If not valid ID, kill.
+	//TODO: If not valid ID, kill.
 	flag.Parse()
 
 	//Channels
-	/* ElevatorChan := make(chan *Elevator, 10) */
+	ElevatorTXChan := make(chan Elevator, 10)
+	ElevatorRXChan := make(chan Elevator)
 	AtFloorChan := make(chan int, 1)
 	NewOrderChan := make(chan Order, 10)
 	ButtonChan := make(chan elevio.ButtonEvent, 10)
@@ -64,23 +61,32 @@ func main() {
 	go elevio.PollFloorSensor(AtFloorChan)
 	go elevio.PollObstructionSwitch(ObstructionChan)
 	go elevio.PollStopButton(StopChan)
-	go fsm.Run(&elev, /* ElevatorChan, */ AtFloorChan, NewOrderChan, ObstructionChan)
+	go fsm.Run(&elev, ElevatorTXChan, AtFloorChan, NewOrderChan, ObstructionChan)
 	go kill(StopChan)
 
-	//UDP bcast testing
-	// TXchan := make(chan Message, 100)
-	// RXchan := make(chan Message, 100)
-	// i, _ := strconv.Atoi(id)
-	// go backup.MsgBcastRX(20020, RXchan)
-	// go primary.MsgBcastTX(TXchan, int(i))
-	// go bcast.Transmitter(20020, TXchan)
+	// Bcast elev state
+	go bcast.Transmitter(PORT_BCAST_ELEV, ElevatorTXChan)
+	go bcast.Receiver(PORT_BCAST_ELEV, ElevatorRXChan)
 
-	//peers testing
+	//go backup.ElevtRX(PORT_BCAST_ELEV, ElevatorRXChan)
+	//go primary.ElevTX(ElevatorTXChan, id)
+
+
+	// Peers
 	TransmitEnable := make(chan bool)
 	PeerUpdateChan := make(chan peers.PeerUpdate)
-
-	go peers.Transmitter(20030, id, TransmitEnable)
-	go peers.Receiver(20030, PeerUpdateChan)
+	go peers.Transmitter(PORT_PEERS, id, TransmitEnable)
+	go peers.Receiver(PORT_PEERS, PeerUpdateChan)
 	go primary.Run(PeerUpdateChan)
+
+	for{
+		select{
+		case e := <- ElevatorRXChan:
+			fmt.Printf(e.ID)
+			
+		}
+	}
+	
+	// Blocking select
 	select {}
 }

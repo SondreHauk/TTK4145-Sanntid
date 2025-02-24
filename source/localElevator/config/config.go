@@ -31,6 +31,11 @@ const(
 	STOP = 0
 )
 
+const(
+	PORT_PEERS = 20030
+	PORT_BCAST_ELEV = 20020
+)
+
 type Elevator struct {
 	Floor     int
 	Direction int

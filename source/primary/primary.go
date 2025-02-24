@@ -16,6 +16,8 @@ func MsgBcastTX(msg chan Message, id int){
 	}
 }
 
+func ElevTX(){}
+
 func printPeers(p peers.PeerUpdate){
 	fmt.Printf("Peer update:\n")
 	fmt.Printf("  Peers:    %q\n", p.Peers)
