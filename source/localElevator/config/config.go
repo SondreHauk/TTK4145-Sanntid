@@ -25,12 +25,20 @@ const (
 	T_SLEEP = time.Millisecond*20
 	T_DOOR_OPEN = time.Second*3
 	T_TRAVEL = time.Second*2 	//Approximate time to travel from floor i to floor i+-1
+	T_TIMEOUT = time.Second*2
+
 )
 
 const(
 	UP = 1
 	DOWN = -1
 	STOP = 0
+)
+
+const(
+	PORT_PEERS = 20020
+	PORT_BCAST_ELEV = 20030
+	PORT_PRIMARY = 20040
 )
 
 type Elevator struct {
@@ -40,6 +48,7 @@ type Elevator struct {
 	PrevDirection int
 	State  ElevatorState
 	Requests  [NUM_FLOORS][NUM_BUTTONS]bool
+	ID string
 }
 
 type Order struct {

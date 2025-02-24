@@ -1,14 +1,28 @@
 package backup
 
 import (
-	"source/network/bcast"
 	. "source/localElevator/config"
+	"fmt"
+	"time"
 )
 
+/*
+The backup must keep a copy of the primary. It must hold elevators, activepeers, orders etc.
+The primary must therefore send this over to backup as a timed heartbeat and event driven.
+Maybe we can create one big struct containing everything, that can be sent from prim to back.
+*/
 
-func MsgRX(port int, msg chan Message) {
-		bcast.Receiver(port, msg)
+func Run(fromprimary <-chan string, becomePrimary chan <- bool){
+	fmt.Println("Enter Backup mode - listening for primary")
+	for {
+		select {
+		case msg := <-fromprimary:
+			fmt.Println("Received message from primary:", msg)
+		
+		case <-time.After(T_TIMEOUT):
+			fmt.Println("Timout waiting for Primary")
+			becomePrimary <- true
+			return
+		}
+	}
 }
-// Listen for heartbeats from primary
-// Update state and acknowlegde to primary
-// If heartbeat time out, send primary dead event.
