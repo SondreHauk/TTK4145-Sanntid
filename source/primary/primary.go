@@ -1,17 +1,15 @@
 package primary
 
 import (
-	"source/network/bcast"
+	//"source/network/bcast"
 	. "source/localElevator/config"
 	"time"
 )
 
-func MsgTX(port int, msg chan Message){
-	go func(){
-		for{
-			msg <- Message{ID: 1, Heartbeat: "Alive"}
-			bcast.TransmitterModified(port, msg)
-			time.Sleep(T_HEARTBEAT)
-		}
-	}()
+func MsgTX(port int, msg chan Message, id int){
+	//go bcast.Transmitter(port, msg) // Start broadcasting in a separate goroutine
+	for {
+		msg <- Message{ID: id, Heartbeat: "Alive"}
+		time.Sleep(T_HEARTBEAT)
+	}
 }

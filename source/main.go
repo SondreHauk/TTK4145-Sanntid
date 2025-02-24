@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strconv"
 	. "source/localElevator/config"
 	"source/localElevator/elevio"
 	"source/localElevator/fsm"
@@ -12,6 +13,7 @@ import (
 	"source/localElevator/requests"
 	"source/backup"
 	"source/primary"
+	"source/network/bcast"
 )
 
 func kill(StopButtonCh<-chan bool){
@@ -61,27 +63,15 @@ func main() {
 	go kill(StopChan)
 
 	//Message testing
-	MsgChan := make(chan Message, 100)
-	go primary.MsgTX(20020, MsgChan)
-	go backup.MsgRX(20020, MsgChan)
+	TXchan := make(chan Message, 100)
+	RXchan := make(chan Message, 100)
 
-	//This should happen in backup module
-	for {
-		select {
-		case msg := <-MsgChan:
-			// Process and print received message
-			fmt.Printf("Message received: ID = %d, Heartbeat = %s\n", msg.ID, msg.Heartbeat)
-		}
-	}
-	//Primary backup protocol
-	/*go backup(listens to bcast from primary) */
+	i, _ := strconv.Atoi(id)
 
-	/* //Blocking select
-	select {
-		/* 
-		case primary dead
-			if next in queue:
-				go primary
-		}*/
-	//select {}
+	go backup.MsgRX(20020, RXchan)
+	go primary.MsgTX(20020, TXchan, int(i))
+
+	go bcast.Transmitter(20020, TXchan)
+
+	select {}
 }
