@@ -50,6 +50,7 @@ func main() {
 
 	PrimaryTXChan := make(chan string, 10)
 	PrimaryRXChan := make(chan string, 10)
+	WorldviewTXChan := make(chan primary.Worldview, 10)
 
 	BecomePrimary := make(chan bool)
 
@@ -64,6 +65,7 @@ func main() {
 	elev := Elevator{}
 	inits.LightsInit()
 	inits.ElevatorInit(&elev, id)
+	Worldview := primary.Worldview{}
 
 	// Goroutines Local elevator
 	go requests.Update(ButtonChan, NewOrderChan)
@@ -83,7 +85,7 @@ func main() {
 	go bcast.Receiver(PORT_PRIMARY, PrimaryRXChan)
 
 	go backup.Run(PrimaryRXChan, BecomePrimary)
-	go primary.Run(PeerUpdateChan, ElevatorRXChan, BecomePrimary, PrimaryTXChan)
+	go primary.Run(PeerUpdateChan, ElevatorRXChan, BecomePrimary, PrimaryTXChan, WorldviewTXChan, &Worldview)
 	
 	// Blocking select
 	select {}

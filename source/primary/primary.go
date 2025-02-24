@@ -8,18 +8,25 @@ import (
 	"source/network/peers"
 )
 
-func printPeers(p peers.PeerUpdate){
-	fmt.Printf("Peer update:\n")
-	fmt.Printf("  Peers:    %q\n", p.Peers)
-	fmt.Printf("  New:      %q\n", p.New)
-	fmt.Printf("  Lost:     %q\n", p.Lost)
+/*
+Seems to work all right! A bit strange behavior when it enters the second for-loop: 
+at one instant it print outs many "Elevator State Updated", but then seem to operate normal again,
+printing at regular time intervals.
+TODO: Replace string in primary active chan with a worldview struct to be sent to backups
+*/
+
+type Worldview struct{
+	ActivePeers peers.PeerUpdate
+	Elevators map[string]Elevator
 }
 
 func Run(
 	peerUpdateChan <-chan peers.PeerUpdate,
 	elevStateChan <-chan Elevator,
 	becomePrimary <-chan bool,
-	primaryActiveChan chan <- string){
+	primaryActiveChan chan <- string,
+	worldviewChan chan <- Worldview,
+	worldview *Worldview){
 	
 	var activePeers peers.PeerUpdate
 	var elevators = make(map[string]Elevator)
@@ -43,8 +50,16 @@ func Run(
 
 				case <- HeartbeatTimer.C:
 					primaryActiveChan <- "Hello from Primary"
+					worldviewChan <- *worldview
 				}
 			}
 		}
 	}
+}
+
+func printPeers(p peers.PeerUpdate){
+	fmt.Printf("Peer update:\n")
+	fmt.Printf("  Peers:    %q\n", p.Peers)
+	fmt.Printf("  New:      %q\n", p.New)
+	fmt.Printf("  Lost:     %q\n", p.Lost)
 }
