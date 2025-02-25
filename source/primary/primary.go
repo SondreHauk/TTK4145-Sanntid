@@ -8,15 +8,6 @@ import (
 	"source/network/peers"
 )
 
-/*
-TODO: 
-- Replace string in primary active chan with a worldview struct to be sent to backups
-- Fix problem with takeover printing whole history of elev state updates. Maybe peerUpdateChan is full when takeover happens.
-*/
-
-// var activePeers peers.PeerUpdate
-// var elevators = make(map[string]Elevator)
-
 type Worldview struct{
 	PrimaryId string
 	ActivePeers peers.PeerUpdate
@@ -49,6 +40,8 @@ func Run(
 				case elevUpdate := <-elevStateChan:
 					worldview.Elevators[elevUpdate.Id] = elevUpdate
 					printElevator(elevUpdate)
+
+				case <- Neworder:
 
 				case <-HeartbeatTimer.C:
 					worldviewChan <- worldview

@@ -62,7 +62,8 @@ func Update(Receiver chan elevio.ButtonEvent, Transmitter chan Order) {
 		select {
 			case btn := <-Receiver:
 				Transmitter<-Order{Floor: btn.Floor, Button: int(btn.Button)}
-				elevio.SetButtonLamp(elevio.ButtonType(btn.Button), btn.Floor, true) //THIS SIGNIFIES ORDER IS ACCEPTED. CHANGE
+				//THIS SIGNIFIES ORDER IS ACCEPTED. CHANGE
+				elevio.SetButtonLamp(elevio.ButtonType(btn.Button), btn.Floor, true)
 		}
 		time.Sleep(T_SLEEP)
 	}

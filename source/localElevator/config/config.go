@@ -54,8 +54,3 @@ type Order struct {
 	Floor int
 	Button int
 }
-
-type BecomePrimaryMsg struct {
-	Takeover bool
-	Id string
-}

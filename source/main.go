@@ -53,10 +53,12 @@ func main() {
 	BecomePrimary := make(chan bool)
 
 	AtFloorChan := make(chan int, 1)
-	NewOrderChan := make(chan Order, 10)
 	ButtonChan := make(chan elevio.ButtonEvent, 10)
 	ObstructionChan := make(chan bool, 1)
 	StopChan := make(chan bool, 1)
+
+	NewOrderChan := make(chan Order, 10)
+	OrderFromPrimary := make(chan Order, 10)
 	
 	//Initializations
 	elevio.Init("localhost:"+ port, NUM_FLOORS)
@@ -72,7 +74,7 @@ func main() {
 	go elevio.PollStopButton(StopChan)
 	go kill(StopChan)
 	go fsm.Run(&elev, ElevatorTXChan, AtFloorChan, 
-				NewOrderChan, ObstructionChan)
+				OrderFromPrimary, ObstructionChan)
 
 	// Goroutines communication
 	go bcast.Transmitter(PORT_BCAST_ELEV, ElevatorTXChan)
