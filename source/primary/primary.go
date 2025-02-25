@@ -18,6 +18,9 @@ TODO:
 // var elevators = make(map[string]Elevator)
 
 type Worldview struct{
+	Timestamp uint64
+	ID string
+	primaryqueue []Elevator.ID
 	ActivePeers peers.PeerUpdate
 	Elevators map[string]Elevator
 }
@@ -36,9 +39,10 @@ func Run(
 	for {
 
 		select{
-		case <- becomePrimary:
+		case <- becomePrimary: //Maybe becomePrimary should include the ID?
 			fmt.Println("Taking over as Primary")
 			//drainElevatorStateUpdates(elevStateChan, &worldview.Elevators)
+			//worldview.ID = ...
 			HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
 
 			for{
@@ -55,6 +59,7 @@ func Run(
 
 				case <-HeartbeatTimer.C:
 					//primaryActiveChan <- "Hello from Primary"
+					worldview.Timestamp = int(time.Now().UnixMicro()) //Must be updated after year 294246
 					worldviewChan <- worldview
 
 				case <-becomePrimary:

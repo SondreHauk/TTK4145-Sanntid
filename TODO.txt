@@ -5,13 +5,16 @@ TODO
 ------------------------------------------------------------------------------ Stop btn
 ------------------------------------------------------------------------------ Heartbeat i fsm
 - Assigner
+-- Button Light Contract
 ------------------------------------------------------------------------------ Peers
 ------------------------------------------------------------------------------ Basic primary and backup communication
 ------------------------------------------------------------------------------ WorldViewStruct
 ------------------------------------------------------------------------------ Transmit worldView as heartbeat from primary
 - Fix primary takeover printing whole history of elev state updates
 - Split Brain Problem
-- Button Light Contract
+-- Include Time stamp on worldView
+-- Include Primary ID in worldView
+--- Primary Election algorithm
 
 
 Thoughts about the Split Brain Problem:

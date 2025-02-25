@@ -35,7 +35,7 @@ func Run(
 		case <-time.After(T_TIMEOUT):
 			fmt.Println("Timout waiting for Primary")
 			becomePrimary <- true
-			return // Is this necessary, or can it just continue as backup?
+			//return // Is this necessary, or can it just continue as backup?
 				   // While also running the primary protocol?
 		}
 	}
