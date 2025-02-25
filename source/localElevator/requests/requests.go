@@ -68,6 +68,7 @@ func Update(Receiver chan elevio.ButtonEvent, Transmitter chan Order) {
 	}
 }
 
+//Make modular with for loop up to NUM_ELEV
 func PrintRequests(elev Elevator){
 	fmt.Printf("Floor 4: %t %t %t\n",elev.Requests[3][0],elev.Requests[3][1],elev.Requests[3][2])
 	fmt.Printf("Floor 3: %t %t %t\n",elev.Requests[2][0],elev.Requests[2][1],elev.Requests[2][2])

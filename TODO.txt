@@ -7,6 +7,21 @@ TODO
 - Assigner
 ------------------------------------------------------------------------------ Peers
 ------------------------------------------------------------------------------ Basic primary and backup communication
-- WorldViewStruct
-- Transmit worldView as heartbeat from primary
-- Fix issue with primary takeover printing whole history of elev state updates
+------------------------------------------------------------------------------ WorldViewStruct
+------------------------------------------------------------------------------ Transmit worldView as heartbeat from primary
+- Fix primary takeover printing whole history of elev state updates
+- Split Brain Problem
+- Button Light Contract
+
+
+Thoughts about the Split Brain Problem:
+- There can only be one primary at a time
+- Primary takover must happen fast
+Scenario:
+-Primary is gone for a short period
+-Multiple backups tries to takeover
+-- backup with latest update takes over
+--- backup with lowest ID takes over
+- Previous Primary gets back online
+-- Is noticed that a new primary has taken over
+--- Revert to backup mode
