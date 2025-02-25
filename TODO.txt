@@ -5,13 +5,16 @@ TODO
 ------------------------------------------------------------------------------ Stop btn
 ------------------------------------------------------------------------------ Heartbeat i fsm
 ------------------------------------------------------------------------------ Assigner
--- Button Light Contract !?---WHERE TO TURN ON THE LIGHTS---!?
 ------------------------------------------------------------------------------ Peers
 ------------------------------------------------------------------------------ Basic primary and backup communication
 ------------------------------------------------------------------------------ WorldViewStruct
 ------------------------------------------------------------------------------ Transmit worldView as heartbeat from primary
 - Flush channels before primary takeover
 - Checkout SendRequest function, clean up
+
+ --- BUTTON LIGHT CONTRACT ---
+ -- When and where to turn on?
+ -- When where to turn off?
 
     --  SPLIT BRAIN --
 -- Reassign possibly lost orders

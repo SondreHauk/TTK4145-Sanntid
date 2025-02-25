@@ -29,6 +29,7 @@ func OrdersBelow(elev Elevator) bool {
 	return false
 }
 
+//PRIMARY MUST DO THIS!
 func ClearFloor(elev *Elevator, floor int) {
 	// Clear only the hall button in the right direction
 	switch elev.Direction {
