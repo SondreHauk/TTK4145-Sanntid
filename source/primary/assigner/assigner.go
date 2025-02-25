@@ -10,6 +10,7 @@ import (
 	. "source/localElevator/config"
 	"source/localElevator/fsm"
 	"source/localElevator/requests"
+	//"source/network/peers"
 	"time"
 )
 
@@ -47,16 +48,17 @@ func TimeToIdle(elev Elevator) time.Duration {
 }
 
 //Uses TimeToIdle to find the optimal elevator for NewOrder
-func ChooseElevator(Elevators []Elevator, NewOrder Order)int{
+func ChooseElevator(elevators map[string]Elevator, activeIds []string, NewOrder Order)string{
 	
 	bestTime := time.Hour //inf
-	bestElev := 0
+	var bestId string
 	
-	for i := 0; i < len(Elevators); i++{
-		if fsm.TimeUntilPickup(Elevators[i],NewOrder)<bestTime{
-			bestElev = i
-			bestTime = fsm.TimeUntilPickup(Elevators[i],NewOrder)
+	for _,Id := range(activeIds){
+		pickupTime := fsm.TimeUntilPickup(elevators[Id],NewOrder)
+		if pickupTime < bestTime{
+			bestId = Id
+			bestTime = pickupTime
 		}
 	}
-	return bestElev
+	return bestId
 }
