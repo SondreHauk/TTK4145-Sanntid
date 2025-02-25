@@ -15,7 +15,7 @@ func ElevatorInit(elev *Elevator, id string){
 		select{case currentFloor = <-ch:}
 		elevio.SetMotorDirection(elevio.MD_Stop)
 	}
-	elev.ID = id
+	elev.Id = id
   elev.PrevDirection = DOWN
 	elev.Direction = int(elevio.MD_Stop)
 	elev.State = IDLE
