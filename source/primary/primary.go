@@ -2,23 +2,26 @@ package primary
 
 import (
 	//"source/network/bcast"
-	"time"
 	"fmt"
 	. "source/localElevator/config"
 	"source/network/peers"
+	"source/primary/assigner"
+	"time"
 )
 
 type Worldview struct{
 	PrimaryId string
-	ActivePeers peers.PeerUpdate
+	PeerInfo peers.PeerUpdate
 	Elevators map[string]Elevator
 }
 
 func Run(
 	peerUpdateChan <-chan peers.PeerUpdate,
 	elevStateChan <-chan Elevator,
-	becomePrimary <-chan bool,
+	becomePrimaryChan <-chan bool,
 	worldviewChan chan <- Worldview,
+	RequestFromElevChan <- chan Order,
+	OrderToElevChan chan <- Order,
 	id string){
 
 	var worldview Worldview
@@ -27,26 +30,34 @@ func Run(
 
 	for{
 		select{
-		case <- becomePrimary:
+		case <- becomePrimaryChan:
 			fmt.Println("Taking over as Primary")
 			//drainElevatorStateUpdates(elevStateChan, &worldview.Elevators)
 			HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
 
 			for{
 				select{
-				case worldview.ActivePeers = <-peerUpdateChan:
-					printPeers(worldview.ActivePeers)
+				case worldview.PeerInfo = <-peerUpdateChan:
+					printPeers(worldview.PeerInfo)
+					//If elev lost: Reassign lost orders
 					
 				case elevUpdate := <-elevStateChan:
 					worldview.Elevators[elevUpdate.Id] = elevUpdate
-					printElevator(elevUpdate)
+					//printElevator(elevUpdate)
 
-				case <- Neworder:
+				case request := <- RequestFromElevChan:
+					AssignedId := assigner.ChooseElevator(worldview.Elevators,
+														worldview.PeerInfo.Peers,
+														request)
+					OrderToElevChan <- Order{Id: AssignedId, 
+												Floor: request.Floor,
+												Button: request.Button}
+					//Set lights?
 
 				case <-HeartbeatTimer.C:
 					worldviewChan <- worldview
 
-				case <-becomePrimary: // Should be deleted at some point
+				case <-becomePrimaryChan: // Should be deleted at some point
 					fmt.Println("Another Primary taking over...")
 					break
 				}

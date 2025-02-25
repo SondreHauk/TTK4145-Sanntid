@@ -87,8 +87,9 @@ func Run(
 	elev *Elevator, 
 	ElevCh chan <-Elevator, 
 	AtFloorCh <-chan int, 
-	NewOrderCh <-chan Order, 
-	ObsCh <-chan bool) {
+	OrderFromPrimaryChan <-chan Order, 
+	ObsCh <-chan bool,
+	myId string) {
 
 	ElevCh <- *elev
 	HeartbeatTimer := time.NewTimer(T_HEARTBEAT)
@@ -98,10 +99,10 @@ func Run(
 	
 	for {
 		select {
-		case NewOrder := <-NewOrderCh:
-			//fmt.Println("Time until pickup: ",TimeUntilPickup(*elev,NewOrder))
-			elev.Requests[NewOrder.Floor][NewOrder.Button] = true
-			switch elev.State {
+		case NewOrder := <-OrderFromPrimaryChan:
+			if NewOrder.Id == myId{
+				elev.Requests[NewOrder.Floor][NewOrder.Button] = true
+				switch elev.State {
 				case IDLE:
 					elev.Direction = ChooseDirection(*elev)
 					elevio.SetMotorDirection(elevio.MotorDirection(elev.Direction))
@@ -121,8 +122,9 @@ func Run(
 							DoorTimer.Reset(T_DOOR_OPEN)
 						}
 					}
+				}
+				ElevCh <- *elev
 			}
-			ElevCh <- *elev
 
 		case elev.Floor = <-AtFloorCh:
 			elevio.SetFloorIndicator(elev.Floor)
