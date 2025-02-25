@@ -9,13 +9,18 @@ import (
 )
 
 /*
-Seems to work all right! A bit strange behavior when it enters the second for-loop: 
-at one instant it print outs many "Elevator State Updated", but then seem to operate normal again,
-printing at regular time intervals.
-TODO: Replace string in primary active chan with a worldview struct to be sent to backups
+TODO: 
+- Replace string in primary active chan with a worldview struct to be sent to backups
+- Fix problem with takeover printing whole history of elev state updates. Maybe peerUpdateChan is full when takeover happens.
 */
 
+// var activePeers peers.PeerUpdate
+// var elevators = make(map[string]Elevator)
+
 type Worldview struct{
+	Timestamp uint64
+	ID string
+	primaryqueue []Elevator.ID
 	ActivePeers peers.PeerUpdate
 	Elevators map[string]Elevator
 }
@@ -24,38 +29,63 @@ func Run(
 	peerUpdateChan <-chan peers.PeerUpdate,
 	elevStateChan <-chan Elevator,
 	becomePrimary <-chan bool,
-	primaryActiveChan chan <- string,
+	/*primaryActiveChan chan <- string,*/
 	worldviewChan chan <- Worldview,
-	worldview *Worldview){
-	
-	var activePeers peers.PeerUpdate
-	var elevators = make(map[string]Elevator)
+	/*worldview *Worldview*/){
+
+	var worldview Worldview
+	worldview.Elevators = make(map[string]Elevator)
 
 	for {
+
 		select{
-		case <- becomePrimary:
+		case <- becomePrimary: //Maybe becomePrimary should include the ID?
 			fmt.Println("Taking over as Primary")
+			//drainElevatorStateUpdates(elevStateChan, &worldview.Elevators)
+			//worldview.ID = ...
 			HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
+
 			for{
 				select{
-				case activePeers = <-peerUpdateChan:
-					printPeers(activePeers)
+				case worldview.ActivePeers = <-peerUpdateChan:
+					printPeers(worldview.ActivePeers)
 					
 				case elevUpdate := <-elevStateChan:
-					elevators[elevUpdate.ID] = elevUpdate
+					worldview.Elevators[elevUpdate.ID] = elevUpdate
 
 					fmt.Println("Elevator State Updated")
 					fmt.Printf("ID: %s\n", elevUpdate.ID)
 					fmt.Printf("Floor: %d\n", elevUpdate.Floor)
 
-				case <- HeartbeatTimer.C:
-					primaryActiveChan <- "Hello from Primary"
-					worldviewChan <- *worldview
+				case <-HeartbeatTimer.C:
+					//primaryActiveChan <- "Hello from Primary"
+					worldview.Timestamp = int(time.Now().UnixMicro()) //Must be updated after year 294246
+					worldviewChan <- worldview
+
+				case <-becomePrimary:
+					fmt.Println("Another Primary taking over...")
+					break
 				}
 			}
 		}
 	}
 }
+
+// **Helper Function: Drain all pending updates before normal operation**
+// func drainElevatorStateUpdates(elevStateChan <-chan Elevator, elevators *map[string]Elevator) {
+// 	fmt.Println(" Draining old elevator state updates before taking over...")
+
+// func drainElevatorStateUpdates(elevStateChan <-chan Elevator, elevators *map[string]Elevator) {
+// 	for {
+// 		select {
+// 		case elevUpdate := <-elevStateChan:
+// 			(*elevators)[elevUpdate.ID] = elevUpdate
+// 		default:
+// 			return // Exit when no more messages are available
+// 		}
+// 	}
+// }
+
 
 func printPeers(p peers.PeerUpdate){
 	fmt.Printf("Peer update:\n")

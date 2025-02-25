@@ -21,7 +21,7 @@ const(
 )
 
 const (
-	T_HEARTBEAT = time.Millisecond*500
+	T_HEARTBEAT = time.Millisecond*500 //Must be much faster than .5 s
 	T_SLEEP = time.Millisecond*20
 	T_DOOR_OPEN = time.Second*3
 	T_TRAVEL = time.Second*2 	//Approximate time to travel from floor i to floor i+-1
@@ -38,17 +38,17 @@ const(
 const(
 	PORT_PEERS = 20020
 	PORT_BCAST_ELEV = 20030
-	PORT_PRIMARY = 20040
+	PORT_WORLDVIEW = 20040
 )
 
 type Elevator struct {
-	Id 	int
+	//Id 	int
+	ID string
 	Floor     int
 	Direction int
 	PrevDirection int
 	State  ElevatorState
 	Requests  [NUM_FLOORS][NUM_BUTTONS]bool
-	ID string
 }
 
 type Order struct {

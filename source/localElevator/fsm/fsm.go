@@ -3,15 +3,11 @@ package fsm
 // This module should contain the finite state machine for the local elevator
 
 import (
-	"fmt"
 	. "source/localElevator/config"
 	"source/localElevator/elevio"
 	"source/localElevator/requests"
 	"time"
 )
-func dummy(){
-	fmt.Println("")
-}
 
 func ShouldStop(elev Elevator) bool {
 	switch elev.Direction {
@@ -103,7 +99,7 @@ func Run(
 	for {
 		select {
 		case NewOrder := <-NewOrderCh:
-			fmt.Println("Time until pickup: ",TimeUntilPickup(*elev,NewOrder))
+			//fmt.Println("Time until pickup: ",TimeUntilPickup(*elev,NewOrder))
 			elev.Requests[NewOrder.Floor][NewOrder.Button] = true
 			switch elev.State {
 				case IDLE:
