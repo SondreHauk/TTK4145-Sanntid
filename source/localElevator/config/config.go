@@ -42,8 +42,7 @@ const(
 )
 
 type Elevator struct {
-	//Id 	int
-	ID string
+	Id string
 	Floor     int
 	Direction int
 	PrevDirection int
@@ -56,9 +55,7 @@ type Order struct {
 	Button int
 }
 
-type Message struct {
-	// ID specific paramters
-	ID int
-	// Parameters for all
-	Heartbeat string
+type BecomePrimaryMsg struct {
+	Takeover bool
+	Id string
 }

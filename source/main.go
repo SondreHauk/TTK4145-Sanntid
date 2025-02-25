@@ -48,11 +48,8 @@ func main() {
 	TransmitEnable := make(chan bool)
 	PeerUpdateChan := make(chan peers.PeerUpdate)
 
-	// PrimaryTXChan := make(chan string, 10)
-	// PrimaryRXChan := make(chan string, 10)
 	WorldviewTXChan := make(chan primary.Worldview, 10)
 	WorldviewRXChan := make(chan primary.Worldview, 10)
-
 	BecomePrimary := make(chan bool)
 
 	AtFloorChan := make(chan int, 1)
@@ -66,7 +63,6 @@ func main() {
 	elev := Elevator{}
 	inits.LightsInit()
 	inits.ElevatorInit(&elev, id)
-	//Worldview := primary.Worldview{}
 
 	// Goroutines Local elevator
 	go requests.Update(ButtonChan, NewOrderChan)
@@ -74,23 +70,21 @@ func main() {
 	go elevio.PollFloorSensor(AtFloorChan)
 	go elevio.PollObstructionSwitch(ObstructionChan)
 	go elevio.PollStopButton(StopChan)
-	go fsm.Run(&elev, ElevatorTXChan, AtFloorChan, NewOrderChan, ObstructionChan)
 	go kill(StopChan)
+	go fsm.Run(&elev, ElevatorTXChan, AtFloorChan, 
+				NewOrderChan, ObstructionChan)
 
 	// Goroutines communication
 	go bcast.Transmitter(PORT_BCAST_ELEV, ElevatorTXChan)
 	go bcast.Receiver(PORT_BCAST_ELEV, ElevatorRXChan)
 	go peers.Transmitter(PORT_PEERS, id, TransmitEnable)
 	go peers.Receiver(PORT_PEERS, PeerUpdateChan)
-	// go bcast.Transmitter(PORT_PRIMARY, PrimaryTXChan)
-	// go bcast.Receiver(PORT_PRIMARY, PrimaryRXChan)
 	go bcast.Transmitter(PORT_WORLDVIEW, WorldviewTXChan)
 	go bcast.Receiver(PORT_WORLDVIEW, WorldviewRXChan)
 
-	go backup.Run(/*PrimaryRXChan,*/ WorldviewRXChan, BecomePrimary)
+	go backup.Run(WorldviewRXChan, BecomePrimary)
 	go primary.Run(PeerUpdateChan, ElevatorRXChan, 
-					BecomePrimary, /*PrimaryTXChan,*/ 
-					WorldviewTXChan/*, &Worldview*/)
+					BecomePrimary, WorldviewTXChan, id)
 	
 	// Blocking select
 	select {}
