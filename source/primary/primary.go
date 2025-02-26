@@ -44,6 +44,7 @@ func Run(
 				case elevUpdate := <-elevStateChan:
 					worldview.Elevators[elevUpdate.Id] = elevUpdate
 					//printElevator(elevUpdate)
+					//Set hall-lights!
 
 				case request := <- RequestFromElevChan:
 					fmt.Printf("Request received from id: %s \n", request.Id)
@@ -66,6 +67,14 @@ func Run(
 			}
 		}
 	}
+}
+
+func setHallLights(elevators map[string]Elevator){
+	for _,id := range(worldview.Elevators)
+	orders = worldview.Elevators
+	// Iterate through the order matrix of each Elevator,
+	// Make a light-in-hall-matrix, send it to elevs
+	// fsm.Run() sets lights accordingly.
 }
 
 // **Helper Function: Drain all pending updates before normal operation**

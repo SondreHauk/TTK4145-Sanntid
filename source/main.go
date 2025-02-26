@@ -79,8 +79,8 @@ func main() {
 				OrderChan, ObstructionChan, id)
 
 	// Goroutines communication
-	go bcast.Transmitter(PORT_BCAST_ELEV, ElevatorTXChan)
-	go bcast.Receiver(PORT_BCAST_ELEV, ElevatorRXChan)
+	go bcast.Transmitter(PORT_ELEVSTATE, ElevatorTXChan)
+	go bcast.Receiver(PORT_ELEVSTATE, ElevatorRXChan)
 	go peers.Transmitter(PORT_PEERS, id, TransmitEnableChan)
 	go peers.Receiver(PORT_PEERS, PeerUpdateChan)
 	go bcast.Transmitter(PORT_WORLDVIEW, WorldviewTXChan)

@@ -18,6 +18,9 @@ TODO
  --- BUTTON LIGHT CONTRACT ---
  -- When and where to turn on?
  -- When where to turn off?
+ Proposed solution: Primary handles hall lights 
+ by checking the request matrixes in the worldView.Elevators.Requests
+
 
     --  SPLIT BRAIN --
 -- Reassign possibly lost orders

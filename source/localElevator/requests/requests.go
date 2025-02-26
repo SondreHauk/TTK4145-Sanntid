@@ -10,7 +10,7 @@ import (
 func OrdersAbove(elev Elevator) bool {
 	for fl := elev.Floor + 1; fl < NUM_FLOORS; fl++ {
 		for btn := 0; btn < NUM_BUTTONS; btn++ {
-			if elev.Requests[fl][btn] {
+			if elev.Orders[fl][btn] {
 				return true
 			}
 		}
@@ -21,7 +21,7 @@ func OrdersAbove(elev Elevator) bool {
 func OrdersBelow(elev Elevator) bool {
 	for fl := elev.Floor - 1; fl >= 0; fl-- {
 		for btn := 0; btn < NUM_BUTTONS; btn++ {
-			if elev.Requests[fl][btn] {
+			if elev.Orders[fl][btn] {
 				return true
 			}
 		}
@@ -34,21 +34,21 @@ func ClearFloor(elev *Elevator, floor int) {
 	// Clear only the hall button in the right direction
 	switch elev.Direction {
 		case UP: // Clear hall up
-			elev.Requests[floor][elevio.BT_HallUp] = false
+			elev.Orders[floor][elevio.BT_HallUp] = false
 			elevio.SetButtonLamp(elevio.BT_HallUp, floor, false)
 			if !OrdersAbove(*elev) {
-				elev.Requests[floor][elevio.BT_HallDown] = false
+				elev.Orders[floor][elevio.BT_HallDown] = false
 				elevio.SetButtonLamp(elevio.BT_HallDown, floor, false)
 			}
 		case DOWN: // Clear hall down
-			elev.Requests[floor][elevio.BT_HallDown] = false
+			elev.Orders[floor][elevio.BT_HallDown] = false
 			elevio.SetButtonLamp(elevio.BT_HallDown, floor, false)
 			if !OrdersBelow(*elev) {
-				elev.Requests[floor][elevio.BT_HallUp] = false
+				elev.Orders[floor][elevio.BT_HallUp] = false
 				elevio.SetButtonLamp(elevio.BT_HallUp, floor, false)
 			}
 	}
-	elev.Requests[floor][elevio.BT_Cab] = false
+	elev.Orders[floor][elevio.BT_Cab] = false
 	elevio.SetButtonLamp(elevio.BT_Cab, floor, false)
 }	
 
@@ -69,6 +69,7 @@ func MakeRequest(btnEvent <-chan elevio.ButtonEvent,
 				if btn.Button == elevio.BT_Cab{
 					orderChan <- request // Assign directly to elev
 					elevio.SetButtonLamp(elevio.ButtonType(btn.Button), btn.Floor, true)
+					//Remember: Lights on = Order MUST be taken
 				} else {
 					requestToPrimary<- request
 				}
@@ -79,10 +80,10 @@ func MakeRequest(btnEvent <-chan elevio.ButtonEvent,
 
 //Make modular with for loop up to NUM_ELEV
 func PrintRequests(elev Elevator){
-	fmt.Printf("Floor 4: %t %t %t\n",elev.Requests[3][0],elev.Requests[3][1],elev.Requests[3][2])
-	fmt.Printf("Floor 3: %t %t %t\n",elev.Requests[2][0],elev.Requests[2][1],elev.Requests[2][2])
-	fmt.Printf("Floor 2: %t %t %t\n",elev.Requests[1][0],elev.Requests[1][1],elev.Requests[1][2])
-	fmt.Printf("Floor 1: %t %t %t\n\n",elev.Requests[0][0],elev.Requests[0][1],elev.Requests[0][2])
+	fmt.Printf("Floor 4: %t %t %t\n",elev.Orders[3][0],elev.Orders[3][1],elev.Orders[3][2])
+	fmt.Printf("Floor 3: %t %t %t\n",elev.Orders[2][0],elev.Orders[2][1],elev.Orders[2][2])
+	fmt.Printf("Floor 2: %t %t %t\n",elev.Orders[1][0],elev.Orders[1][1],elev.Orders[1][2])
+	fmt.Printf("Floor 1: %t %t %t\n\n",elev.Orders[0][0],elev.Orders[0][1],elev.Orders[0][2])
 }
 
 func PrintState(elev Elevator){
