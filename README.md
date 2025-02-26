@@ -28,6 +28,6 @@ If the request is of type `hall`, it is sent to the primary, who creates an orde
 ## When is the light set?
 The handling of the `cab lights` is done locally on the elevator. If an elevator recevies a cab order it updates its `order matrix` and sets the corresponding cab light. Likewise, if it completes a cab order, it updates its order matrix and turns off the cab light.
 
-The `hall lights` is handled by the primary. The primary knows that an `order is accepted` when the assigned elevator returns an `elevator state` with the corresponding order set active, i.e with an updated order matrix. It is only then that the primary know for sure that the order is accepted, and the corresponding light can be set.
+The `hall lights` is handled by the primary. The primary knows that an `order is accepted` when the assigned elevator returns an `elevator state` with the corresponding order set active, i.e with an updated order matrix. With this in mind, the primary uses the order matrices from the elevators to update the hall lights. It does this in a `hall light matrix`, which is essentially a union of all the order matrices. The hall light matrix is then broadcasted to the elevators, who updates their corresponding hall lights.
 
-The primary keeps track of the lights in a `hall light matrix`. This matrix is essentially a union of all the order matrices. The hall light matrix is then broadcasted to the elevators, who updates their corresponding lights.
+`primary -- order --> elevator -- order matrix --> primary -- hall light matrix --> elevator`
