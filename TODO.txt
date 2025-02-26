@@ -11,6 +11,9 @@ TODO
 ------------------------------------------------------------------------------ Transmit worldView as heartbeat from primary
 - Flush channels before primary takeover
 - Checkout SendRequest function, clean up
+- Make README files
+- Assigner doesent differentiate between cab-calls and hall-calls?
+- Specify directions on all channels
 
  --- BUTTON LIGHT CONTRACT ---
  -- When and where to turn on?

@@ -59,7 +59,7 @@ func main() {
 	RequestToPrimaryChan := make(chan Order, 10)
 	RequestFromElevChan := make(chan Order, 10)
 	OrderToElevChan := make(chan Order, 10)
-	OrderFromPrimaryChan := make(chan Order, 10)
+	OrderChan := make(chan Order, 10)
 	
 	//Initializations
 	elevio.Init("localhost:"+ port, NUM_FLOORS)
@@ -68,14 +68,15 @@ func main() {
 	inits.ElevatorInit(&elev, id)
 
 	// Goroutines Local elevator
-	go requests.SendRequest(ButtonChan, RequestToPrimaryChan, id)
+	go requests.MakeRequest(ButtonChan, RequestToPrimaryChan, 
+							OrderChan, id)
 	go elevio.PollButtons(ButtonChan)
 	go elevio.PollFloorSensor(AtFloorChan)
 	go elevio.PollObstructionSwitch(ObstructionChan)
 	go elevio.PollStopButton(StopChan)
 	go kill(StopChan)
 	go fsm.Run(&elev, ElevatorTXChan, AtFloorChan, 
-				OrderFromPrimaryChan, ObstructionChan, id)
+				OrderChan, ObstructionChan, id)
 
 	// Goroutines communication
 	go bcast.Transmitter(PORT_BCAST_ELEV, ElevatorTXChan)
@@ -89,7 +90,7 @@ func main() {
 	go bcast.Transmitter(PORT_REQUEST, RequestToPrimaryChan)
 	go bcast.Receiver(PORT_REQUEST, RequestFromElevChan)
 	go bcast.Transmitter(PORT_ORDER, OrderToElevChan)
-	go bcast.Receiver(PORT_ORDER, OrderFromPrimaryChan)
+	go bcast.Receiver(PORT_ORDER, OrderChan)
 
 	go backup.Run(WorldviewRXChan, BecomePrimaryChan)
 	go primary.Run(PeerUpdateChan, ElevatorRXChan, 

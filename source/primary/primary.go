@@ -46,12 +46,14 @@ func Run(
 					//printElevator(elevUpdate)
 
 				case request := <- RequestFromElevChan:
+					fmt.Printf("Request received from id: %s \n", request.Id)
 					AssignedId := assigner.ChooseElevator(worldview.Elevators,
 														worldview.PeerInfo.Peers,
 														request)
 					OrderToElevChan <- Order{Id: AssignedId, 
 												Floor: request.Floor,
 												Button: request.Button}
+					fmt.Printf("Order sent to id: %s \n", AssignedId)
 					//Set lights?
 
 				case <-HeartbeatTimer.C:
