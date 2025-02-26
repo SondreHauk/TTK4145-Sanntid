@@ -38,3 +38,9 @@ Scenario 2:
 - Is connected back online
 -- Receives messages from the primary of the other network
 --- Two primaries on the network!! Which one gets to stay?
+
+Questions for TAs:
+- Do we need to make the code runnable on any system (is this even possible), or is it fine to use OS-specific commands?
+- Is there an upper limit on number of threads being used? Does it matter if most threads are default in a blocking state?
+- How would you solve the naming of global constants? LARGE_LETTERS or another format?
+- Dot-importing the config file. Yes or No?
