@@ -15,6 +15,7 @@ TODO
 - Assigner doesent differentiate between cab-calls and hall-calls?
 - Specify directions on all channels
 - Update Elevators when Peers die 
+- Include lights matrix in worldView struct
 
  --- BUTTON LIGHT CONTRACT ---
  -- When and where to turn on?

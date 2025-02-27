@@ -15,13 +15,17 @@ func ShouldStop(elev Elevator) bool {
 		if elev.Floor==NUM_FLOORS-1{
 			return true
 		}else{
-			return elev.Orders[elev.Floor][elevio.BT_HallUp] || elev.Orders[elev.Floor][elevio.BT_Cab] || !requests.OrdersAbove(elev)
+			return elev.Orders[elev.Floor][elevio.BT_HallUp] || 
+			elev.Orders[elev.Floor][elevio.BT_Cab] || 
+			!requests.OrdersAbove(elev)
 		}
 	case DOWN:
 		if elev.Floor==0{
 			return true
 		}else{
-			return elev.Orders[elev.Floor][elevio.BT_HallDown] || elev.Orders[elev.Floor][elevio.BT_Cab] || !requests.OrdersBelow(elev)
+			return elev.Orders[elev.Floor][elevio.BT_HallDown] || 
+			elev.Orders[elev.Floor][elevio.BT_Cab] || 
+			!requests.OrdersBelow(elev)
 		}
 	case STOP:
 		return true
@@ -87,7 +91,8 @@ func Run(
 	elev *Elevator, 
 	ElevCh chan <-Elevator, 
 	AtFloorCh <-chan int, 
-	OrderFromPrimaryChan <-chan Order, 
+	OrderFromPrimaryChan <-chan Order,
+	hallLightsRXChan <-chan HallLights,
 	ObsCh <-chan bool,
 	myId string) {
 
@@ -125,12 +130,17 @@ func Run(
 				}
 				ElevCh <- *elev
 			}
+		
+		case hallLights := <- hallLightsRXChan:
+			for floor, btn := range(hallLights){
+				elevio.SetButtonLamp(btn, floor, hallLights[floor][btn])
+			}
 
 		case elev.Floor = <-AtFloorCh:
 			elevio.SetFloorIndicator(elev.Floor)
 			if ShouldStop(*elev) {
 				elevio.SetMotorDirection(elevio.MD_Stop)
-				requests.ClearFloor(elev, elev.Floor)
+				requests.ClearOrder(elev, elev.Floor)
 				elev.Direction = STOP
 				elevio.SetDoorOpenLamp(true)
 				DoorTimer.Reset(T_DOOR_OPEN)

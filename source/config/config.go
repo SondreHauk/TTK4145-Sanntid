@@ -1,6 +1,7 @@
 package config
 
 import (
+	"slices"
 	"time"
 )
 
@@ -41,6 +42,7 @@ const(
 	PORT_WORLDVIEW = 20040
 	PORT_REQUEST = 20050
 	PORT_ORDER = 20060
+	PORT_HALLLIGHTS = 20070
 )
 
 type Elevator struct {
@@ -51,6 +53,8 @@ type Elevator struct {
 	State  ElevatorState
 	Orders  [NUM_FLOORS][NUM_BUTTONS]bool
 }
+
+type HallLights [][]bool 
 
 type Order struct {
 	Id string

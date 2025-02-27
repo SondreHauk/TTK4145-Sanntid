@@ -21,12 +21,18 @@ func Run(
 	worldviewChan chan <- Worldview,
 	requestFromElevChan <- chan Order,
 	orderToElevChan chan <- Order,
-	/*hallLightschan chan <- Halllights*/ 
+	hallLightsChan chan <- HallLights,
 	id string){
 
 	var worldview Worldview
 	worldview.Elevators = make(map[string]Elevator)
 	worldview.PrimaryId = id
+	
+	//Init hall lights matrix
+	hallLights := make([][] bool, NUM_FLOORS)
+	for i := range(hallLights){
+		hallLights[i] = make([]bool, NUM_BUTTONS - 1)
+	}
 
 	select{
 	case <- becomePrimaryChan:
@@ -48,6 +54,8 @@ func Run(
 				//If elevUpdate.Id == Order.Id && "elevUpdate.OrderMatrix == Order" 
 				//Set hall-lights!
 				//hallLightsChan <- hallLights
+				determineHallLights(worldview, hallLights)
+				hallLightsChan <- hallLights
 
 			case request := <- requestFromElevChan:
 				fmt.Printf("Request received from id: %s \n", request.Id)
@@ -73,12 +81,25 @@ func Run(
 	}
 }
 
-func setHallLights(elevators map[string]Elevator){
+func determineHallLights(wv Worldview, hallLights [/*NUM_FLOORS*/][/*NUM_BUTTONS-1*/]bool){
 	// for _,id := range(worldview.Elevators)
 	// orders = worldview.Elevators
 	// Iterate through the order matrix of each Elevator,
 	// Make a light-in-hall-matrix, send it to elevs
 	// fsm.Run() sets lights accordingly.
+	
+	for _, id := range(wv.PeerInfo.Peers){
+		orderMatrix := wv.Elevators[id].Orders
+			//for each true hall element in orderMatrix
+			//Set true in lightsmatrix
+			for floor, floorOrders := range(orderMatrix){
+				for btn, isOrder := range(floorOrders){
+					if isOrder && btn!=2{
+						hallLights[floor][btn] = hallLights[floor][btn] || isOrder
+					}
+				}
+			}
+	}
 }
 
 // **Helper Function: Drain all pending updates before normal operation**

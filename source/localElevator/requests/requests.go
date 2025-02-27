@@ -29,23 +29,23 @@ func OrdersBelow(elev Elevator) bool {
 	return false
 }
 
-//PRIMARY MUST DO THIS!
-func ClearFloor(elev *Elevator, floor int) {
+//PRIMARY MUST CLEAR HALL LIGHTS - NOT ELEVATOR!
+func ClearOrder(elev *Elevator, floor int) {
 	// Clear only the hall button in the right direction
 	switch elev.Direction {
 		case UP: // Clear hall up
 			elev.Orders[floor][elevio.BT_HallUp] = false
-			elevio.SetButtonLamp(elevio.BT_HallUp, floor, false)
+			//elevio.SetButtonLamp(elevio.BT_HallUp, floor, false)
 			if !OrdersAbove(*elev) {
 				elev.Orders[floor][elevio.BT_HallDown] = false
-				elevio.SetButtonLamp(elevio.BT_HallDown, floor, false)
+				//elevio.SetButtonLamp(elevio.BT_HallDown, floor, false)
 			}
 		case DOWN: // Clear hall down
 			elev.Orders[floor][elevio.BT_HallDown] = false
-			elevio.SetButtonLamp(elevio.BT_HallDown, floor, false)
+			//elevio.SetButtonLamp(elevio.BT_HallDown, floor, false)
 			if !OrdersBelow(*elev) {
 				elev.Orders[floor][elevio.BT_HallUp] = false
-				elevio.SetButtonLamp(elevio.BT_HallUp, floor, false)
+				//elevio.SetButtonLamp(elevio.BT_HallUp, floor, false)
 			}
 	}
 	elev.Orders[floor][elevio.BT_Cab] = false
@@ -54,7 +54,7 @@ func ClearFloor(elev *Elevator, floor int) {
 
 func ClearAll(elev *Elevator) {
 	for fl := 0; fl < NUM_FLOORS; fl++ {
-		ClearFloor(elev, fl)
+		ClearOrder(elev, fl)
 	}
 }
 
