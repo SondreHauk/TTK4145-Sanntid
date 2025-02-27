@@ -1,7 +1,9 @@
 # TTK4145-Sanntid: The Elevators are Evolving!
 
-## Main Task
-Create software for controlling multiple elevators working in parallel across multiple floors.
+## Main approach - Floating master
+The problem: controll N elevators working in parallel across M floors.
+
+The approach: Floating Primary Backup system.
 
 ## Specifications
 - No calls are lost.
@@ -12,7 +14,7 @@ Create software for controlling multiple elevators working in parallel across mu
 
 ## Initialization of elevator
 An elevator can be initialized from the command line with: `go run main.go -port="..." -id="..."`.  
-The id must be an integer. For three elevators; 0, 1 or 2.
+Each elevator must be assigned an unique id at initialization.
 
 # The Button Light Contract
 

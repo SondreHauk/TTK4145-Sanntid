@@ -28,48 +28,46 @@ func Run(
 	worldview.Elevators = make(map[string]Elevator)
 	worldview.PrimaryId = id
 
-	for{
-		select{
-		case <- becomePrimaryChan:
-			fmt.Println("Taking over as Primary")
-			drain(elevStateChan) //FIX FLUSHING OF CHANNELS
-			HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
+	select{
+	case <- becomePrimaryChan:
+		fmt.Println("Taking over as Primary")
+		drain(elevStateChan) //FIX FLUSHING OF CHANNELS
+		HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
 
-			for{
-				select{
-				case worldview.PeerInfo = <-peerUpdateChan:
-					//If elev lost: Reassign lost orders
-					printPeers(worldview.PeerInfo)
+		for{
+			select{
+			case worldview.PeerInfo = <-peerUpdateChan:
+				//If elev lost: Reassign lost orders
+				printPeers(worldview.PeerInfo)
 
-					
-				case elevUpdate := <-elevStateChan:
-					worldview.Elevators[elevUpdate.Id] = elevUpdate
-					//printElevator(elevUpdate)
-					//Check if the elevUpdate includes the order sent from primary
-					//If elevUpdate.Id == Order.Id && "elevUpdate.OrderMatrix == Order" 
-					//Set hall-lights!
-					//hallLightsChan <- hallLights
+				
+			case elevUpdate := <-elevStateChan:
+				worldview.Elevators[elevUpdate.Id] = elevUpdate
+				//printElevator(elevUpdate)
+				//Check if the elevUpdate includes the order sent from primary
+				//If elevUpdate.Id == Order.Id && "elevUpdate.OrderMatrix == Order" 
+				//Set hall-lights!
+				//hallLightsChan <- hallLights
 
-				case request := <- requestFromElevChan:
-					fmt.Printf("Request received from id: %s \n", request.Id)
-					AssignedId := assigner.ChooseElevator(worldview.Elevators,
-														worldview.PeerInfo.Peers,
-														request)
-					orderToElevChan <- Order{Id: AssignedId, 
-												Floor: request.Floor,
-												Button: request.Button}
-					fmt.Printf("Order sent to id: %s \n", AssignedId)
-					//Start a timer. If no elevUpdate is received from the assigned 
-					//elev within timeout, decelar it dead and reassign orders!
+			case request := <- requestFromElevChan:
+				fmt.Printf("Request received from id: %s \n", request.Id)
+				AssignedId := assigner.ChooseElevator(worldview.Elevators,
+													worldview.PeerInfo.Peers,
+													request)
+				orderToElevChan <- Order{Id: AssignedId, 
+											Floor: request.Floor,
+											Button: request.Button}
+				fmt.Printf("Order sent to id: %s \n", AssignedId)
+				//Start a timer. If no elevUpdate is received from the assigned 
+				//elev within timeout, decelar it dead and reassign orders!
 
 
-				case <-HeartbeatTimer.C:
-					worldviewChan <- worldview
+			case <-HeartbeatTimer.C:
+				worldviewChan <- worldview
 
-				case <-becomePrimaryChan: // Should be deleted at some point
-					fmt.Println("Another Primary taking over...")
-					break
-				}
+			case <-becomePrimaryChan: //Needs logic
+				fmt.Println("Another Primary taking over...")
+				break
 			}
 		}
 	}
