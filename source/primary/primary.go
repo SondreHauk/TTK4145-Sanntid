@@ -1,7 +1,6 @@
 package primary
 
 import (
-	//"source/network/bcast"
 	"fmt"
 	. "source/localElevator/config"
 	"source/network/peers"
@@ -20,8 +19,9 @@ func Run(
 	elevStateChan <-chan Elevator,
 	becomePrimaryChan <-chan bool,
 	worldviewChan chan <- Worldview,
-	RequestFromElevChan <- chan Order,
-	OrderToElevChan chan <- Order,
+	requestFromElevChan <- chan Order,
+	orderToElevChan chan <- Order,
+	/*hallLightschan chan <- Halllights*/ 
 	id string){
 
 	var worldview Worldview
@@ -32,7 +32,7 @@ func Run(
 		select{
 		case <- becomePrimaryChan:
 			fmt.Println("Taking over as Primary")
-			//drainElevatorStateUpdates(elevStateChan, &worldview.Elevators)
+			drain(elevStateChan)
 			HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
 
 			for{
@@ -44,18 +44,22 @@ func Run(
 				case elevUpdate := <-elevStateChan:
 					worldview.Elevators[elevUpdate.Id] = elevUpdate
 					//printElevator(elevUpdate)
+					//Check if the elevUpdate includes the order sent from primary
+					//If elevUpdate.Id == Order.Id && "elevUpdate.OrderMatrix == Order" 
 					//Set hall-lights!
+					//hallLightsChan <- hallLights
 
-				case request := <- RequestFromElevChan:
+				case request := <- requestFromElevChan:
 					fmt.Printf("Request received from id: %s \n", request.Id)
 					AssignedId := assigner.ChooseElevator(worldview.Elevators,
 														worldview.PeerInfo.Peers,
 														request)
-					OrderToElevChan <- Order{Id: AssignedId, 
+					orderToElevChan <- Order{Id: AssignedId, 
 												Floor: request.Floor,
 												Button: request.Button}
 					fmt.Printf("Order sent to id: %s \n", AssignedId)
-					//Set lights?
+					//Start a timer. If no elevUpdate is received from the assigned 
+					//elev within timeout, decelar it dead and reassign orders!
 
 				case <-HeartbeatTimer.C:
 					worldviewChan <- worldview
@@ -70,8 +74,8 @@ func Run(
 }
 
 func setHallLights(elevators map[string]Elevator){
-	for _,id := range(worldview.Elevators)
-	orders = worldview.Elevators
+	// for _,id := range(worldview.Elevators)
+	// orders = worldview.Elevators
 	// Iterate through the order matrix of each Elevator,
 	// Make a light-in-hall-matrix, send it to elevs
 	// fsm.Run() sets lights accordingly.
@@ -80,6 +84,12 @@ func setHallLights(elevators map[string]Elevator){
 // **Helper Function: Drain all pending updates before normal operation**
 // func drainElevatorStateUpdates(elevStateChan <-chan Elevator, elevators *map[string]Elevator) {
 // 	fmt.Println(" Draining old elevator state updates before taking over...")
+
+func drain(ch <- chan Elevator){
+	for len(ch) > 0{
+		<- ch
+	}
+}
 
 // func drainElevatorStateUpdates(elevStateChan <-chan Elevator, elevators *map[string]Elevator) {
 // 	for {
@@ -91,6 +101,7 @@ func setHallLights(elevators map[string]Elevator){
 // 		}
 // 	}
 // }
+
 func printElevator(e Elevator){
 	fmt.Println("Elevator State Updated")
 	fmt.Printf("ID: %s\n", e.Id)

@@ -14,6 +14,7 @@ TODO
 - Make README files
 - Assigner doesent differentiate between cab-calls and hall-calls?
 - Specify directions on all channels
+- Update Elevators when Peers die 
 
  --- BUTTON LIGHT CONTRACT ---
  -- When and where to turn on?
