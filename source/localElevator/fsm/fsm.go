@@ -15,13 +15,13 @@ func ShouldStop(elev Elevator) bool {
 		if elev.Floor==NUM_FLOORS-1{
 			return true
 		}else{
-			return elev.Requests[elev.Floor][elevio.BT_HallUp] || elev.Requests[elev.Floor][elevio.BT_Cab] || !requests.OrdersAbove(elev)
+			return elev.Orders[elev.Floor][elevio.BT_HallUp] || elev.Orders[elev.Floor][elevio.BT_Cab] || !requests.OrdersAbove(elev)
 		}
 	case DOWN:
 		if elev.Floor==0{
 			return true
 		}else{
-			return elev.Requests[elev.Floor][elevio.BT_HallDown] || elev.Requests[elev.Floor][elevio.BT_Cab] || !requests.OrdersBelow(elev)
+			return elev.Orders[elev.Floor][elevio.BT_HallDown] || elev.Orders[elev.Floor][elevio.BT_Cab] || !requests.OrdersBelow(elev)
 		}
 	case STOP:
 		return true
@@ -51,7 +51,7 @@ func ChooseDirection(elev Elevator) int {
 //Simulates elevator execution and returns approx time until pickup at NewOrder.Floor
 func TimeUntilPickup(elev Elevator, NewOrder Order) time.Duration{
 	duration := time.Duration(0)
-	elev.Requests[NewOrder.Floor][NewOrder.Button]=true
+	elev.Orders[NewOrder.Floor][NewOrder.Button]=true
 	// Determines initial state
 	switch elev.State {
 	case IDLE:
@@ -72,7 +72,7 @@ func TimeUntilPickup(elev Elevator, NewOrder Order) time.Duration{
 				return duration
 			}else{
 				for btn:=0; btn<NUM_BUTTONS; btn++{
-					elev.Requests[elev.Floor][btn]=false
+					elev.Orders[elev.Floor][btn]=false
 				}
 				duration += T_DOOR_OPEN
 				elev.Direction = ChooseDirection(elev)
@@ -87,8 +87,9 @@ func Run(
 	elev *Elevator, 
 	ElevCh chan <-Elevator, 
 	AtFloorCh <-chan int, 
-	NewOrderCh <-chan Order, 
-	ObsCh <-chan bool) {
+	OrderFromPrimaryChan <-chan Order, 
+	ObsCh <-chan bool,
+	myId string) {
 
 	ElevCh <- *elev
 	HeartbeatTimer := time.NewTimer(T_HEARTBEAT)
@@ -98,10 +99,10 @@ func Run(
 	
 	for {
 		select {
-		case NewOrder := <-NewOrderCh:
-			//fmt.Println("Time until pickup: ",TimeUntilPickup(*elev,NewOrder))
-			elev.Requests[NewOrder.Floor][NewOrder.Button] = true
-			switch elev.State {
+		case NewOrder := <-OrderFromPrimaryChan:
+			if NewOrder.Id == myId{
+				elev.Orders[NewOrder.Floor][NewOrder.Button] = true
+				switch elev.State {
 				case IDLE:
 					elev.Direction = ChooseDirection(*elev)
 					elevio.SetMotorDirection(elevio.MotorDirection(elev.Direction))
@@ -115,14 +116,15 @@ func Run(
 				case MOVING: //NOOP
 				case DOOR_OPEN:
 					if elev.Floor == NewOrder.Floor {
-						elev.Requests[elev.Floor][NewOrder.Button] = false
+						elev.Orders[elev.Floor][NewOrder.Button] = false
 						elevio.SetButtonLamp(elevio.ButtonType(NewOrder.Button), elev.Floor, false)
 						if !Obstructed{
 							DoorTimer.Reset(T_DOOR_OPEN)
 						}
 					}
+				}
+				ElevCh <- *elev
 			}
-			ElevCh <- *elev
 
 		case elev.Floor = <-AtFloorCh:
 			elevio.SetFloorIndicator(elev.Floor)

@@ -8,8 +8,8 @@ import (
 )
 
 func Run(
-	worldview <-chan primary.Worldview, 
-	becomePrimary chan <- bool,
+	worldViewChan <-chan primary.Worldview, 
+	becomePrimaryChan chan <- bool,
 	id string){
 
 	fmt.Println("Enter Backup mode - listening for primary")
@@ -21,19 +21,17 @@ func Run(
 		case <-time.After(T_TIMEOUT):
 			becomePrimary <- true
 	}
-	
+
 	for {
 		select {
-
-		case latestWorldview = <- worldview:
+		case latestWV = <-worldViewChan:
 			// fmt.Println("Worldview received")
-			// fmt.Printf("Active Peers: %v\n", latestWorldview.ActivePeers)
+			// fmt.Printf("Active Peers: %v\n", latestWorldview.PeerInfo)
 			// fmt.Printf("Elevators: %v\n", latestWorldview.Elevators)
 		
 		case <-time.After(T_TIMEOUT):
-
 			if shouldTakeOver(latestWV, id){
-				becomePrimary <- true
+				becomePrimaryChan <- true
 			}else{
 				latestWV.PeerInfo.Peers = latestWV.PeerInfo.Peers[1:]
 			}

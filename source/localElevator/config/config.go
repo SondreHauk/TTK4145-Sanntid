@@ -37,8 +37,10 @@ const(
 
 const(
 	PORT_PEERS = 20020
-	PORT_BCAST_ELEV = 20030
+	PORT_ELEVSTATE = 20030
 	PORT_WORLDVIEW = 20040
+	PORT_REQUEST = 20050
+	PORT_ORDER = 20060
 )
 
 type Elevator struct {
@@ -47,15 +49,11 @@ type Elevator struct {
 	Direction int
 	PrevDirection int
 	State  ElevatorState
-	Requests  [NUM_FLOORS][NUM_BUTTONS]bool
+	Orders  [NUM_FLOORS][NUM_BUTTONS]bool
 }
 
 type Order struct {
+	Id string
 	Floor int
 	Button int
-}
-
-type BecomePrimaryMsg struct {
-	Takeover bool
-	Id string
 }

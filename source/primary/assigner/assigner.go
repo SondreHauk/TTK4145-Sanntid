@@ -47,9 +47,13 @@ func TimeToIdle(elev Elevator) time.Duration {
 	}
 }
 
-//Uses TimeToIdle to find the optimal elevator for NewOrder
+//Uses TimeToIdle to find the optimal elevator for the new request.
+//NB: Also assignes cab-calls! Fixed by assiging cabcalls directly 
+// and not sending cabcalls to the primary.
 func ChooseElevator(elevators map[string]Elevator, activeIds []string, NewOrder Order)string{
 	
+	// Reobustness: if order is cab-call, assign to Id.
+
 	bestTime := time.Hour //inf
 	var bestId string
 	

@@ -4,12 +4,30 @@ TODO
 ------------------------------------------------------------------------------ UDP on same socket
 ------------------------------------------------------------------------------ Stop btn
 ------------------------------------------------------------------------------ Heartbeat i fsm
-- Assigner
--- Button Light Contract
+------------------------------------------------------------------------------ Assigner
 ------------------------------------------------------------------------------ Peers
 ------------------------------------------------------------------------------ Basic primary and backup communication
 ------------------------------------------------------------------------------ WorldViewStruct
 ------------------------------------------------------------------------------ Transmit worldView as heartbeat from primary
+- Flush channels before primary takeover
+- Checkout SendRequest function, clean up
+- Make README files
+- Assigner doesent differentiate between cab-calls and hall-calls?
+- Specify directions on all channels
+- Update Elevators when Peers die 
+
+ --- BUTTON LIGHT CONTRACT ---
+ -- When and where to turn on?
+ -- When where to turn off?
+ Proposed solution: Primary handles hall lights 
+ by checking the request matrixes in the worldView.Elevators.Requests
+
+
+    --  SPLIT BRAIN --
+-- Reassign possibly lost orders
+-- Primary takeover decision for slave groups
+-- Worldview reunification of backups and primaries
+
 - Fix primary takeover printing whole history of elev state updates
 - Split Brain Problem
 -- Include Time stamp on worldView
@@ -18,12 +36,11 @@ TODO
 
 
 Thoughts about the Split Brain Problem:
-- There can only be one primary at a time
+- There can only be one primary at a time for each group of disconnected elevator(s)
 - Primary takover must happen fast
-
-Scenario 1:
-- Primary is gone for a short period
-- Multiple backups tries to takeover
+Scenario:
+-Primary is gone for a short period
+-Multiple backups tries to takeover
 -- backup with latest update takes over
 --- backup with lowest ID takes over
 - Previous Primary gets back online
@@ -44,3 +61,4 @@ Questions for TAs:
 - Is there an upper limit on number of threads being used? Does it matter if most threads are default in a blocking state?
 - How would you solve the naming of global constants? LARGE_LETTERS or another format?
 - Dot-importing the config file. Yes or No?
+
