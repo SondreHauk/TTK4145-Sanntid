@@ -26,7 +26,7 @@ const (
 	T_DOOR_OPEN = time.Second*3
 	T_TRAVEL = time.Second*2 	//Approximate time to travel from floor i to floor i+-1
 	T_TIMEOUT = time.Second*2
-
+	T_BLINK = time.Millisecond*100
 )
 
 const(

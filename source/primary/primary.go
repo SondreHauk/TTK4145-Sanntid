@@ -38,8 +38,9 @@ func Run(
 			for{
 				select{
 				case worldview.PeerInfo = <-peerUpdateChan:
-					printPeers(worldview.PeerInfo)
 					//If elev lost: Reassign lost orders
+					//printPeers(worldview.PeerInfo)
+
 					
 				case elevUpdate := <-elevStateChan:
 					worldview.Elevators[elevUpdate.Id] = elevUpdate
@@ -60,6 +61,7 @@ func Run(
 					fmt.Printf("Order sent to id: %s \n", AssignedId)
 					//Start a timer. If no elevUpdate is received from the assigned 
 					//elev within timeout, decelar it dead and reassign orders!
+
 
 				case <-HeartbeatTimer.C:
 					worldviewChan <- worldview
