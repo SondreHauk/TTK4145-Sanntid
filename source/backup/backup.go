@@ -17,9 +17,9 @@ func Run(
 	var latestWV primary.Worldview
 	//Peers[0] doesnt exist before the first primary does
 	select{
-		case latestWV = <- worldview:
+		case latestWV = <- worldViewChan:
 		case <-time.After(T_TIMEOUT):
-			becomePrimary <- true
+			becomePrimaryChan <- true
 	}
 
 	for {
