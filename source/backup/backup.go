@@ -13,12 +13,12 @@ func Run(
 
 	fmt.Println("Enter Backup mode - listening for primary")
 
-	var latestWorldview primary.Worldview
-
+	/* var latestWorldview primary.Worldview */
+	
 	for {
 		select {
 
-		case latestWorldview = <- worldview:
+		case /* latestWorldview =*/  <- worldview:
 			// fmt.Println("Worldview received")
 			// fmt.Printf("Active Peers: %v\n", latestWorldview.ActivePeers)
 			// fmt.Printf("Elevators: %v\n", latestWorldview.Elevators)
