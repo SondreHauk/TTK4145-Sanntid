@@ -1,7 +1,6 @@
 package config
 
 import (
-	"slices"
 	"time"
 )
 
@@ -36,6 +35,7 @@ const(
 	STOP = 0
 )
 
+//Is possible to use only one port, with msg IDs.
 const(
 	PORT_PEERS = 20020
 	PORT_ELEVSTATE = 20030

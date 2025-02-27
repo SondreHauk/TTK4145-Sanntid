@@ -35,7 +35,7 @@ func TimeToIdle(elev Elevator) time.Duration {
 	//Simulates remaining orders
 	for {
 		if fsm.ShouldStop(elev) {
-			requests.ClearFloor(&elev, elev.Floor) //Changes do not propagate back to main
+			requests.ClearOrder(&elev, elev.Floor) //Changes do not propagate back to main
 			duration += T_DOOR_OPEN
 			elev.Direction = fsm.ChooseDirection(elev)
 			if elev.Direction == STOP {

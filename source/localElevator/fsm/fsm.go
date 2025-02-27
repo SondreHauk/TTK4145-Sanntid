@@ -132,8 +132,10 @@ func Run(
 			}
 		
 		case hallLights := <- hallLightsRXChan:
-			for floor, btn := range(hallLights){
-				elevio.SetButtonLamp(btn, floor, hallLights[floor][btn])
+			for floor := range hallLights { // Iterate over floors
+				for btn := range hallLights[floor] { // Iterate over buttons
+					elevio.SetButtonLamp(elevio.ButtonType(btn), floor, hallLights[floor][btn])
+				}
 			}
 
 		case elev.Floor = <-AtFloorCh:

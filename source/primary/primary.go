@@ -27,6 +27,8 @@ func Run(
 	var worldview Worldview
 	worldview.Elevators = make(map[string]Elevator)
 	worldview.PrimaryId = id
+
+	updateLights := new(bool)
 	
 	//Init hall lights matrix
 	hallLights := make([][] bool, NUM_FLOORS)
@@ -46,16 +48,11 @@ func Run(
 				//If elev lost: Reassign lost orders
 				printPeers(worldview.PeerInfo)
 
-				
 			case elevUpdate := <-elevStateChan:
 				worldview.Elevators[elevUpdate.Id] = elevUpdate
-				//printElevator(elevUpdate)
-				//Check if the elevUpdate includes the order sent from primary
-				//If elevUpdate.Id == Order.Id && "elevUpdate.OrderMatrix == Order" 
-				//Set hall-lights!
-				//hallLightsChan <- hallLights
-				determineHallLights(worldview, hallLights)
-				hallLightsChan <- hallLights
+				//Not working.
+				updateHallLights(worldview, hallLights, updateLights)
+				if (*updateLights) {hallLightsChan <- hallLights}
 
 			case request := <- requestFromElevChan:
 				fmt.Printf("Request received from id: %s \n", request.Id)
@@ -69,7 +66,6 @@ func Run(
 				//Start a timer. If no elevUpdate is received from the assigned 
 				//elev within timeout, decelar it dead and reassign orders!
 
-
 			case <-HeartbeatTimer.C:
 				worldviewChan <- worldview
 
@@ -81,47 +77,37 @@ func Run(
 	}
 }
 
-func determineHallLights(wv Worldview, hallLights [/*NUM_FLOORS*/][/*NUM_BUTTONS-1*/]bool){
-	// for _,id := range(worldview.Elevators)
-	// orders = worldview.Elevators
-	// Iterate through the order matrix of each Elevator,
-	// Make a light-in-hall-matrix, send it to elevs
-	// fsm.Run() sets lights accordingly.
-	
+func updateHallLights(wv Worldview, 
+					hallLights [][]bool,
+					updateHallLights *bool){
+
+	prevHallLights := hallLights
+	// Update hallLights based on the order matrix from all peers
 	for _, id := range(wv.PeerInfo.Peers){
 		orderMatrix := wv.Elevators[id].Orders
-			//for each true hall element in orderMatrix
-			//Set true in lightsmatrix
-			for floor, floorOrders := range(orderMatrix){
-				for btn, isOrder := range(floorOrders){
-					if isOrder && btn!=2{
-						hallLights[floor][btn] = hallLights[floor][btn] || isOrder
-					}
+		for floor, floorOrders := range(orderMatrix){
+			for btn, isOrder := range(floorOrders){
+				if isOrder && btn!=2{
+					hallLights[floor][btn] = hallLights[floor][btn] || isOrder
 				}
 			}
+		}
 	}
+	// Compare hallLights with prevHallLights
+	for floor := 0; floor < NUM_FLOORS; floor++ {
+        for btn := 0; btn < NUM_BUTTONS-1; btn++ {
+            if hallLights[floor][btn] != prevHallLights[floor][btn] {
+                *updateHallLights = true
+            }
+        }
+    }
 }
-
-// **Helper Function: Drain all pending updates before normal operation**
-// func drainElevatorStateUpdates(elevStateChan <-chan Elevator, elevators *map[string]Elevator) {
-// 	fmt.Println(" Draining old elevator state updates before taking over...")
 
 func drain(ch <- chan Elevator){
 	for len(ch) > 0{
 		<- ch
 	}
 }
-
-// func drainElevatorStateUpdates(elevStateChan <-chan Elevator, elevators *map[string]Elevator) {
-// 	for {
-// 		select {
-// 		case elevUpdate := <-elevStateChan:
-// 			(*elevators)[elevUpdate.ID] = elevUpdate
-// 		default:
-// 			return // Exit when no more messages are available
-// 		}
-// 	}
-// }
 
 func printElevator(e Elevator){
 	fmt.Println("Elevator State Updated")
