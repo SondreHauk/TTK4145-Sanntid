@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"time"
 	"source/backup"
-	. "source/localElevator/config"
+	. "source/config"
 	"source/localElevator/elevio"
 	"source/localElevator/fsm"
 	"source/localElevator/inits"

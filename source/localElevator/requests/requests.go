@@ -2,7 +2,7 @@ package requests
 
 import (
 	"fmt"
-	. "source/localElevator/config"
+	. "source/config"
 	"source/localElevator/elevio"
 	"time"
 )

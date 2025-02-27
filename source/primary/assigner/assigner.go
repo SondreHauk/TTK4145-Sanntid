@@ -7,7 +7,7 @@
 package assigner
 
 import (
-	. "source/localElevator/config"
+	. "source/config"
 	"source/localElevator/fsm"
 	"source/localElevator/requests"
 	//"source/network/peers"

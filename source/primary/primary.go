@@ -2,7 +2,7 @@ package primary
 
 import (
 	"fmt"
-	. "source/localElevator/config"
+	. "source/config"
 	"source/network/peers"
 	"source/primary/assigner"
 	"time"
@@ -32,14 +32,14 @@ func Run(
 		select{
 		case <- becomePrimaryChan:
 			fmt.Println("Taking over as Primary")
-			drain(elevStateChan)
+			drain(elevStateChan) //FIX FLUSHING OF CHANNELS
 			HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
 
 			for{
 				select{
 				case worldview.PeerInfo = <-peerUpdateChan:
 					//If elev lost: Reassign lost orders
-					//printPeers(worldview.PeerInfo)
+					printPeers(worldview.PeerInfo)
 
 					
 				case elevUpdate := <-elevStateChan:

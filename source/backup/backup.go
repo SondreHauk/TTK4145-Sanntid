@@ -2,7 +2,7 @@ package backup
 
 import (
 	"fmt"
-	. "source/localElevator/config"
+	. "source/config"
 	"source/primary"
 	"time"
 )
