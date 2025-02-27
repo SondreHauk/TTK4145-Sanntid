@@ -19,7 +19,7 @@ TODO:
 
 type Worldview struct{
 	PrimaryId string
-	ActivePeers peers.PeerUpdate
+	PeerInfo peers.PeerUpdate
 	Elevators map[string]Elevator
 }
 
@@ -43,12 +43,12 @@ func Run(
 
 			for{
 				select{
-				case worldview.ActivePeers = <-peerUpdateChan:
-					printPeers(worldview.ActivePeers)
+				case worldview.PeerInfo = <-peerUpdateChan:
+					//printPeers(worldview.PeerInfo)
 					
 				case elevUpdate := <-elevStateChan:
 					worldview.Elevators[elevUpdate.Id] = elevUpdate
-					printElevator(elevUpdate)
+					//printElevator(elevUpdate)
 
 				case <-HeartbeatTimer.C:
 					worldviewChan <- worldview
