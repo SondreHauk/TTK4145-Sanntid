@@ -46,23 +46,24 @@ func Run(
 			select{
 			case worldview.PeerInfo = <-peerUpdateChan:
 				//If elev lost: Reassign lost orders
-				printPeers(worldview.PeerInfo)
+				//printPeers(worldview.PeerInfo)
 
 			case elevUpdate := <-elevStateChan:
 				worldview.Elevators[elevUpdate.Id] = elevUpdate
-				//Not working.
+				//Not working properly
 				updateHallLights(worldview, hallLights, updateLights)
-				if (*updateLights) {hallLightsChan <- hallLights}
+				if (*updateLights){
+					hallLightsChan <- hallLights}
 
 			case request := <- requestFromElevChan:
-				fmt.Printf("Request received from id: %s \n", request.Id)
+				//fmt.Printf("Request received from id: %s \n", request.Id)
 				AssignedId := assigner.ChooseElevator(worldview.Elevators,
 													worldview.PeerInfo.Peers,
 													request)
 				orderToElevChan <- Order{Id: AssignedId, 
 											Floor: request.Floor,
 											Button: request.Button}
-				fmt.Printf("Order sent to id: %s \n", AssignedId)
+				//fmt.Printf("Order sent to id: %s \n", AssignedId)
 				//Start a timer. If no elevUpdate is received from the assigned 
 				//elev within timeout, decelar it dead and reassign orders!
 
@@ -76,12 +77,27 @@ func Run(
 		}
 	}
 }
-
+//NOT WORKING PROPERLY
 func updateHallLights(wv Worldview, 
 					hallLights [][]bool,
 					updateHallLights *bool){
 
-	prevHallLights := hallLights
+	*updateHallLights = false // Reset flag
+
+	// Create a deep copy of hallLights (to properly compare changes)
+	prevHallLights := make([][]bool, NUM_FLOORS)
+	for i := range hallLights {
+		prevHallLights[i] = make([]bool, NUM_BUTTONS-1)
+		copy(prevHallLights[i], hallLights[i]) // Copy row data
+	}
+
+	// Reset hallLights matrix (assume no lights first, then set needed ones)
+	for floor := range hallLights {
+		for btn := range hallLights[floor] {
+			hallLights[floor][btn] = false
+		}
+	}
+
 	// Update hallLights based on the order matrix from all peers
 	for _, id := range(wv.PeerInfo.Peers){
 		orderMatrix := wv.Elevators[id].Orders

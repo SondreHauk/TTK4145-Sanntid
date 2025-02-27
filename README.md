@@ -1,9 +1,9 @@
 # TTK4145-Sanntid: The Elevators are Evolving!
 
-## Main approach - Floating master
+## Main approach - Primary Backup
 The problem: controll N elevators working in parallel across M floors.
 
-The approach: Floating Primary Backup system.
+The approach: Primary Backup system. There can (and should) be multiple backups working on the same network, but *only one primary*. The primary handles and distributes all hall requests and lights. The backups receives worldviews from the primary and stores the latest worldview received. If the primary disconnects, one of the backups will take over as primary. 
 
 ## Specifications
 - No calls are lost.
