@@ -35,3 +35,7 @@ The `hall lights` is handled by the primary. The primary knows that an `order is
 `primary -- order --> elevator -- order matrix --> primary -- hall light matrix --> elevator`
 
 When the primary assigns an order to an elevator, it starts a countdown timer. If the primary does not receive a correct stateUpdate from the assgined elevator within the deadline: declear the elevator for dead/broken and reassign all hall orders!
+
+# Miscellaneous
+## Variable naming convention
+As a general rule, camel-case convention is used. Initial capitalization is handled as such: lowercase for localVariables and helperFunctions, uppercase for ExportedVariables and FunctionsUsedElsewhere. Global constants are fully capitalized with underscores between words: PORT_WORLDVIEW, NUM_FLOORS, etc.
