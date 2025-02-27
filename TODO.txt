@@ -16,12 +16,21 @@ TODO
 - Specify directions on all channels
 - Update Elevators when Peers die 
 - Include lights matrix in worldView struct
+- When elevator is in same floor as cab-call, the light does not turn off!
 
  --- BUTTON LIGHT CONTRACT ---
  -- When and where to turn on?
  -- When where to turn off?
  Proposed solution: Primary handles hall lights 
  by checking the request matrixes in the worldView.Elevators.Requests
+
+From FSM. Obstruction is an important edge case, because the elev is still online/alive,
+but it cannot really serve any orders. Thus the orders should be reassigned after some time!
+If order is at same floor, take order after opening door.
+May introduce bugs. Be carefull! Maybe this should be done after the door closes!
+i.e. at case <- DoorTimer.C
+What if someone obstructs the door so it cannot close after the order is accepted by an elev
+Intrduce a timer for that order. If not taken within 5 sec, redistribute.
 
 
     --  SPLIT BRAIN --

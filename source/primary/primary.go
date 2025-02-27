@@ -3,6 +3,7 @@ package primary
 import (
 	"fmt"
 	. "source/config"
+	"source/localElevator/elevio"
 	"source/network/peers"
 	"source/primary/assigner"
 	"time"
@@ -103,7 +104,7 @@ func updateHallLights(wv Worldview,
 		orderMatrix := wv.Elevators[id].Orders
 		for floor, floorOrders := range(orderMatrix){
 			for btn, isOrder := range(floorOrders){
-				if isOrder && btn!=2{
+				if isOrder && btn!= int(elevio.BT_Cab){
 					hallLights[floor][btn] = hallLights[floor][btn] || isOrder
 				}
 			}

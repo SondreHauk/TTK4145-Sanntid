@@ -91,7 +91,7 @@ func Run(
 	elev *Elevator, 
 	ElevCh chan <-Elevator, 
 	AtFloorCh <-chan int, 
-	OrderFromPrimaryChan <-chan Order,
+	OrderChan <-chan Order,
 	hallLightsRXChan <-chan HallLights,
 	ObsCh <-chan bool,
 	myId string) {
@@ -104,7 +104,7 @@ func Run(
 	
 	for {
 		select {
-		case NewOrder := <-OrderFromPrimaryChan:
+		case NewOrder := <-OrderChan:
 			if NewOrder.Id == myId{
 				elev.Orders[NewOrder.Floor][NewOrder.Button] = true
 				switch elev.State {
@@ -114,6 +114,15 @@ func Run(
 					if elev.Direction == STOP {
 						elevio.SetDoorOpenLamp(true)
 						DoorTimer.Reset(T_DOOR_OPEN)
+						//If order is at same floor, take order after opening door.
+						//May introduce bugs. Be carefull! Maybe this should be done after the door closes!
+						//i.e. at case <- DoorTimer.C
+						//What if someone obstructs the door so it cannot close after the order is accepted by an elev
+						//Intrduce a timer for that order. If not taken within 5 sec, redistribute.
+						elev.Orders[elev.Floor][NewOrder.Button] = false
+						if(NewOrder.Button == int(elevio.BT_Cab)){
+							elevio.SetButtonLamp(elevio.BT_Cab, NewOrder.Floor, false)
+						}
 						elev.State = DOOR_OPEN
 					} else {
 						elev.State = MOVING
