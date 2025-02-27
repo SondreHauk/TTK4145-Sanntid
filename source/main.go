@@ -55,7 +55,7 @@ func main() {
 
 	WorldviewTXChan := make(chan primary.Worldview, 10)
 	WorldviewRXChan := make(chan primary.Worldview, 10)
-	BecomePrimaryChan := make(chan bool)
+	BecomePrimaryChan := make(chan primary.Worldview, 1)
 
 	AtFloorChan := make(chan int, 1)
 	ButtonChan := make(chan elevio.ButtonEvent, 10)
@@ -74,15 +74,13 @@ func main() {
 	inits.ElevatorInit(&elev, id)
 
 	// Goroutines Local elevator
-	go requests.MakeRequest(ButtonChan, RequestToPrimaryChan, 
-							OrderChan, id)
+	go requests.MakeRequest(ButtonChan, RequestToPrimaryChan, OrderChan, id)
 	go elevio.PollButtons(ButtonChan)
 	go elevio.PollFloorSensor(AtFloorChan)
 	go elevio.PollObstructionSwitch(ObstructionChan)
 	go elevio.PollStopButton(StopChan)
 	go kill(StopChan)
-	go fsm.Run(&elev, ElevatorTXChan, AtFloorChan, 
-				OrderChan, ObstructionChan, id)
+	go fsm.Run(&elev, ElevatorTXChan, AtFloorChan, OrderChan, ObstructionChan, id)
 
 	// Goroutines communication
 	go bcast.Transmitter(PORT_ELEVSTATE, ElevatorTXChan)
@@ -100,9 +98,15 @@ func main() {
 
 	go backup.Run(WorldviewRXChan, BecomePrimaryChan, id)
 
-	go primary.Run(PeerUpdateChan, ElevatorRXChan, 
-					BecomePrimaryChan, WorldviewTXChan,
-					RequestFromElevChan, OrderToElevChan, id)
+	go primary.Run(
+		PeerUpdateChan, 
+		ElevatorRXChan, 
+		BecomePrimaryChan, 
+		WorldviewTXChan,
+		RequestFromElevChan,
+		OrderToElevChan, 
+		id,
+	)
 	
 	// Blocking select
 	select {}

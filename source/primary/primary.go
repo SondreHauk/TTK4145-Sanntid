@@ -17,28 +17,31 @@ type Worldview struct{
 func Run(
 	peerUpdateChan <-chan peers.PeerUpdate,
 	elevStateChan <-chan Elevator,
-	becomePrimaryChan <-chan bool,
-	worldviewChan chan <- Worldview,
-	requestFromElevChan <- chan Order,
-	orderToElevChan chan <- Order,
+	becomePrimaryChan <-chan Worldview,
+	worldviewChan chan<- Worldview,
+	requestFromElevChan <-chan Order,
+	orderToElevChan chan<- Order,
 	/*hallLightschan chan <- Halllights*/ 
 	id string){
 
-	var worldview Worldview
-	worldview.Elevators = make(map[string]Elevator)
-	worldview.PrimaryId = id
 
 	select{
-	case <- becomePrimaryChan:
+	case worldview := <-becomePrimaryChan:
 		fmt.Println("Taking over as Primary")
-		drain(elevStateChan) //FIX FLUSHING OF CHANNELS
+		//drain(elevStateChan) //FIX FLUSHING OF CHANNELS
+
 		HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
 
 		for{
 			select{
 			case worldview.PeerInfo = <-peerUpdateChan:
 				//If elev lost: Reassign lost orders
-				printPeers(worldview.PeerInfo)
+
+				//printPeers(worldview.PeerInfo)
+				lost:=worldview.PeerInfo.Lost
+				if len(lost)!=0{
+					assigner.ReassignHallOrders(worldview, orderToElevChan)
+				}
 
 				
 			case elevUpdate := <-elevStateChan:
@@ -71,6 +74,7 @@ func Run(
 			}
 		}
 	}
+	
 }
 
 func setHallLights(elevators map[string]Elevator){

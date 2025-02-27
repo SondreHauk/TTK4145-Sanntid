@@ -9,17 +9,18 @@ import (
 
 func Run(
 	worldViewChan <-chan primary.Worldview, 
-	becomePrimaryChan chan <- bool,
+	becomePrimaryChan chan <- primary.Worldview,
 	id string){
 
 	fmt.Println("Enter Backup mode - listening for primary")
 
 	var latestWV primary.Worldview
+	latestWV.PrimaryId = id
 	//Peers[0] doesnt exist before the first primary does
 	select{
 		case latestWV = <- worldViewChan:
 		case <-time.After(T_TIMEOUT):
-			becomePrimaryChan <- true
+			becomePrimaryChan <- latestWV
 	}
 
 	for {
@@ -31,7 +32,7 @@ func Run(
 		
 		case <-time.After(T_TIMEOUT):
 			if shouldTakeOver(latestWV, id){
-				becomePrimaryChan <- true
+				becomePrimaryChan <- latestWV
 			}else{
 				latestWV.PeerInfo.Peers = latestWV.PeerInfo.Peers[1:]
 			}
