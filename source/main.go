@@ -5,15 +5,16 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"time"
+	"source/backup"
 	. "source/localElevator/config"
 	"source/localElevator/elevio"
 	"source/localElevator/fsm"
 	"source/localElevator/inits"
 	"source/localElevator/requests"
-	"source/primary"
-	"source/backup"
 	"source/network/bcast"
 	"source/network/peers"
+	"source/primary"
 )
 
 
@@ -25,7 +26,12 @@ func kill(StopButtonCh<-chan bool){
 	case <-KeyboardInterruptCh:		
 		fmt.Println("Keyboard interrupt")
 	case <-StopButtonCh:
-		fmt.Println("Stop button pressed")	
+		for i:=0;i<5;i++{
+			elevio.SetStopLamp(true)
+			time.Sleep(T_BLINK)
+			elevio.SetStopLamp(false)
+			time.Sleep(T_BLINK)	
+		}		
 	}
 
 	elevio.SetMotorDirection(elevio.MD_Stop)
@@ -82,7 +88,7 @@ func main() {
 	go bcast.Transmitter(PORT_WORLDVIEW, WorldviewTXChan)
 	go bcast.Receiver(PORT_WORLDVIEW, WorldviewRXChan)
 
-	go backup.Run(WorldviewRXChan, BecomePrimary)
+	go backup.Run(WorldviewRXChan, BecomePrimary, id)
 	go primary.Run(PeerUpdateChan, ElevatorRXChan, 
 					BecomePrimary, WorldviewTXChan, id)
 	
