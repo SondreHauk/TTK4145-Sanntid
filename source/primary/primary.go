@@ -18,15 +18,16 @@ type Worldview struct{
 func Run(
 	peerUpdateChan <-chan peers.PeerUpdate,
 	elevStateChan <-chan Elevator,
-	becomePrimaryChan <-chan bool,
+	becomePrimaryChan <-chan Worldview,
 	worldviewChan chan <- Worldview,
 	requestFromElevChan <- chan Order,
 	orderToElevChan chan <- Order,
 	hallLightsChan chan <- HallLights,
 	id string){
 
-
 	updateLights := new(bool)
+	var worldview Worldview
+	worldview.Elevators = make(map[string]Elevator)
 	
 	//Init hall lights matrix
 	hallLights := make([][] bool, NUM_FLOORS)
@@ -34,21 +35,33 @@ func Run(
 		hallLights[i] = make([]bool, NUM_BUTTONS - 1)
 	}
 
+	// waitloop:
+	// for{
+	// 	select{
+	// 	case <- peerUpdateChan:
+	// 	case <- elevStateChan:
+	// 	case <- requestFromElevChan:
+	// 	case worldview = <-becomePrimaryChan:
+	// 		break waitloop
+	// }
+	// //Primary mode
+	// fmt.Println("Taking over as Primary")
+	// HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
+
 	select{
 	case worldview := <-becomePrimaryChan:
 		fmt.Println("Taking over as Primary")
 		//drain(elevStateChan) //FIX FLUSHING OF CHANNELS
-
 		HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
 
 		for{
 			select{
 			case worldview.PeerInfo = <-peerUpdateChan:
 				//If elev lost: Reassign lost orders
-				//printPeers(worldview.PeerInfo)
+				printPeers(worldview.PeerInfo)
 				lost:=worldview.PeerInfo.Lost
 				if len(lost)!=0{
-					assigner.ReassignHallOrders(worldview, orderToElevChan)
+					ReassignHallOrders(worldview, orderToElevChan)
 				}
 
 			case elevUpdate := <-elevStateChan:
@@ -79,8 +92,8 @@ func Run(
 			}
 		}
 	}
-	
 }
+
 //NOT WORKING PROPERLY
 func updateHallLights(wv Worldview, 
 					hallLights [][]bool,
@@ -121,6 +134,25 @@ func updateHallLights(wv Worldview,
             }
         }
     }
+}
+
+func ReassignHallOrders(wv Worldview, orderToElevChan chan<- Order){
+	for _,lostId := range(wv.PeerInfo.Lost){
+		orderMatrix := wv.Elevators[lostId].Orders
+		for floor, floorOrders := range(orderMatrix){
+			for btn, isOrder := range(floorOrders){
+				if isOrder && btn!=CAB{
+					lostOrder:=Order{
+								Id: lostId,
+								Floor: floor,
+								Button: btn,
+							}
+					lostOrder.Id = assigner.ChooseElevator(wv.Elevators,wv.PeerInfo.Peers,lostOrder)
+					orderToElevChan <- lostOrder
+				}
+			}
+		}
+	}
 }
 
 func drain(ch <- chan Elevator){
