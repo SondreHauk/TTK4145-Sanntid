@@ -89,14 +89,14 @@ func TimeUntilPickup(elev Elevator, NewOrder Order) time.Duration{
 
 func Run(
 	elev *Elevator, 
-	ElevCh chan <-Elevator, 
-	AtFloorCh <-chan int, 
+	ElevChan chan <-Elevator, 
+	AtFloorChan <-chan int, 
 	OrderChan <-chan Order,
 	hallLightsRXChan <-chan HallLights,
-	ObsCh <-chan bool,
+	ObsChan <-chan bool,
 	myId string) {
 
-	ElevCh <- *elev
+	ElevChan <- *elev
 	HeartbeatTimer := time.NewTimer(T_HEARTBEAT)
 	DoorTimer := time.NewTimer(T_DOOR_OPEN)
 	DoorTimer.Stop()
@@ -115,10 +115,10 @@ func Run(
 						elevio.SetDoorOpenLamp(true)
 						DoorTimer.Reset(T_DOOR_OPEN)
 						//If order is at same floor, take order after opening door.
-						//May introduce bugs. Be carefull! Maybe this should be done after the door closes!
+						//Be carefull! Maybe this should be done after the door closes!
 						//i.e. at case <- DoorTimer.C
 						//What if someone obstructs the door so it cannot close after the order is accepted by an elev
-						//Intrduce a timer for that order. If not taken within 5 sec, redistribute.
+						//Intrduce a timer for that order. If not taken within 5 sec, redistribute. (Primary stuff)
 						elev.Orders[elev.Floor][NewOrder.Button] = false
 						if(NewOrder.Button == int(elevio.BT_Cab)){
 							elevio.SetButtonLamp(elevio.BT_Cab, NewOrder.Floor, false)
@@ -137,7 +137,7 @@ func Run(
 						}
 					}
 				}
-				ElevCh <- *elev
+				ElevChan <- *elev
 			}
 		
 		case hallLights := <- hallLightsRXChan:
@@ -147,7 +147,7 @@ func Run(
 				}
 			}
 
-		case elev.Floor = <-AtFloorCh:
+		case elev.Floor = <-AtFloorChan:
 			elevio.SetFloorIndicator(elev.Floor)
 			if ShouldStop(*elev) {
 				elevio.SetMotorDirection(elevio.MD_Stop)
@@ -157,7 +157,7 @@ func Run(
 				DoorTimer.Reset(T_DOOR_OPEN)
 				elev.State = DOOR_OPEN
 			}
-			ElevCh <- *elev
+			ElevChan <- *elev
 
 		case <-DoorTimer.C:
 
@@ -169,9 +169,9 @@ func Run(
 				elevio.SetMotorDirection(elevio.MotorDirection(elev.Direction))
 				elev.State = MOVING
 			}
-			ElevCh <- *elev
+			ElevChan <- *elev
 		
-		case ObsEvent:= <-ObsCh:
+		case ObsEvent:= <-ObsChan:
 			if elev.State==DOOR_OPEN{
 				switch ObsEvent{
 					case true:
@@ -183,7 +183,7 @@ func Run(
 				}
 			}
 		case <-HeartbeatTimer.C:
-			ElevCh <- *elev
+			ElevChan <- *elev
 			HeartbeatTimer.Reset(T_HEARTBEAT)
 		}
 
