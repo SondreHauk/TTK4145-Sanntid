@@ -3,6 +3,7 @@ package primary
 import (
 	"fmt"
 	. "source/config"
+	"source/localElevator/elevio"
 	"source/network/peers"
 	"source/primary/assigner"
 	"time"
@@ -17,13 +18,21 @@ type Worldview struct{
 func Run(
 	peerUpdateChan <-chan peers.PeerUpdate,
 	elevStateChan <-chan Elevator,
-	becomePrimaryChan <-chan Worldview,
-	worldviewChan chan<- Worldview,
-	requestFromElevChan <-chan Order,
-	orderToElevChan chan<- Order,
-	/*hallLightschan chan <- Halllights*/ 
+	becomePrimaryChan <-chan bool,
+	worldviewChan chan <- Worldview,
+	requestFromElevChan <- chan Order,
+	orderToElevChan chan <- Order,
+	hallLightsChan chan <- HallLights,
 	id string){
 
+
+	updateLights := new(bool)
+	
+	//Init hall lights matrix
+	hallLights := make([][] bool, NUM_FLOORS)
+	for i := range(hallLights){
+		hallLights[i] = make([]bool, NUM_BUTTONS - 1)
+	}
 
 	select{
 	case worldview := <-becomePrimaryChan:
@@ -36,34 +45,30 @@ func Run(
 			select{
 			case worldview.PeerInfo = <-peerUpdateChan:
 				//If elev lost: Reassign lost orders
-
 				//printPeers(worldview.PeerInfo)
 				lost:=worldview.PeerInfo.Lost
 				if len(lost)!=0{
 					assigner.ReassignHallOrders(worldview, orderToElevChan)
 				}
 
-				
 			case elevUpdate := <-elevStateChan:
 				worldview.Elevators[elevUpdate.Id] = elevUpdate
-				//printElevator(elevUpdate)
-				//Check if the elevUpdate includes the order sent from primary
-				//If elevUpdate.Id == Order.Id && "elevUpdate.OrderMatrix == Order" 
-				//Set hall-lights!
-				//hallLightsChan <- hallLights
+				//Not working properly
+				updateHallLights(worldview, hallLights, updateLights)
+				if (*updateLights){
+					hallLightsChan <- hallLights}
 
 			case request := <- requestFromElevChan:
-				fmt.Printf("Request received from id: %s \n", request.Id)
+				//fmt.Printf("Request received from id: %s \n", request.Id)
 				AssignedId := assigner.ChooseElevator(worldview.Elevators,
 													worldview.PeerInfo.Peers,
 													request)
 				orderToElevChan <- Order{Id: AssignedId, 
 											Floor: request.Floor,
 											Button: request.Button}
-				fmt.Printf("Order sent to id: %s \n", AssignedId)
+				//fmt.Printf("Order sent to id: %s \n", AssignedId)
 				//Start a timer. If no elevUpdate is received from the assigned 
 				//elev within timeout, decelar it dead and reassign orders!
-
 
 			case <-HeartbeatTimer.C:
 				worldviewChan <- worldview
@@ -76,35 +81,53 @@ func Run(
 	}
 	
 }
+//NOT WORKING PROPERLY
+func updateHallLights(wv Worldview, 
+					hallLights [][]bool,
+					updateHallLights *bool){
 
-func setHallLights(elevators map[string]Elevator){
-	// for _,id := range(worldview.Elevators)
-	// orders = worldview.Elevators
-	// Iterate through the order matrix of each Elevator,
-	// Make a light-in-hall-matrix, send it to elevs
-	// fsm.Run() sets lights accordingly.
+	*updateHallLights = false // Reset flag
+
+	// Create a deep copy of hallLights (to properly compare changes)
+	prevHallLights := make([][]bool, NUM_FLOORS)
+	for i := range hallLights {
+		prevHallLights[i] = make([]bool, NUM_BUTTONS-1)
+		copy(prevHallLights[i], hallLights[i]) // Copy row data
+	}
+
+	// Reset hallLights matrix (assume no lights first, then set needed ones)
+	for floor := range hallLights {
+		for btn := range hallLights[floor] {
+			hallLights[floor][btn] = false
+		}
+	}
+
+	// Update hallLights based on the order matrix from all peers
+	for _, id := range(wv.PeerInfo.Peers){
+		orderMatrix := wv.Elevators[id].Orders
+		for floor, floorOrders := range(orderMatrix){
+			for btn, isOrder := range(floorOrders){
+				if isOrder && btn!= int(elevio.BT_Cab){
+					hallLights[floor][btn] = hallLights[floor][btn] || isOrder
+				}
+			}
+		}
+	}
+	// Compare hallLights with prevHallLights
+	for floor := 0; floor < NUM_FLOORS; floor++ {
+        for btn := 0; btn < NUM_BUTTONS-1; btn++ {
+            if hallLights[floor][btn] != prevHallLights[floor][btn] {
+                *updateHallLights = true
+            }
+        }
+    }
 }
-
-// **Helper Function: Drain all pending updates before normal operation**
-// func drainElevatorStateUpdates(elevStateChan <-chan Elevator, elevators *map[string]Elevator) {
-// 	fmt.Println(" Draining old elevator state updates before taking over...")
 
 func drain(ch <- chan Elevator){
 	for len(ch) > 0{
 		<- ch
 	}
 }
-
-// func drainElevatorStateUpdates(elevStateChan <-chan Elevator, elevators *map[string]Elevator) {
-// 	for {
-// 		select {
-// 		case elevUpdate := <-elevStateChan:
-// 			(*elevators)[elevUpdate.ID] = elevUpdate
-// 		default:
-// 			return // Exit when no more messages are available
-// 		}
-// 	}
-// }
 
 func printElevator(e Elevator){
 	fmt.Println("Elevator State Updated")

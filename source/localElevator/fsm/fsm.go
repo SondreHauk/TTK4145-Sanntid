@@ -15,13 +15,17 @@ func ShouldStop(elev Elevator) bool {
 		if elev.Floor==NUM_FLOORS-1{
 			return true
 		}else{
-			return elev.Orders[elev.Floor][elevio.BT_HallUp] || elev.Orders[elev.Floor][elevio.BT_Cab] || !requests.OrdersAbove(elev)
+			return elev.Orders[elev.Floor][elevio.BT_HallUp] || 
+			elev.Orders[elev.Floor][elevio.BT_Cab] || 
+			!requests.OrdersAbove(elev)
 		}
 	case DOWN:
 		if elev.Floor==0{
 			return true
 		}else{
-			return elev.Orders[elev.Floor][elevio.BT_HallDown] || elev.Orders[elev.Floor][elevio.BT_Cab] || !requests.OrdersBelow(elev)
+			return elev.Orders[elev.Floor][elevio.BT_HallDown] || 
+			elev.Orders[elev.Floor][elevio.BT_Cab] || 
+			!requests.OrdersBelow(elev)
 		}
 	case STOP:
 		return true
@@ -85,13 +89,14 @@ func TimeUntilPickup(elev Elevator, NewOrder Order) time.Duration{
 
 func Run(
 	elev *Elevator, 
-	ElevCh chan <-Elevator, 
-	AtFloorCh <-chan int, 
-	OrderFromPrimaryChan <-chan Order, 
-	ObsCh <-chan bool,
+	ElevChan chan <-Elevator, 
+	AtFloorChan <-chan int, 
+	OrderChan <-chan Order,
+	hallLightsRXChan <-chan HallLights,
+	ObsChan <-chan bool,
 	myId string) {
 
-	ElevCh <- *elev
+	ElevChan <- *elev
 	HeartbeatTimer := time.NewTimer(T_HEARTBEAT)
 	DoorTimer := time.NewTimer(T_DOOR_OPEN)
 	DoorTimer.Stop()
@@ -99,7 +104,7 @@ func Run(
 	
 	for {
 		select {
-		case NewOrder := <-OrderFromPrimaryChan:
+		case NewOrder := <-OrderChan:
 			if NewOrder.Id == myId{
 				elev.Orders[NewOrder.Floor][NewOrder.Button] = true
 				switch elev.State {
@@ -109,6 +114,15 @@ func Run(
 					if elev.Direction == STOP {
 						elevio.SetDoorOpenLamp(true)
 						DoorTimer.Reset(T_DOOR_OPEN)
+						//If order is at same floor, take order after opening door.
+						//Be carefull! Maybe this should be done after the door closes!
+						//i.e. at case <- DoorTimer.C
+						//What if someone obstructs the door so it cannot close after the order is accepted by an elev
+						//Intrduce a timer for that order. If not taken within 5 sec, redistribute. (Primary stuff)
+						elev.Orders[elev.Floor][NewOrder.Button] = false
+						if(NewOrder.Button == int(elevio.BT_Cab)){
+							elevio.SetButtonLamp(elevio.BT_Cab, NewOrder.Floor, false)
+						}
 						elev.State = DOOR_OPEN
 					} else {
 						elev.State = MOVING
@@ -123,20 +137,27 @@ func Run(
 						}
 					}
 				}
-				ElevCh <- *elev
+				ElevChan <- *elev
+			}
+		
+		case hallLights := <- hallLightsRXChan:
+			for floor := range hallLights { // Iterate over floors
+				for btn := range hallLights[floor] { // Iterate over buttons
+					elevio.SetButtonLamp(elevio.ButtonType(btn), floor, hallLights[floor][btn])
+				}
 			}
 
-		case elev.Floor = <-AtFloorCh:
+		case elev.Floor = <-AtFloorChan:
 			elevio.SetFloorIndicator(elev.Floor)
 			if ShouldStop(*elev) {
 				elevio.SetMotorDirection(elevio.MD_Stop)
-				requests.ClearFloor(elev, elev.Floor)
+				requests.ClearOrder(elev, elev.Floor)
 				elev.Direction = STOP
 				elevio.SetDoorOpenLamp(true)
 				DoorTimer.Reset(T_DOOR_OPEN)
 				elev.State = DOOR_OPEN
 			}
-			ElevCh <- *elev
+			ElevChan <- *elev
 
 		case <-DoorTimer.C:
 
@@ -148,9 +169,9 @@ func Run(
 				elevio.SetMotorDirection(elevio.MotorDirection(elev.Direction))
 				elev.State = MOVING
 			}
-			ElevCh <- *elev
+			ElevChan <- *elev
 		
-		case ObsEvent:= <-ObsCh:
+		case ObsEvent:= <-ObsChan:
 			if elev.State==DOOR_OPEN{
 				switch ObsEvent{
 					case true:
@@ -162,7 +183,7 @@ func Run(
 				}
 			}
 		case <-HeartbeatTimer.C:
-			ElevCh <- *elev
+			ElevChan <- *elev
 			HeartbeatTimer.Reset(T_HEARTBEAT)
 		}
 
