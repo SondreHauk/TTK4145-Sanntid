@@ -55,7 +55,7 @@ func main() {
 
 	WorldviewTXChan := make(chan primary.Worldview, 10)
 	WorldviewRXChan := make(chan primary.Worldview, 10)
-	BecomePrimaryChan := make(chan bool)
+	BecomePrimaryChan := make(chan primary.Worldview, 1)
 
 	hallLightsTXChan := make(chan HallLights, 10)
 	hallLightsRXChan := make(chan HallLights, 10)
@@ -77,13 +77,13 @@ func main() {
 	inits.ElevatorInit(&elev, id)
 
 	// Goroutines Local elevator
-	go requests.MakeRequest(ButtonChan, RequestToPrimaryChan, 
-							OrderChan, id)
+	go requests.MakeRequest(ButtonChan, RequestToPrimaryChan, OrderChan, id)
 	go elevio.PollButtons(ButtonChan)
 	go elevio.PollFloorSensor(AtFloorChan)
 	go elevio.PollObstructionSwitch(ObstructionChan)
 	go elevio.PollStopButton(StopChan)
 	go kill(StopChan)
+
 	go fsm.Run(&elev, ElevatorTXChan, AtFloorChan, 
 				OrderChan, hallLightsRXChan, ObstructionChan, id)
 

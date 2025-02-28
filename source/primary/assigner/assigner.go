@@ -10,6 +10,8 @@ import (
 	. "source/config"
 	"source/localElevator/fsm"
 	"source/localElevator/requests"
+	"source/primary"
+
 	//"source/network/peers"
 	"time"
 )
@@ -65,4 +67,23 @@ func ChooseElevator(elevators map[string]Elevator, activeIds []string, NewOrder 
 		}
 	}
 	return bestId
+}
+
+func ReassignHallOrders(wv primary.Worldview, orderToElevChan chan<- Order){
+	for _,lostId := range(wv.PeerInfo.Lost){
+		orderMatrix := wv.Elevators[lostId].Orders
+		for floor, floorOrders := range(orderMatrix){
+			for btn, isOrder := range(floorOrders){
+				if isOrder && btn!=CAB{
+					lostOrder:=Order{
+								Id: lostId,
+								Floor: floor,
+								Button: btn,
+							}
+					lostOrder.Id = ChooseElevator(wv.Elevators,wv.PeerInfo.Peers,lostOrder)
+					orderToElevChan <- lostOrder
+				}
+			}
+		}
+	}
 }

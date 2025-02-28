@@ -25,9 +25,6 @@ func Run(
 	hallLightsChan chan <- HallLights,
 	id string){
 
-	var worldview Worldview
-	worldview.Elevators = make(map[string]Elevator)
-	worldview.PrimaryId = id
 
 	updateLights := new(bool)
 	
@@ -38,9 +35,10 @@ func Run(
 	}
 
 	select{
-	case <- becomePrimaryChan:
+	case worldview := <-becomePrimaryChan:
 		fmt.Println("Taking over as Primary")
-		drain(elevStateChan) //FIX FLUSHING OF CHANNELS
+		//drain(elevStateChan) //FIX FLUSHING OF CHANNELS
+
 		HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
 
 		for{
@@ -48,6 +46,10 @@ func Run(
 			case worldview.PeerInfo = <-peerUpdateChan:
 				//If elev lost: Reassign lost orders
 				//printPeers(worldview.PeerInfo)
+				lost:=worldview.PeerInfo.Lost
+				if len(lost)!=0{
+					assigner.ReassignHallOrders(worldview, orderToElevChan)
+				}
 
 			case elevUpdate := <-elevStateChan:
 				worldview.Elevators[elevUpdate.Id] = elevUpdate
@@ -77,6 +79,7 @@ func Run(
 			}
 		}
 	}
+	
 }
 //NOT WORKING PROPERLY
 func updateHallLights(wv Worldview, 

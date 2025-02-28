@@ -61,3 +61,9 @@ type Order struct {
 	Floor int
 	Button int
 }
+
+const(
+	HALLUP = iota
+	HALLDWN
+	CAB
+)

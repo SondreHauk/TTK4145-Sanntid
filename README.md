@@ -41,3 +41,10 @@ However, in the case of an obstruction, this redundancy is unecessary and should
 
 ## One port for all message types
 As per now, each message type is sendt through an unique port. Fix this with a message handler. Assign all messages an ID, send them through the same port, and let the message handler assign the message to the right channel.
+
+When the primary assigns an order to an elevator, it starts a countdown timer. If the primary does not receive a correct stateUpdate from the assgined elevator within the deadline: declear the elevator for dead/broken and reassign all hall orders!
+
+# Miscellaneous
+## Variable naming convention
+As a general rule, camel-case convention is used. Initial capitalization is handled as such: lowercase for localVariables and helperFunctions, uppercase for ExportedVariables and FunctionsUsedElsewhere. Global constants are fully capitalized with underscores between words: PORT_WORLDVIEW, NUM_FLOORS, etc.
+
