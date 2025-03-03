@@ -56,8 +56,8 @@ func main() {
 	worldviewRXChan := make(chan primary.Worldview, 10)
 	becomePrimaryChan := make(chan primary.Worldview, 1)
 
-	hallLightsTXChan := make(chan HallLights, 10)
-	hallLightsRXChan := make(chan HallLights, 10)
+	hallLightsTXChan := make(chan [][]bool, 10)
+	hallLightsRXChan := make(chan [][]bool, 10)
 
 	atFloorChan := make(chan int, 1)
 	buttonChan := make(chan elevio.ButtonEvent, 10)

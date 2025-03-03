@@ -54,8 +54,6 @@ type Elevator struct {
 	Orders  [NUM_FLOORS][NUM_BUTTONS]bool
 }
 
-type HallLights [][]bool 
-
 type Order struct {
 	Id string
 	Floor int

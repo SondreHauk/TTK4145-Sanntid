@@ -30,18 +30,18 @@ func Run(
 	worldviewChan chan <- Worldview,
 	requestFromElevChan <- chan Order,
 	orderToElevChan chan <- Order,
-	hallLightsChan chan <- HallLights,
+	hallLightsChan chan <- [][]bool,
 	id string){
 
 	MapActionChan := make(chan ElevMapAction, 10)
 	ReadMapChan := make(chan map[string]Elevator, 2)
-	updateLights := new(bool)
+	//updateLights := new(bool)
 	
 	var worldview Worldview
 	worldview.ElevatorSnapshot = make(map[string]Elevator)
 	
 	//Init hallLights matrix
-	hallLights := make([][] bool, NUM_FLOORS)
+	hallLights := make([][]bool, NUM_FLOORS)
 	for i := range(hallLights){
 		hallLights[i] = make([]bool, NUM_BUTTONS - 1)
 	}
@@ -71,10 +71,12 @@ func Run(
 				//Request write
 				MapActionChan <- ElevMapAction{cmd: "write one",id: elevUpdate.Id, elev: elevUpdate}
 				//Not working properly
-				updateHallLights(worldview, hallLights, updateLights, MapActionChan)
+				newUpdateHallLights(worldview, hallLights, MapActionChan, hallLightsChan)
+
+				/* updateHallLights(worldview, hallLights, updateLights, MapActionChan)
 				if (*updateLights){
 					hallLightsChan <- hallLights
-				}
+				} */
 
 			case request := <-requestFromElevChan:
 				
@@ -106,9 +108,9 @@ func Run(
 
 //NOT WORKING PROPERLY
 func updateHallLights(wv Worldview, 
-					hallLights [][]bool,
-					updateHallLights *bool,
-					MapAccessChan chan ElevMapAction){
+					  hallLights [][]bool,
+					  updateHallLights *bool,
+					  MapAccessChan chan ElevMapAction){
 
 	*updateHallLights = false // Reset flag
 
@@ -140,7 +142,7 @@ func updateHallLights(wv Worldview,
 			for floor, floorOrders := range(orderMatrix){
 				for btn, isOrder := range(floorOrders){
 					if isOrder && btn!= int(elevio.BT_Cab){
-						hallLights[floor][btn] = hallLights[floor][btn] || isOrder
+						hallLights[floor][btn] = true
 					}
 				}
 			}
@@ -205,6 +207,7 @@ func printPeers(p peers.PeerUpdate){
 	fmt.Printf("  New:      %q\n", p.New)
 	fmt.Printf("  Lost:     %q\n", p.Lost)
 }
+
 func ElevatorMap(mapActionChan <- chan ElevMapAction){
 	elevators:=make(map[string]Elevator)
 	for{
@@ -212,12 +215,55 @@ func ElevatorMap(mapActionChan <- chan ElevMapAction){
 		case newAction:= <- mapActionChan:
 			switch newAction.cmd{
 			case "read":
-				newAction.readCh <- elevators	
+				deepCopy := make(map[string]Elevator, len(elevators))
+				for key, value := range elevators{
+					deepCopy[key] = value
+				}
+				newAction.readCh <- deepCopy
 			case "write one":
 				elevators[newAction.id]=newAction.elev
 			case "write all":
 				elevators = newAction.elevMap
 			}
 		}
+	}
+}
+
+
+func newUpdateHallLights(wv Worldview, hallLights [][]bool, MapActionChan chan<- ElevMapAction, hallLightsChan chan<-[][]bool){
+	readChan := make(chan map[string]Elevator, 1)
+	defer close(readChan)
+	//Request read
+	MapActionChan <- ElevMapAction{cmd: "read", readCh: readChan}
+	shouldUpdate:=false
+
+	prevHallLights := make([][]bool, NUM_FLOORS)
+	for floor, currentHallLights := range hallLights {
+		prevHallLights[floor] = make([]bool, NUM_BUTTONS-1)
+		copy(prevHallLights[floor], currentHallLights) // Copy row data
+		for btn := range(NUM_BUTTONS-1){
+			currentHallLights[btn]=false
+		}
+	}
+
+	select{
+	case elevMap:= <-readChan:	
+		wv=Worldview{wv.PrimaryId, wv.PeerInfo, elevMap}
+		for _, id := range(wv.PeerInfo.Peers){
+			orderMatrix := wv.ElevatorSnapshot[id].Orders
+			for floor, floorOrders := range(orderMatrix){
+				for btn, isOrder := range(floorOrders){
+					if isOrder && btn!= int(elevio.BT_Cab){
+						hallLights[floor][btn] = hallLights[floor][btn] && isOrder
+						if hallLights[floor][btn] != prevHallLights[floor][btn]{
+							shouldUpdate=true
+						}
+					}
+				}
+			}
+		}
+	}
+	if shouldUpdate{
+		hallLightsChan<-hallLights
 	}
 }
