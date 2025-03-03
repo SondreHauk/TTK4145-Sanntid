@@ -59,19 +59,17 @@ func ClearAll(elev *Elevator) {
 }
 
 func MakeRequest(btnEvent <-chan elevio.ButtonEvent, 
-	requestToPrimary chan <-Order, 
-	orderChan chan <- Order,
+	requestToPrimary chan <-Request, 
+	orderToElevChan chan <- Order,
 	id string) {
 	for{
 		select {
 			case btn := <-btnEvent:
-				request := Order{Id: id, Floor: btn.Floor, Button: int(btn.Button)}
 				if btn.Button == elevio.BT_Cab{
-					orderChan <- request // Assign directly to elev
+					orderToElevChan <- Order{Id: id, Floor: btn.Floor, Button: int(btn.Button)}
 					elevio.SetButtonLamp(elevio.ButtonType(btn.Button), btn.Floor, true)
-					//Remember: Lights on = Order MUST be taken
 				} else {
-					requestToPrimary<- request
+					requestToPrimary<- Request{Id: id, Floor: btn.Floor, Button: int(btn.Button)}
 				}
 		}
 		time.Sleep(T_SLEEP) //Necessary?

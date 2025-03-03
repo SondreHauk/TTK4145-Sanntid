@@ -8,7 +8,7 @@ import (
 )
 
 func Run(
-	worldViewChan <-chan primary.Worldview, 
+	worldviewRXChan <-chan primary.Worldview, 
 	becomePrimaryChan chan <- primary.Worldview,
 	id string){
 
@@ -16,18 +16,18 @@ func Run(
 	//Init an empty worldview
 	var latestWV primary.Worldview
 	latestWV.PrimaryId = id
-	latestWV.Elevators = make(map[string]Elevator)	
+	latestWV.Elevators = make(map[string]Elevator)
 	//Peers[0] doesnt exist before the first primary does
 	select{
-		case latestWV = <- worldViewChan:
+		case latestWV = <- worldviewRXChan:
 		case <-time.After(T_TIMEOUT):
 			becomePrimaryChan <- latestWV
 	}
 
 	for {
 		select {
-		case latestWV = <-worldViewChan:
-			// fmt.Println("Worldview received")
+		case latestWV = <-worldviewRXChan:
+			fmt.Println("Worldview received")
 			// fmt.Printf("Active Peers: %v\n", latestWorldview.PeerInfo)
 			// fmt.Printf("Elevators: %v\n", latestWorldview.Elevators)
 		

@@ -47,4 +47,3 @@ When the primary assigns an order to an elevator, it starts a countdown timer. I
 # Miscellaneous
 ## Variable naming convention
 As a general rule, camel-case convention is used. Initial capitalization is handled as such: lowercase for localVariables and helperFunctions, uppercase for ExportedVariables and FunctionsUsedElsewhere. Global constants are fully capitalized with underscores between words: PORT_WORLDVIEW, NUM_FLOORS, etc.
-

@@ -38,11 +38,12 @@ const(
 //Is possible to use only one port, with msg IDs.
 const(
 	PORT_PEERS = 20020
-	PORT_ELEVSTATE = 20030
-	PORT_WORLDVIEW = 20040
-	PORT_REQUEST = 20050
-	PORT_ORDER = 20060
-	PORT_HALLLIGHTS = 20070
+	PORT_BCAST = 20070
+	// PORT_ELEVSTATE = 20030
+	// PORT_WORLDVIEW = 20040
+	// PORT_REQUEST = 20050
+	// PORT_ORDER = 20060
+	// PORT_HALLLIGHTS = 20070
 )
 
 type Elevator struct {
@@ -55,6 +56,12 @@ type Elevator struct {
 }
 
 type HallLights [][]bool 
+
+type Request struct {
+	Id string // remove?
+	Floor int
+	Button int
+}
 
 type Order struct {
 	Id string

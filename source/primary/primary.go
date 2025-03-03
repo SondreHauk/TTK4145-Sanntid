@@ -19,8 +19,8 @@ func Run(
 	peerUpdateChan <-chan peers.PeerUpdate,
 	elevStateChan <-chan Elevator,
 	becomePrimaryChan <-chan Worldview,
-	worldviewChan chan <- Worldview,
-	requestFromElevChan <- chan Order,
+	worldviewTXChan chan <- Worldview,
+	requestFromElevChan <- chan Request,
 	orderToElevChan chan <- Order,
 	hallLightsChan chan <- HallLights,
 	id string){
@@ -72,10 +72,10 @@ func Run(
 					hallLightsChan <- hallLights}
 
 			case request := <- requestFromElevChan:
-				//fmt.Printf("Request received from id: %s \n", request.Id)
+				order := Order(request) //Cast request to order
 				AssignedId := assigner.ChooseElevator(worldview.Elevators,
 													worldview.PeerInfo.Peers,
-													request)
+													order)
 				orderToElevChan <- Order{Id: AssignedId, 
 											Floor: request.Floor,
 											Button: request.Button}
@@ -84,7 +84,7 @@ func Run(
 				//elev within timeout, decelar it dead and reassign orders!
 
 			case <-HeartbeatTimer.C:
-				worldviewChan <- worldview
+				worldviewTXChan <- worldview
 
 			case <-becomePrimaryChan: //Needs logic
 				fmt.Println("Another Primary taking over...")
