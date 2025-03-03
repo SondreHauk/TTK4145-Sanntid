@@ -125,3 +125,4 @@ func main() {
 	
 	// Blocking select
 	select {}
+}
