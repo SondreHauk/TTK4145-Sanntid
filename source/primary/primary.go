@@ -48,10 +48,14 @@ func Run(
 	// fmt.Println("Taking over as Primary")
 	// HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
 
+	// var elevUpdate Elevator
+
 	select{
 	case worldview := <-becomePrimaryChan:
 		fmt.Println("Taking over as Primary")
-		//drain(elevStateChan) //FIX FLUSHING OF CHANNELS
+		//drain(peerUpdateChan)
+		drain(elevStateChan)
+		//drain(requestFromElevChan)
 		HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
 
 		for{
@@ -66,7 +70,7 @@ func Run(
 
 			case elevUpdate := <-elevStateChan:
 				worldview.Elevators[elevUpdate.Id] = elevUpdate
-				//Not working properly
+				fmt.Println("Hello from elevUpdate")
 				updateHallLights(worldview, hallLights, updateLights)
 				if (*updateLights){
 					hallLightsChan <- hallLights}
@@ -92,6 +96,16 @@ func Run(
 			}
 		}
 	}
+}
+
+func drain(ch <-chan Elevator) {
+    for {
+        select {
+        case <-ch:
+        default:
+            return // Stop draining when the channel is empty
+        }
+    }
 }
 
 //NOT WORKING PROPERLY
@@ -152,12 +166,6 @@ func ReassignHallOrders(wv Worldview, orderToElevChan chan<- Order){
 				}
 			}
 		}
-	}
-}
-
-func drain(ch <- chan Elevator){
-	for len(ch) > 0{
-		<- ch
 	}
 }
 

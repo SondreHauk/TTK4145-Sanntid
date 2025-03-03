@@ -47,18 +47,18 @@ func main() {
 	flag.Parse()
 
 	//Channels
-	ElevatorTXChan := make(chan Elevator, 10)
-	ElevatorRXChan := make(chan Elevator) 
+	ElevatorTXChan := make(chan Elevator, 100)
+	ElevatorRXChan := make(chan Elevator, 100) 
 
 	TransmitEnableChan := make(chan bool)
 	PeerUpdateChan := make(chan peers.PeerUpdate)
 
-	WorldviewTXChan := make(chan primary.Worldview, 10)
-	WorldviewRXChan := make(chan primary.Worldview, 10)
+	WorldviewTXChan := make(chan primary.Worldview, 100)
+	WorldviewRXChan := make(chan primary.Worldview, 100)
 	BecomePrimaryChan := make(chan primary.Worldview, 1)
 
-	hallLightsTXChan := make(chan HallLights, 10)
-	hallLightsRXChan := make(chan HallLights, 10)
+	hallLightsTXChan := make(chan HallLights, 100)
+	hallLightsRXChan := make(chan HallLights, 100)
 
 	AtFloorChan := make(chan int, 1)
 	ButtonChan := make(chan elevio.ButtonEvent, 10)
@@ -90,14 +90,18 @@ func main() {
 	// Goroutines communication
 	go bcast.Transmitter(PORT_ELEVSTATE, ElevatorTXChan)
 	go bcast.Receiver(PORT_ELEVSTATE, ElevatorRXChan)
+
 	go peers.Transmitter(PORT_PEERS, id, TransmitEnableChan)
 	go peers.Receiver(PORT_PEERS, PeerUpdateChan)
-	go bcast.Transmitter(PORT_WORLDVIEW, WorldviewTXChan)
-	go bcast.Receiver(PORT_WORLDVIEW, WorldviewRXChan)
+
+	go bcast.Transmitter(PORT_WORLDVIEW, WorldviewTXChan, 
+						RequestToPrimaryChan, /*ElevatorTXChan*/)
+	go bcast.Receiver(PORT_WORLDVIEW, WorldviewRXChan, 
+						RequestFromElevChan, /*ElevatorRXChan*/)
   
 	// Elevator --- Request ---> Primary --- Order ---> Elevator
-	go bcast.Transmitter(PORT_REQUEST, RequestToPrimaryChan)
-	go bcast.Receiver(PORT_REQUEST, RequestFromElevChan)
+	// go bcast.Transmitter(PORT_REQUEST, RequestToPrimaryChan)
+	// go bcast.Receiver(PORT_REQUEST, RequestFromElevChan)
 	go bcast.Transmitter(PORT_ORDER, OrderToElevChan)
 	go bcast.Receiver(PORT_ORDER, OrderChan)
 
