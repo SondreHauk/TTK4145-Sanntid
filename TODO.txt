@@ -12,11 +12,11 @@ TODO
 - Flush channels before primary takeover
 - Checkout SendRequest function, clean up
 - Make README files
-- Assigner doesent differentiate between cab-calls and hall-calls?
 - Specify directions on all channels
 - Update Elevators when Peers die 
 - Include lights matrix in worldView struct
 - When elevator is in same floor as cab-call, the light does not turn off!
+- Elevator clears hall calls in both directions at the same time...
 
  --- BUTTON LIGHT CONTRACT ---
  -- When and where to turn on?
