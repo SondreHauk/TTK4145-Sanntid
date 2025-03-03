@@ -12,7 +12,8 @@ import (
 type Worldview struct{
 	PrimaryId string
 	PeerInfo peers.PeerUpdate
-	Elevators map[string]Elevator
+	//Elevators map[string]Elevator
+	Elevators ConcurrentMap
 }
 
 func Run(
@@ -27,7 +28,7 @@ func Run(
 
 	updateLights := new(bool)
 	var worldview Worldview
-	worldview.Elevators = make(map[string]Elevator)
+	worldview.Elevators = ConcurrentMap{Storage: make(map[string]Elevator)}
 	
 	//Init hall lights matrix
 	hallLights := make([][] bool, NUM_FLOORS)
@@ -65,7 +66,9 @@ func Run(
 				}
 
 			case elevUpdate := <-elevStateChan:
-				worldview.Elevators[elevUpdate.Id] = elevUpdate
+				worldview.Elevators.Mutex.Lock()
+				worldview.Elevators.Storage[elevUpdate.Id] = elevUpdate
+				worldview.Elevators.Mutex.Unlock()
 				//Not working properly
 				updateHallLights(worldview, hallLights, updateLights)
 				if (*updateLights){
@@ -117,7 +120,9 @@ func updateHallLights(wv Worldview,
 
 	// Update hallLights based on the order matrix from all peers
 	for _, id := range(wv.PeerInfo.Peers){
-		orderMatrix := wv.Elevators[id].Orders
+		wv.Elevators.Mutex.Lock()
+		orderMatrix := wv.Elevators.Storage[id].Orders
+		wv.Elevators.Mutex.Unlock()
 		for floor, floorOrders := range(orderMatrix){
 			for btn, isOrder := range(floorOrders){
 				if isOrder && btn!= int(elevio.BT_Cab){
@@ -137,8 +142,11 @@ func updateHallLights(wv Worldview,
 }
 
 func ReassignHallOrders(wv Worldview, orderToElevChan chan<- Order){
+	
 	for _,lostId := range(wv.PeerInfo.Lost){
-		orderMatrix := wv.Elevators[lostId].Orders
+		wv.Elevators.Mutex.Lock()
+		orderMatrix := wv.Elevators.Storage[lostId].Orders
+		wv.Elevators.Mutex.Unlock()
 		for floor, floorOrders := range(orderMatrix){
 			for btn, isOrder := range(floorOrders){
 				if isOrder && btn!=CAB{

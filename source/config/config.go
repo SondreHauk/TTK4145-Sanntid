@@ -1,6 +1,7 @@
 package config
 
 import (
+	"sync"
 	"time"
 )
 
@@ -67,3 +68,8 @@ const(
 	HALLDWN
 	CAB
 )
+
+type ConcurrentMap struct{
+	Mutex sync.Mutex
+	Storage map[string]Elevator
+}

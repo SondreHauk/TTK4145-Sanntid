@@ -16,7 +16,7 @@ func Run(
 	//Init an empty worldview
 	var latestWV primary.Worldview
 	latestWV.PrimaryId = id
-	latestWV.Elevators = make(map[string]Elevator)	
+	latestWV.Elevators = ConcurrentMap{Storage: make(map[string]Elevator)}
 	//Peers[0] doesnt exist before the first primary does
 	select{
 		case latestWV = <- worldViewChan:
