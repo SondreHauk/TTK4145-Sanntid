@@ -54,7 +54,7 @@ func Run(
 		fmt.Println("Taking over as Primary")
 		MapActionChan <- ElevMapAction{cmd:"write all", elevMap: worldview.ElevatorSnapshot}
 		
-		//drain(elevStateChan) //FIX FLUSHING OF CHANNELS
+		//drain(elevStateChan) //FIX FLUSHING OF CHANNELS (?)
 		HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
 
 		for{
@@ -70,14 +70,8 @@ func Run(
 			case elevUpdate := <-elevStateChan:
 				//Request write
 				MapActionChan <- ElevMapAction{cmd: "write one",id: elevUpdate.Id, elev: elevUpdate}
-				//Not working properly
-				newUpdateHallLights(worldview, hallLights, MapActionChan, hallLightsChan)
-
-				/* updateHallLights(worldview, hallLights, updateLights, MapActionChan)
-				if (*updateLights){
-					hallLightsChan <- hallLights
-				} */
-
+				//has a race condition but works fine
+				updateHallLights(worldview, hallLights, MapActionChan, hallLightsChan)
 			case request := <-requestFromElevChan:
 				
 				//Request read
@@ -104,60 +98,6 @@ func Run(
 			}
 		}
 	}
-}
-
-//NOT WORKING PROPERLY
-func updateHallLights(wv Worldview, 
-					  hallLights [][]bool,
-					  updateHallLights *bool,
-					  MapAccessChan chan ElevMapAction){
-
-	*updateHallLights = false // Reset flag
-
-	// Create a deep copy of hallLights (to properly compare changes)
-	prevHallLights := make([][]bool, NUM_FLOORS)
-	for i := range hallLights {
-		prevHallLights[i] = make([]bool, NUM_BUTTONS-1)
-		copy(prevHallLights[i], hallLights[i]) // Copy row data
-	}
-
-	// Reset hallLights matrix (assume no lights first, then set needed ones)
-	for floor := range hallLights {
-		for btn := range hallLights[floor] {
-			hallLights[floor][btn] = false
-		}
-	}
-
-	readChan := make(chan map[string]Elevator, 1)
-	defer close(readChan)
-	//Request read
-	MapAccessChan <- ElevMapAction{cmd: "read", readCh: readChan}
-	
-	// Update hallLights based on the order matrix from all peers
-	select{
-	case elevMap:= <-readChan:
-		wv=Worldview{wv.PrimaryId, wv.PeerInfo, elevMap}
-		for _, id := range(wv.PeerInfo.Peers){
-			orderMatrix := wv.ElevatorSnapshot[id].Orders
-			for floor, floorOrders := range(orderMatrix){
-				for btn, isOrder := range(floorOrders){
-					if isOrder && btn!= int(elevio.BT_Cab){
-						hallLights[floor][btn] = true
-					}
-				}
-			}
-		}
-	}
-	
-
-	// Compare hallLights with prevHallLights
-	for floor := 0; floor < NUM_FLOORS; floor++ {
-        for btn := 0; btn < NUM_BUTTONS-1; btn++ {
-            if hallLights[floor][btn] != prevHallLights[floor][btn] {
-                *updateHallLights = true
-            }
-        }
-    }
 }
 
 func ReassignHallOrders(wv Worldview, MapAccessChan chan ElevMapAction, orderToElevChan chan<- Order){
@@ -189,25 +129,6 @@ func ReassignHallOrders(wv Worldview, MapAccessChan chan ElevMapAction, orderToE
 	}
 }
 
-func drain(ch <- chan Elevator){
-	for len(ch) > 0{
-		<- ch
-	}
-}
-
-func printElevator(e Elevator){
-	fmt.Println("Elevator State Updated")
-	fmt.Printf("ID: %s\n", e.Id)
-	fmt.Printf("Floor: %d\n", e.Floor)
-}
-
-func printPeers(p peers.PeerUpdate){
-	fmt.Printf("Peer update:\n")
-	fmt.Printf("  Peers:    %q\n", p.Peers)
-	fmt.Printf("  New:      %q\n", p.New)
-	fmt.Printf("  Lost:     %q\n", p.Lost)
-}
-
 func ElevatorMap(mapActionChan <- chan ElevMapAction){
 	elevators:=make(map[string]Elevator)
 	for{
@@ -229,23 +150,23 @@ func ElevatorMap(mapActionChan <- chan ElevMapAction){
 	}
 }
 
+/* MAYBE implement function that owns hallLight state to avoid "trivial" race condition. Would be similar to ElevatorMap
+	NOT 1st priority.  */
 
-func newUpdateHallLights(wv Worldview, hallLights [][]bool, MapActionChan chan<- ElevMapAction, hallLightsChan chan<-[][]bool){
+func updateHallLights(wv Worldview, hallLights [][]bool, MapActionChan chan<- ElevMapAction, hallLightsChan chan<-[][]bool){
 	readChan := make(chan map[string]Elevator, 1)
 	defer close(readChan)
 	//Request read
 	MapActionChan <- ElevMapAction{cmd: "read", readCh: readChan}
 	shouldUpdate:=false
-
 	prevHallLights := make([][]bool, NUM_FLOORS)
-	for floor, currentHallLights := range hallLights {
+	for floor := range hallLights {
 		prevHallLights[floor] = make([]bool, NUM_BUTTONS-1)
-		copy(prevHallLights[floor], currentHallLights) // Copy row data
+		copy(prevHallLights[floor], hallLights[floor]) // Copy row data
 		for btn := range(NUM_BUTTONS-1){
-			currentHallLights[btn]=false
+			hallLights[floor][btn]=false
 		}
 	}
-
 	select{
 	case elevMap:= <-readChan:	
 		wv=Worldview{wv.PrimaryId, wv.PeerInfo, elevMap}
@@ -254,12 +175,16 @@ func newUpdateHallLights(wv Worldview, hallLights [][]bool, MapActionChan chan<-
 			for floor, floorOrders := range(orderMatrix){
 				for btn, isOrder := range(floorOrders){
 					if isOrder && btn!= int(elevio.BT_Cab){
-						hallLights[floor][btn] = hallLights[floor][btn] && isOrder
-						if hallLights[floor][btn] != prevHallLights[floor][btn]{
-							shouldUpdate=true
-						}
+						hallLights[floor][btn] = true
 					}
 				}
+			}
+		}
+	}
+	for floor := range(NUM_FLOORS){
+		for btn := range(NUM_BUTTONS-1){
+			if prevHallLights[floor][btn] != hallLights[floor][btn]{
+			shouldUpdate = true
 			}
 		}
 	}
@@ -267,3 +192,23 @@ func newUpdateHallLights(wv Worldview, hallLights [][]bool, MapActionChan chan<-
 		hallLightsChan<-hallLights
 	}
 }
+
+func printPeers(p peers.PeerUpdate){
+	fmt.Printf("Peer update:\n")
+	fmt.Printf("  Peers:    %q\n", p.Peers)
+	fmt.Printf("  New:      %q\n", p.New)
+	fmt.Printf("  Lost:     %q\n", p.Lost)
+} 
+
+/* func drain(ch <- chan Elevator){
+	for len(ch) > 0{
+		<- ch
+	}
+}
+
+func printElevator(e Elevator){
+	fmt.Println("Elevator State Updated")
+	fmt.Printf("ID: %s\n", e.Id)
+	fmt.Printf("Floor: %d\n", e.Floor)
+}
+*/
