@@ -1,7 +1,7 @@
 package inits
 
 import (
-	. "source/localElevator/config"
+	. "source/config"
 	"source/localElevator/elevio"
 )
 

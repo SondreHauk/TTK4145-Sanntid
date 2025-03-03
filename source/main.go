@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"time"
 	"source/backup"
-	. "source/localElevator/config"
+	. "source/config"
 	"source/localElevator/elevio"
 	"source/localElevator/fsm"
 	"source/localElevator/inits"
@@ -16,7 +16,6 @@ import (
 	"source/network/peers"
 	"source/primary"
 )
-
 
 func kill(StopButtonCh<-chan bool){
 	KeyboardInterruptCh := make(chan os.Signal, 1)
@@ -51,18 +50,25 @@ func main() {
 	ElevatorTXChan := make(chan Elevator, 10)
 	ElevatorRXChan := make(chan Elevator) 
 
-	TransmitEnable := make(chan bool)
+	TransmitEnableChan := make(chan bool)
 	PeerUpdateChan := make(chan peers.PeerUpdate)
 
 	WorldviewTXChan := make(chan primary.Worldview, 10)
 	WorldviewRXChan := make(chan primary.Worldview, 10)
-	BecomePrimary := make(chan bool)
+	BecomePrimaryChan := make(chan primary.Worldview, 1)
+
+	hallLightsTXChan := make(chan HallLights, 10)
+	hallLightsRXChan := make(chan HallLights, 10)
 
 	AtFloorChan := make(chan int, 1)
-	NewOrderChan := make(chan Order, 10)
 	ButtonChan := make(chan elevio.ButtonEvent, 10)
 	ObstructionChan := make(chan bool, 1)
 	StopChan := make(chan bool, 1)
+
+	RequestToPrimaryChan := make(chan Order, 10)
+	RequestFromElevChan := make(chan Order, 10)
+	OrderToElevChan := make(chan Order, 10)
+	OrderChan := make(chan Order, 10)
 	
 	//Initializations
 	elevio.Init("localhost:"+ port, NUM_FLOORS)
@@ -71,26 +77,39 @@ func main() {
 	inits.ElevatorInit(&elev, id)
 
 	// Goroutines Local elevator
-	go requests.Update(ButtonChan, NewOrderChan)
+	go requests.MakeRequest(ButtonChan, RequestToPrimaryChan, OrderChan, id)
 	go elevio.PollButtons(ButtonChan)
 	go elevio.PollFloorSensor(AtFloorChan)
 	go elevio.PollObstructionSwitch(ObstructionChan)
 	go elevio.PollStopButton(StopChan)
 	go kill(StopChan)
+
 	go fsm.Run(&elev, ElevatorTXChan, AtFloorChan, 
-				NewOrderChan, ObstructionChan)
+				OrderChan, hallLightsRXChan, ObstructionChan, id)
 
 	// Goroutines communication
-	go bcast.Transmitter(PORT_BCAST_ELEV, ElevatorTXChan)
-	go bcast.Receiver(PORT_BCAST_ELEV, ElevatorRXChan)
-	go peers.Transmitter(PORT_PEERS, id, TransmitEnable)
+	go bcast.Transmitter(PORT_ELEVSTATE, ElevatorTXChan)
+	go bcast.Receiver(PORT_ELEVSTATE, ElevatorRXChan)
+	go peers.Transmitter(PORT_PEERS, id, TransmitEnableChan)
 	go peers.Receiver(PORT_PEERS, PeerUpdateChan)
 	go bcast.Transmitter(PORT_WORLDVIEW, WorldviewTXChan)
 	go bcast.Receiver(PORT_WORLDVIEW, WorldviewRXChan)
+  
+	// Elevator --- Request ---> Primary --- Order ---> Elevator
+	go bcast.Transmitter(PORT_REQUEST, RequestToPrimaryChan)
+	go bcast.Receiver(PORT_REQUEST, RequestFromElevChan)
+	go bcast.Transmitter(PORT_ORDER, OrderToElevChan)
+	go bcast.Receiver(PORT_ORDER, OrderChan)
 
-	go backup.Run(WorldviewRXChan, BecomePrimary, id)
+	go bcast.Transmitter(PORT_HALLLIGHTS, hallLightsTXChan)
+	go bcast.Receiver(PORT_HALLLIGHTS, hallLightsRXChan)
+
+	go backup.Run(WorldviewRXChan, BecomePrimaryChan, id)
+
 	go primary.Run(PeerUpdateChan, ElevatorRXChan, 
-					BecomePrimary, WorldviewTXChan, id)
+					BecomePrimaryChan, WorldviewTXChan,
+					RequestFromElevChan, OrderToElevChan, 
+					hallLightsTXChan, id)
 	
 	// Blocking select
 	select {}

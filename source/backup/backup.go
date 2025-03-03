@@ -2,37 +2,38 @@ package backup
 
 import (
 	"fmt"
-	. "source/localElevator/config"
+	. "source/config"
 	"source/primary"
 	"time"
 )
 
 func Run(
-	worldview <-chan primary.Worldview, 
-	becomePrimary chan <- bool,
+	worldViewChan <-chan primary.Worldview, 
+	becomePrimaryChan chan <- primary.Worldview,
 	id string){
 
 	fmt.Println("Enter Backup mode - listening for primary")
-
+	//Init an empty worldview
 	var latestWV primary.Worldview
+	latestWV.PrimaryId = id
+	latestWV.Elevators = make(map[string]Elevator)	
 	//Peers[0] doesnt exist before the first primary does
 	select{
-		case latestWV = <- worldview:
+		case latestWV = <- worldViewChan:
 		case <-time.After(T_TIMEOUT):
-			becomePrimary <- true
+			becomePrimaryChan <- latestWV
 	}
-	
+
 	for {
 		select {
-		case latestWV = <- worldview:
+		case latestWV = <-worldViewChan:
 			// fmt.Println("Worldview received")
-			// fmt.Printf("Active Peers: %v\n", latestWorldview.ActivePeers)
+			// fmt.Printf("Active Peers: %v\n", latestWorldview.PeerInfo)
 			// fmt.Printf("Elevators: %v\n", latestWorldview.Elevators)
 		
 		case <-time.After(T_TIMEOUT):
-
 			if shouldTakeOver(latestWV, id){
-				becomePrimary <- true
+				becomePrimaryChan <- latestWV
 			}else{
 				latestWV.PeerInfo.Peers = latestWV.PeerInfo.Peers[1:]
 			}
