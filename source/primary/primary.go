@@ -12,7 +12,15 @@ import (
 type Worldview struct{
 	PrimaryId string
 	PeerInfo peers.PeerUpdate
-	Elevators map[string]Elevator
+	ElevatorSnapshot map[string]Elevator // Used for transmission, not valid for concurrent access
+}
+
+type ElevMapAction struct{
+	cmd string
+	id string
+	elev Elevator
+	initMap map[string]Elevator
+	respCh chan any
 }
 
 func Run(
@@ -25,9 +33,11 @@ func Run(
 	hallLightsChan chan <- HallLights,
 	id string){
 
+	ElevMapChan := make(chan ElevMapAction, 20)
+	
 	updateLights := new(bool)
 	var worldview Worldview
-	worldview.Elevators = make(map[string]Elevator)
+	worldview.ElevatorSnapshot = make(map[string]Elevator)
 	
 	//Init hall lights matrix
 	hallLights := make([][] bool, NUM_FLOORS)
@@ -51,6 +61,8 @@ func Run(
 	select{
 	case worldview := <-becomePrimaryChan:
 		fmt.Println("Taking over as Primary")
+		ElevMapChan <- ElevMapAction{cmd:"initialize", initMap: worldview.ElevatorSnapshot}
+		
 		//drain(elevStateChan) //FIX FLUSHING OF CHANNELS
 		HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
 
@@ -61,7 +73,7 @@ func Run(
 				printPeers(worldview.PeerInfo)
 				lost:=worldview.PeerInfo.Lost
 				if len(lost)!=0{
-					ReassignHallOrders(worldview, orderToElevChan)
+					ReassignHallOrders(worldview, ElevMapChan, orderToElevChan)
 				}
 
 			case elevUpdate := <-elevStateChan:
@@ -97,7 +109,8 @@ func Run(
 //NOT WORKING PROPERLY
 func updateHallLights(wv Worldview, 
 					hallLights [][]bool,
-					updateHallLights *bool){
+					updateHallLights *bool,
+					MapAccessChan chan ElevMapAction){
 
 	*updateHallLights = false // Reset flag
 
@@ -115,17 +128,28 @@ func updateHallLights(wv Worldview,
 		}
 	}
 
+	readChan := make(chan any, 1)
+	defer close(readChan)
+	//Request read
+	MapAccessChan <- ElevMapAction{cmd: "read", respCh: readChan}
+	
 	// Update hallLights based on the order matrix from all peers
-	for _, id := range(wv.PeerInfo.Peers){
-		orderMatrix := wv.Elevators[id].Orders
-		for floor, floorOrders := range(orderMatrix){
-			for btn, isOrder := range(floorOrders){
-				if isOrder && btn!= int(elevio.BT_Cab){
-					hallLights[floor][btn] = hallLights[floor][btn] || isOrder
+	select{
+	case elevMap:= <-readChan:
+		wv=Worldview{wv.PrimaryId, wv.PeerInfo, elevMap.(map[string]Elevator)}
+		for _, id := range(wv.PeerInfo.Peers){
+			orderMatrix := wv.ElevatorSnapshot[id].Orders
+			for floor, floorOrders := range(orderMatrix){
+				for btn, isOrder := range(floorOrders){
+					if isOrder && btn!= int(elevio.BT_Cab){
+						hallLights[floor][btn] = hallLights[floor][btn] || isOrder
+					}
 				}
 			}
 		}
 	}
+	
+
 	// Compare hallLights with prevHallLights
 	for floor := 0; floor < NUM_FLOORS; floor++ {
         for btn := 0; btn < NUM_BUTTONS-1; btn++ {
@@ -136,22 +160,35 @@ func updateHallLights(wv Worldview,
     }
 }
 
-func ReassignHallOrders(wv Worldview, orderToElevChan chan<- Order){
-	for _,lostId := range(wv.PeerInfo.Lost){
-		orderMatrix := wv.Elevators[lostId].Orders
-		for floor, floorOrders := range(orderMatrix){
-			for btn, isOrder := range(floorOrders){
-				if isOrder && btn!=CAB{
-					lostOrder:=Order{
-								Id: lostId,
-								Floor: floor,
-								Button: btn,
-							}
-					lostOrder.Id = assigner.ChooseElevator(wv.Elevators,wv.PeerInfo.Peers,lostOrder)
-					orderToElevChan <- lostOrder
+func ReassignHallOrders(wv Worldview, MapAccessChan chan ElevMapAction, orderToElevChan chan<- Order){
+	readChan := make(chan any, 1)
+	defer close(readChan)
+	//Request read
+	MapAccessChan <- ElevMapAction{cmd: "read", /* id: lostId, */ respCh: readChan}
+
+	select{
+		case elevMap := <-readChan:
+			wv = Worldview{wv.PrimaryId,wv.PeerInfo,elevMap.(map[string]Elevator)} //Updated worldview
+			for _,lostId := range(wv.PeerInfo.Lost){	
+				orderMatrix := elevMap.(map[string]Elevator)[lostId].Orders
+				
+				for floor, floorOrders := range(orderMatrix){
+					for btn, isOrder := range(floorOrders){
+						
+						if isOrder && btn!=CAB{
+							lostOrder:=Order{
+										Id: lostId,
+										Floor: floor,
+										Button: btn,
+									}
+							lostOrder.Id = assigner.ChooseElevator(wv.ElevatorSnapshot,wv.PeerInfo.Peers,lostOrder)
+							orderToElevChan <- lostOrder
+						}
+					}
 				}
 			}
-		}
+	
+	
 	}
 }
 
@@ -172,4 +209,22 @@ func printPeers(p peers.PeerUpdate){
 	fmt.Printf("  Peers:    %q\n", p.Peers)
 	fmt.Printf("  New:      %q\n", p.New)
 	fmt.Printf("  Lost:     %q\n", p.Lost)
+}
+func elevatorMap(mapActionChan <- chan ElevMapAction){
+	elevators:=make(map[string]Elevator)
+	for{
+		select{
+		case newAction:= <- mapActionChan:
+			switch newAction.cmd{
+			case "read":
+				newAction.respCh <- elevators[newAction.id]			
+			case "write":
+				elevators[newAction.id] = newAction.elev
+			case "migrate":
+				newAction.respCh <- elevators
+			case "initialize":
+				elevators = newAction.initMap
+			}
+		}
+	}
 }
