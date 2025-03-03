@@ -16,11 +16,11 @@ type Worldview struct{
 }
 
 type ElevMapAction struct{
-	cmd string
+	cmd string //{"read","write one","write all"}
 	id string
 	elev Elevator
-	initMap map[string]Elevator
-	respCh chan any
+	elevMap map[string]Elevator
+	readCh chan map[string]Elevator
 }
 
 func Run(
@@ -33,35 +33,26 @@ func Run(
 	hallLightsChan chan <- HallLights,
 	id string){
 
-	ElevMapChan := make(chan ElevMapAction, 20)
-	
+	MapActionChan := make(chan ElevMapAction, 10)
+	ReadMapChan := make(chan map[string]Elevator, 2)
 	updateLights := new(bool)
+	
 	var worldview Worldview
 	worldview.ElevatorSnapshot = make(map[string]Elevator)
 	
-	//Init hall lights matrix
+	//Init hallLights matrix
 	hallLights := make([][] bool, NUM_FLOORS)
 	for i := range(hallLights){
 		hallLights[i] = make([]bool, NUM_BUTTONS - 1)
 	}
 
-	// waitloop:
-	// for{
-	// 	select{
-	// 	case <- peerUpdateChan:
-	// 	case <- elevStateChan:
-	// 	case <- requestFromElevChan:
-	// 	case worldview = <-becomePrimaryChan:
-	// 		break waitloop
-	// }
-	// //Primary mode
-	// fmt.Println("Taking over as Primary")
-	// HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
+	//Handling reads and writes from/to ElevatorMap
+	go ElevatorMap(MapActionChan)
 
 	select{
 	case worldview := <-becomePrimaryChan:
 		fmt.Println("Taking over as Primary")
-		ElevMapChan <- ElevMapAction{cmd:"initialize", initMap: worldview.ElevatorSnapshot}
+		MapActionChan <- ElevMapAction{cmd:"write all", elevMap: worldview.ElevatorSnapshot}
 		
 		//drain(elevStateChan) //FIX FLUSHING OF CHANNELS
 		HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
@@ -73,32 +64,39 @@ func Run(
 				printPeers(worldview.PeerInfo)
 				lost:=worldview.PeerInfo.Lost
 				if len(lost)!=0{
-					ReassignHallOrders(worldview, ElevMapChan, orderToElevChan)
+					ReassignHallOrders(worldview, MapActionChan, orderToElevChan)
 				}
 
 			case elevUpdate := <-elevStateChan:
-				worldview.Elevators[elevUpdate.Id] = elevUpdate
+				//Request write
+				MapActionChan <- ElevMapAction{cmd: "write one",id: elevUpdate.Id, elev: elevUpdate}
 				//Not working properly
-				updateHallLights(worldview, hallLights, updateLights)
+				updateHallLights(worldview, hallLights, updateLights, MapActionChan)
 				if (*updateLights){
-					hallLightsChan <- hallLights}
+					hallLightsChan <- hallLights
+				}
 
-			case request := <- requestFromElevChan:
-				//fmt.Printf("Request received from id: %s \n", request.Id)
-				AssignedId := assigner.ChooseElevator(worldview.Elevators,
+			case request := <-requestFromElevChan:
+				
+				//Request read
+				MapActionChan <- ElevMapAction{cmd: "read", readCh: ReadMapChan}
+				select{ case worldview.ElevatorSnapshot = <-ReadMapChan: }
+				
+				AssignedId := assigner.ChooseElevator(worldview.ElevatorSnapshot,
 													worldview.PeerInfo.Peers,
 													request)
 				orderToElevChan <- Order{Id: AssignedId, 
-											Floor: request.Floor,
-											Button: request.Button}
-				//fmt.Printf("Order sent to id: %s \n", AssignedId)
-				//Start a timer. If no elevUpdate is received from the assigned 
-				//elev within timeout, decelar it dead and reassign orders!
+										Floor: request.Floor,
+										Button: request.Button}
 
 			case <-HeartbeatTimer.C:
+				MapActionChan <- ElevMapAction{cmd: "read", readCh: ReadMapChan}
+				select{ 
+					case worldview.ElevatorSnapshot = <-ReadMapChan: 
+				}
 				worldviewChan <- worldview
 
-			case <-becomePrimaryChan: //Needs logic
+			case <-becomePrimaryChan: //Needs logic //does it?
 				fmt.Println("Another Primary taking over...")
 				break
 			}
@@ -128,15 +126,15 @@ func updateHallLights(wv Worldview,
 		}
 	}
 
-	readChan := make(chan any, 1)
+	readChan := make(chan map[string]Elevator, 1)
 	defer close(readChan)
 	//Request read
-	MapAccessChan <- ElevMapAction{cmd: "read", respCh: readChan}
+	MapAccessChan <- ElevMapAction{cmd: "read", readCh: readChan}
 	
 	// Update hallLights based on the order matrix from all peers
 	select{
 	case elevMap:= <-readChan:
-		wv=Worldview{wv.PrimaryId, wv.PeerInfo, elevMap.(map[string]Elevator)}
+		wv=Worldview{wv.PrimaryId, wv.PeerInfo, elevMap}
 		for _, id := range(wv.PeerInfo.Peers){
 			orderMatrix := wv.ElevatorSnapshot[id].Orders
 			for floor, floorOrders := range(orderMatrix){
@@ -161,34 +159,31 @@ func updateHallLights(wv Worldview,
 }
 
 func ReassignHallOrders(wv Worldview, MapAccessChan chan ElevMapAction, orderToElevChan chan<- Order){
-	readChan := make(chan any, 1)
+	readChan := make(chan map[string]Elevator, 1)
 	defer close(readChan)
 	//Request read
-	MapAccessChan <- ElevMapAction{cmd: "read", /* id: lostId, */ respCh: readChan}
+	MapAccessChan <- ElevMapAction{cmd: "read", readCh: readChan}
 
 	select{
-		case elevMap := <-readChan:
-			wv = Worldview{wv.PrimaryId,wv.PeerInfo,elevMap.(map[string]Elevator)} //Updated worldview
-			for _,lostId := range(wv.PeerInfo.Lost){	
-				orderMatrix := elevMap.(map[string]Elevator)[lostId].Orders
-				
-				for floor, floorOrders := range(orderMatrix){
-					for btn, isOrder := range(floorOrders){
-						
-						if isOrder && btn!=CAB{
-							lostOrder:=Order{
+	case elevMap := <-readChan:
+		// Update with latest snapshot
+		wv = Worldview{wv.PrimaryId,wv.PeerInfo,elevMap}
+		for _,lostId := range(wv.PeerInfo.Lost){	
+			orderMatrix := wv.ElevatorSnapshot[lostId].Orders
+			for floor, floorOrders := range(orderMatrix){
+				for btn, isOrder := range(floorOrders){
+					if isOrder && btn!=CAB{
+						lostOrder:= Order{
 										Id: lostId,
 										Floor: floor,
 										Button: btn,
 									}
-							lostOrder.Id = assigner.ChooseElevator(wv.ElevatorSnapshot,wv.PeerInfo.Peers,lostOrder)
-							orderToElevChan <- lostOrder
-						}
+						lostOrder.Id = assigner.ChooseElevator(wv.ElevatorSnapshot, wv.PeerInfo.Peers, lostOrder)
+						orderToElevChan <- lostOrder
 					}
 				}
 			}
-	
-	
+		}
 	}
 }
 
@@ -210,20 +205,18 @@ func printPeers(p peers.PeerUpdate){
 	fmt.Printf("  New:      %q\n", p.New)
 	fmt.Printf("  Lost:     %q\n", p.Lost)
 }
-func elevatorMap(mapActionChan <- chan ElevMapAction){
+func ElevatorMap(mapActionChan <- chan ElevMapAction){
 	elevators:=make(map[string]Elevator)
 	for{
 		select{
 		case newAction:= <- mapActionChan:
 			switch newAction.cmd{
 			case "read":
-				newAction.respCh <- elevators[newAction.id]			
-			case "write":
-				elevators[newAction.id] = newAction.elev
-			case "migrate":
-				newAction.respCh <- elevators
-			case "initialize":
-				elevators = newAction.initMap
+				newAction.readCh <- elevators	
+			case "write one":
+				elevators[newAction.id]=newAction.elev
+			case "write all":
+				elevators = newAction.elevMap
 			}
 		}
 	}
