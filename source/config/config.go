@@ -70,6 +70,12 @@ const(
 )
 
 type ConcurrentMap struct{
-	Mutex sync.Mutex
+	Mutex sync.RWMutex
 	Storage map[string]Elevator
+}
+
+func (Map *ConcurrentMap) Read() map[string]Elevator{
+	Map.Mutex.Lock()
+	defer Map.Mutex.Unlock()
+	return Map.Storage
 }

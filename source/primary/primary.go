@@ -76,9 +76,11 @@ func Run(
 
 			case request := <- requestFromElevChan:
 				//fmt.Printf("Request received from id: %s \n", request.Id)
-				AssignedId := assigner.ChooseElevator(worldview.Elevators,
+				worldview.Elevators.Mutex.Lock()
+				AssignedId := assigner.ChooseElevator(worldview.Elevators.Read(),
 													worldview.PeerInfo.Peers,
 													request)
+				worldview.Elevators.Mutex.Unlock()
 				orderToElevChan <- Order{Id: AssignedId, 
 											Floor: request.Floor,
 											Button: request.Button}
@@ -119,10 +121,9 @@ func updateHallLights(wv Worldview,
 	}
 
 	// Update hallLights based on the order matrix from all peers
+	Elevators:=wv.Elevators.Read()
 	for _, id := range(wv.PeerInfo.Peers){
-		wv.Elevators.Mutex.Lock()
-		orderMatrix := wv.Elevators.Storage[id].Orders
-		wv.Elevators.Mutex.Unlock()
+		orderMatrix := Elevators[id].Orders
 		for floor, floorOrders := range(orderMatrix){
 			for btn, isOrder := range(floorOrders){
 				if isOrder && btn!= int(elevio.BT_Cab){
@@ -142,11 +143,9 @@ func updateHallLights(wv Worldview,
 }
 
 func ReassignHallOrders(wv Worldview, orderToElevChan chan<- Order){
-	
+	Elevators:=wv.Elevators.Read()
 	for _,lostId := range(wv.PeerInfo.Lost){
-		wv.Elevators.Mutex.Lock()
-		orderMatrix := wv.Elevators.Storage[lostId].Orders
-		wv.Elevators.Mutex.Unlock()
+		orderMatrix := Elevators[lostId].Orders
 		for floor, floorOrders := range(orderMatrix){
 			for btn, isOrder := range(floorOrders){
 				if isOrder && btn!=CAB{
@@ -155,7 +154,7 @@ func ReassignHallOrders(wv Worldview, orderToElevChan chan<- Order){
 								Floor: floor,
 								Button: btn,
 							}
-					lostOrder.Id = assigner.ChooseElevator(wv.Elevators,wv.PeerInfo.Peers,lostOrder)
+					lostOrder.Id = assigner.ChooseElevator(wv.Elevators.Read(),wv.PeerInfo.Peers,lostOrder)
 					orderToElevChan <- lostOrder
 				}
 			}

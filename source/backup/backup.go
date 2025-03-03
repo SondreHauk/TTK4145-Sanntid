@@ -19,7 +19,7 @@ func Run(
 	latestWV.Elevators = ConcurrentMap{Storage: make(map[string]Elevator)}
 	//Peers[0] doesnt exist before the first primary does
 	select{
-		case latestWV = <- worldViewChan:
+		case latestWV = <-worldViewChan:			
 		case <-time.After(T_TIMEOUT):
 			becomePrimaryChan <- latestWV
 	}
