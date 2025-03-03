@@ -17,11 +17,11 @@ type Worldview struct{
 
 func Run(
 	peerUpdateChan <-chan peers.PeerUpdate,
-	elevStateChan <-chan Elevator,
+	elevatorRXChan <-chan Elevator,
 	becomePrimaryChan <-chan Worldview,
 	worldviewTXChan chan <- Worldview,
-	requestFromElevChan <- chan Request,
-	orderToElevChan chan <- Order,
+	requestFromElevRXChan <- chan Request,
+	orderToElevTXChan chan <- Order,
 	hallLightsChan chan <- HallLights,
 	id string){
 
@@ -61,22 +61,22 @@ func Run(
 				printPeers(worldview.PeerInfo)
 				lost:=worldview.PeerInfo.Lost
 				if len(lost)!=0{
-					ReassignHallOrders(worldview, orderToElevChan)
+					ReassignHallOrders(worldview, orderToElevTXChan)
 				}
 
-			case elevUpdate := <-elevStateChan:
+			case elevUpdate := <-elevatorRXChan:
 				worldview.Elevators[elevUpdate.Id] = elevUpdate
 				//Not working properly
 				updateHallLights(worldview, hallLights, updateLights)
 				if (*updateLights){
 					hallLightsChan <- hallLights}
 
-			case request := <- requestFromElevChan:
+			case request := <- requestFromElevRXChan:
 				order := Order(request) //Cast request to order
 				AssignedId := assigner.ChooseElevator(worldview.Elevators,
 													worldview.PeerInfo.Peers,
 													order)
-				orderToElevChan <- Order{Id: AssignedId, 
+				orderToElevTXChan <- Order{Id: AssignedId, 
 											Floor: request.Floor,
 											Button: request.Button}
 				//fmt.Printf("Order sent to id: %s \n", AssignedId)
