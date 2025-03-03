@@ -7,6 +7,7 @@ import (
 	"source/localElevator/elevio"
 	"source/localElevator/requests"
 	"time"
+	"fmt"
 )
 
 func ShouldStop(elev Elevator) bool {
@@ -93,14 +94,15 @@ func Run(
 	AtFloorChan <-chan int, 
 	OrderChan <-chan Order,
 	hallLightsRXChan <-chan HallLights,
-	ObsChan <-chan bool,
+	ObstructionChan <-chan bool,
 	myId string) {
 
 	ElevChan <- *elev
 	HeartbeatTimer := time.NewTimer(T_HEARTBEAT)
 	DoorTimer := time.NewTimer(T_DOOR_OPEN)
 	DoorTimer.Stop()
-	Obstructed := false
+	ObstructionTimer := time.NewTimer(T_OBSTRUCTED_LOCAL)
+	ObstructionTimer.Stop()
 	
 	for {
 		select {
@@ -132,7 +134,7 @@ func Run(
 					if elev.Floor == NewOrder.Floor {
 						elev.Orders[elev.Floor][NewOrder.Button] = false
 						elevio.SetButtonLamp(elevio.ButtonType(NewOrder.Button), elev.Floor, false)
-						if !Obstructed{
+						if !elev.Obstructed{
 							DoorTimer.Reset(T_DOOR_OPEN)
 						}
 					}
@@ -171,17 +173,32 @@ func Run(
 			}
 			ElevChan <- *elev
 		
-		case ObsEvent:= <-ObsChan:
+		case ObsEvent:= <-ObstructionChan:
+			fmt.Println("Obstruction switch")
 			if elev.State==DOOR_OPEN{
 				switch ObsEvent{
 					case true:
-						Obstructed = true
+						elev.Obstructed = true
 						DoorTimer.Stop()
+						ObstructionTimer.Reset(T_OBSTRUCTED_LOCAL)
 					case false:
-						Obstructed = false
+						elev.Obstructed = false
 						DoorTimer.Reset(T_DOOR_OPEN)
 				}
 			}
+			ElevChan <- *elev
+		
+		case <- ObstructionTimer.C:
+			//Delete active hall orders
+			for floor, floorOrders := range(elev.Orders){
+				for btn, orderActive := range(floorOrders){
+					if orderActive && btn != int(elevio.BT_Cab) {
+						elev.Orders[floor][btn] = false
+					}
+				}
+			}
+			ObstructionTimer.Stop()
+
 		case <-HeartbeatTimer.C:
 			ElevChan <- *elev
 			HeartbeatTimer.Reset(T_HEARTBEAT)

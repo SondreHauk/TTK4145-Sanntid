@@ -10,8 +10,9 @@ const (
     IDLE ElevatorState = iota
 	MOVING
 	DOOR_OPEN
-	EMERGENCY_AT_FLOOR
-	EMERGENCY_IN_SHAFT
+	// EMERGENCY_AT_FLOOR
+	// EMERGENCY_IN_SHAFT
+	// OBSTRUCTED
 )
 
 const(
@@ -21,9 +22,11 @@ const(
 )
 
 const (
-	T_HEARTBEAT = time.Millisecond*50 //Must be much faster than .5 s
+	T_HEARTBEAT = time.Millisecond*250 //Must be much faster than .5 s
 	T_SLEEP = time.Millisecond*20
 	T_DOOR_OPEN = time.Second*3
+	T_OBSTRUCTED_PRIMARY = time.Second*3
+	T_OBSTRUCTED_LOCAL = time.Second*4
 	T_TRAVEL = time.Second*2 	//Approximate time to travel from floor i to floor i+-1
 	T_TIMEOUT = time.Second*1
 	T_BLINK = time.Millisecond*100
@@ -35,7 +38,7 @@ const(
 	STOP = 0
 )
 
-//Is possible to use only one port, with msg IDs.
+//Is possible to use only one port for bcast.
 const(
 	PORT_PEERS = 20020
 	PORT_ELEVSTATE = 20030
@@ -45,6 +48,11 @@ const(
 	PORT_HALLLIGHTS = 20070
 )
 
+const(
+	Obstructed = iota
+	ConnectionLost
+)
+
 type Elevator struct {
 	Id string
 	Floor     int
@@ -52,6 +60,7 @@ type Elevator struct {
 	PrevDirection int
 	State  ElevatorState
 	Orders  [NUM_FLOORS][NUM_BUTTONS]bool
+	Obstructed bool
 }
 
 type HallLights [][]bool 
@@ -61,9 +70,3 @@ type Order struct {
 	Floor int
 	Button int
 }
-
-const(
-	HALLUP = iota
-	HALLDWN
-	CAB
-)

@@ -20,6 +20,7 @@ func ElevatorInit(elev *Elevator, id string){
 	elev.Direction = int(elevio.MD_Stop)
 	elev.State = IDLE
 	elev.Floor = currentFloor
+	elev.Obstructed = false
 	elevio.SetFloorIndicator(elev.Floor)
 }
 
