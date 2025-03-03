@@ -172,7 +172,8 @@ case Obstructed:
 					orderToElevChan <- lostOrder
 				}
 			}
-		}	
+		}
+
 case ConnectionLost:
 	for _,lostId := range(wv.PeerInfo.Lost){
 		orderMatrix := wv.Elevators[lostId].Orders

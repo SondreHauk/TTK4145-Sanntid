@@ -20,7 +20,7 @@ func Run(
 	//Peers[0] doesnt exist before the first primary does
 	select{
 		case latestWV = <- worldViewChan:
-		case <-time.After(T_TIMEOUT):
+		case <-time.After(T_PRIMARY_TIMEOUT):
 			becomePrimaryChan <- latestWV
 	}
 
@@ -31,7 +31,7 @@ func Run(
 			// fmt.Printf("Active Peers: %v\n", latestWorldview.PeerInfo)
 			// fmt.Printf("Elevators: %v\n", latestWorldview.Elevators)
 		
-		case <-time.After(T_TIMEOUT):
+		case <-time.After(T_PRIMARY_TIMEOUT):
 			if shouldTakeOver(latestWV, id){
 				becomePrimaryChan <- latestWV
 			}else{

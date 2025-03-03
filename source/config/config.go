@@ -22,13 +22,13 @@ const(
 )
 
 const (
-	T_HEARTBEAT = time.Millisecond*250 //Must be much faster than .5 s
+	T_HEARTBEAT = time.Millisecond*50 //Must be much faster than .5 s
 	T_SLEEP = time.Millisecond*20
 	T_DOOR_OPEN = time.Second*3
 	T_OBSTRUCTED_PRIMARY = time.Second*3
 	T_OBSTRUCTED_LOCAL = time.Second*4
 	T_TRAVEL = time.Second*2 	//Approximate time to travel from floor i to floor i+-1
-	T_TIMEOUT = time.Second*1
+	T_PRIMARY_TIMEOUT = time.Millisecond*500
 	T_BLINK = time.Millisecond*100
 )
 
