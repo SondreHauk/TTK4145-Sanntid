@@ -19,11 +19,12 @@ func Run(
 	peerUpdateChan <-chan peers.PeerUpdate,
 	elevStateChan <-chan Elevator,
 	becomePrimaryChan <-chan Worldview,
-	worldviewChan chan <- Worldview,
+	worldviewTXChan chan <- Worldview,
+	worldviewRXChan <- chan Worldview, 
 	requestFromElevChan <- chan Order,
 	orderToElevChan chan <- Order,
 	hallLightsChan chan <- HallLights,
-	id string){
+	myId string){
 
 	updateLights := new(bool)
 	var worldview Worldview
@@ -35,25 +36,15 @@ func Run(
 		hallLights[i] = make([]bool, NUM_BUTTONS - 1)
 	}
 
-	// waitloop:
-	// for{
-	// 	select{
-	// 	case <- peerUpdateChan:
-	// 	case <- elevStateChan:
-	// 	case <- requestFromElevChan:
-	// 	case worldview = <-becomePrimaryChan:
-	// 		break waitloop
-	// }
-	// //Primary mode
-	// fmt.Println("Taking over as Primary")
-	// HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
-
 	select{
-	case worldview := <-becomePrimaryChan:
+	case wv := <-becomePrimaryChan:
 		fmt.Println("Taking over as Primary")
+		worldview = wv
 		//drain(elevStateChan) //FIX FLUSHING OF CHANNELS
 		HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
+		defer HeartbeatTimer.Stop()
 
+		primaryLoop:
 		for{
 			select{
 			case worldview.PeerInfo = <-peerUpdateChan:
@@ -84,11 +75,14 @@ func Run(
 				//elev within timeout, decelar it dead and reassign orders!
 
 			case <-HeartbeatTimer.C:
-				worldviewChan <- worldview
+				worldviewTXChan <- worldview
 
-			case <-becomePrimaryChan: //Needs logic
-				fmt.Println("Another Primary taking over...")
-				break
+			case receivedWV := <-worldviewRXChan:
+				receivedId := receivedWV.PrimaryId
+				//fmt.Print(receivedId)
+				if receivedId < myId {
+					fmt.Printf("Primary: %s, taking over\n", receivedId)
+					break primaryLoop}
 			}
 		}
 	}

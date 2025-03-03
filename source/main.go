@@ -37,6 +37,23 @@ func kill(StopButtonCh<-chan bool){
 	os.Exit(1) 
 }
 
+func worldviewRouter(worldviewRXChan <- chan primary.Worldview,
+					worldviewPrimaryChan chan <- primary.Worldview,
+					worldviewBackupChan chan <- primary.Worldview) {
+
+    for msg := range worldviewRXChan {
+        select {
+        case worldviewPrimaryChan <- msg:
+        default: // Prevent blocking if primary isn't listening
+        }
+        
+        select {
+        case worldviewBackupChan <- msg:
+        default: // Prevent blocking if backup isn't listening
+        }
+    }
+}
+
 func main() {
 	
 	var port string
@@ -56,6 +73,9 @@ func main() {
 	WorldviewTXChan := make(chan primary.Worldview, 10)
 	WorldviewRXChan := make(chan primary.Worldview, 10)
 	BecomePrimaryChan := make(chan primary.Worldview, 1)
+
+	worldviewPrimaryChan := make(chan primary.Worldview)
+	worldviewBackupChan := make(chan primary.Worldview)
 
 	hallLightsTXChan := make(chan HallLights, 10)
 	hallLightsRXChan := make(chan HallLights, 10)
@@ -87,7 +107,7 @@ func main() {
 	go fsm.Run(&elev, ElevatorTXChan, AtFloorChan, 
 				OrderChan, hallLightsRXChan, ObstructionChan, id)
 
-	// Goroutines communication
+	// Goroutines communication (TODO: reduce to two ports)
 	go bcast.Transmitter(PORT_ELEVSTATE, ElevatorTXChan)
 	go bcast.Receiver(PORT_ELEVSTATE, ElevatorRXChan)
 	go peers.Transmitter(PORT_PEERS, id, TransmitEnableChan)
@@ -104,12 +124,13 @@ func main() {
 	go bcast.Transmitter(PORT_HALLLIGHTS, hallLightsTXChan)
 	go bcast.Receiver(PORT_HALLLIGHTS, hallLightsRXChan)
 
-	go backup.Run(WorldviewRXChan, BecomePrimaryChan, id)
+	go worldviewRouter(WorldviewRXChan, worldviewPrimaryChan, worldviewBackupChan)
 
+	go backup.Run(worldviewBackupChan, BecomePrimaryChan, id)
 	go primary.Run(PeerUpdateChan, ElevatorRXChan, 
-					BecomePrimaryChan, WorldviewTXChan,
-					RequestFromElevChan, OrderToElevChan, 
-					hallLightsTXChan, id)
+					BecomePrimaryChan, WorldviewTXChan, 
+					worldviewPrimaryChan, RequestFromElevChan, 
+					OrderToElevChan, hallLightsTXChan, id)
 	
 	// Blocking select
 	select {}

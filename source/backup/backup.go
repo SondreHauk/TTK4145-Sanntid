@@ -27,13 +27,11 @@ func Run(
 	for {
 		select {
 		case latestWV = <-worldViewChan:
-			// fmt.Println("Worldview received")
-			// fmt.Printf("Active Peers: %v\n", latestWorldview.PeerInfo)
-			// fmt.Printf("Elevators: %v\n", latestWorldview.Elevators)
 		
 		case <-time.After(T_TIMEOUT):
 			if shouldTakeOver(latestWV, id){
 				becomePrimaryChan <- latestWV
+				fmt.Println("Primary timeout - Taking over")
 			}else{
 				latestWV.PeerInfo.Peers = latestWV.PeerInfo.Peers[1:]
 			}

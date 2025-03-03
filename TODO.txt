@@ -5,19 +5,18 @@ TODO
 ------------------------------------------------------------------------------ Stop btn
 ------------------------------------------------------------------------------ Heartbeat i fsm
 ------------------------------------------------------------------------------ Assigner
--- Button Light Contract
+------------------------------------------------------------------------------ Button Light Contract
 ------------------------------------------------------------------------------ Peers
 ------------------------------------------------------------------------------ Basic primary and backup communication
 ------------------------------------------------------------------------------ WorldViewStruct
 ------------------------------------------------------------------------------ Transmit worldView as heartbeat from primary
 - Flush channels before primary takeover
-- Checkout SendRequest function, clean up
+------------------------------------------------------------------------------ Checkout SendRequest function, clean up
 - Make README files
 - Specify directions on all channels
-- Update Elevators when Peers die 
-- Include lights matrix in worldView struct
-- When elevator is in same floor as cab-call, the light does not turn off!
+- Update Elevators when Peers die
 - Elevator clears hall calls in both directions at the same time...
+- Primaries prioritation
 
  --- BUTTON LIGHT CONTRACT ---
  -- When and where to turn on?
