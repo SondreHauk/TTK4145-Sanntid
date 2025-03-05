@@ -59,10 +59,12 @@ func ChooseElevator(elevators map[string]Elevator, activeIds []string, NewOrder 
 	var bestId string
 	
 	for _,Id := range(activeIds){
-		pickupTime := fsm.TimeUntilPickup(elevators[Id],NewOrder)
-		if pickupTime < bestTime{
-			bestId = Id
-			bestTime = pickupTime
+		if !elevators[Id].Obstructed{
+			pickupTime := fsm.TimeUntilPickup(elevators[Id],NewOrder)
+			if pickupTime < bestTime{
+				bestId = Id
+				bestTime = pickupTime
+			}
 		}
 	}
 	return bestId

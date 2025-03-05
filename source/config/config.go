@@ -8,8 +8,6 @@ const (
 	IDLE ElevatorState = iota
 	MOVING
 	DOOR_OPEN
-	EMERGENCY_AT_FLOOR
-	EMERGENCY_IN_SHAFT
 )
 
 const (
@@ -19,18 +17,25 @@ const (
 )
 
 const (
-	T_HEARTBEAT = time.Millisecond * 500 //Must be much faster than .5 s
-	T_SLEEP     = time.Millisecond * 20
-	T_DOOR_OPEN = time.Second * 3
-	T_TRAVEL    = time.Second * 2 //Approximate time to travel from floor i to floor i+-1
-	T_TIMEOUT   = time.Second * 1
-	T_BLINK     = time.Millisecond * 100
+	T_HEARTBEAT = time.Millisecond*50 //Must be much faster than .5 s
+	T_SLEEP = time.Millisecond*20
+	T_DOOR_OPEN = time.Second*3
+	T_OBSTRUCTED_PRIMARY = time.Second*3
+	T_OBSTRUCTED_LOCAL = time.Second*4
+	T_TRAVEL = time.Second*2 	//Approximate time to travel from floor i to floor i+-1
+	T_PRIMARY_TIMEOUT = time.Millisecond*500
+	T_BLINK = time.Millisecond*100
 )
 
 const (
 	UP   = 1
 	DOWN = -1
 	STOP = 0
+)
+
+const(
+	Obstructed = iota
+	ConnectionLost
 )
 
 // TODO: Only two ports necessary
@@ -45,6 +50,7 @@ const (
 
 type ElevatorState int
 
+
 type Elevator struct {
 	Id            string
 	Floor         int
@@ -52,19 +58,20 @@ type Elevator struct {
 	PrevDirection int
 	State         ElevatorState
 	Orders        [NUM_FLOORS][NUM_BUTTONS]bool
+  Obstructed bool
 }
 
 type Order struct {
 	Id     string
 	Floor  int
 	Button int
+
 }
 type PeerUpdate struct {
 	Peers []string
 	New   string
 	Lost  []string
 }
-
 
 //----------------PRIMARY/BACKUP--------------------
 
@@ -87,3 +94,4 @@ type FleetAccess struct {
 }
 
 //--------------------------------------------
+

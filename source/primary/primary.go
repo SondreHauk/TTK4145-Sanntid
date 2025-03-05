@@ -16,17 +16,15 @@ func Run(
 	worldviewRXChan <-chan Worldview,
 	requestFromElevChan <-chan Order,
 	orderToElevChan chan<- Order,
-
 	hallLightsChan chan<- [][]bool,
 	myId string) {
 
 	MapActionChan := make(chan FleetAccess, 10)
 	ReadMapChan := make(chan map[string]Elevator, 2)
-	//updateLights := new(bool)
 
 	var worldview Worldview
 	worldview.FleetSnapshot = make(map[string]Elevator)
-
+  obstructedElevators := make([]string, NUM_ELEVATORS)
 	//Init hallLights matrix
 	hallLights := make([][]bool, NUM_FLOORS)
 	for i := range hallLights {
@@ -44,6 +42,7 @@ func Run(
 		MapActionChan <- FleetAccess{Cmd: "write all", ElevMap: worldview.FleetSnapshot}
 		HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
 		defer HeartbeatTimer.Stop()
+    obstructionTimers := make(map[string]*time.Timer)
 
 	//primaryLoop:
 		for {
@@ -61,7 +60,38 @@ func Run(
 				MapActionChan <- FleetAccess{Cmd: "write one", Id: elevUpdate.Id, Elev: elevUpdate}
 				//has a race condition but works fine
 				updateHallLights(worldview, hallLights, MapActionChan, hallLightsChan)
-			case request := <-requestFromElevChan:
+			
+        // ------ OBSTRUCTION ------- //
+				//If elevator is obstructed for 3 sec, reassign hall orders
+				if elevUpdate.Obstructed {
+					obstructedElevators = append(obstructedElevators, elevUpdate.Id)
+					//start timer
+					if _, exists := obstructionTimers[elevUpdate.Id]; !exists{
+						timer := time.AfterFunc(T_OBSTRUCTED_PRIMARY, func() {
+							obstructedId := obstructedElevators[len(obstructedElevators)-1]
+							ReassignHallOrders(worldview, orderToElevChan, Obstructed, obstructedId)
+						})
+						obstructionTimers[elevUpdate.Id] = timer
+					}
+				} else {
+					//if ID in obstructedElevatorIds, pop id and stop timer
+					// If the elevator is no longer obstructed, check if its ID is in the list of obstructed elevators
+					for i, id := range obstructedElevators {
+						if id == elevUpdate.Id {
+							// If found, remove it from the slice
+							obstructedElevators = append(obstructedElevators[:i], obstructedElevators[i+1:]...)
+							//obstructedElevators = slices.Delete(obstructedElevators,i,i+1)
+							// Stop the timer if it's active
+							if timer, exists := obstructionTimers[elevUpdate.Id]; exists {
+								timer.Stop()
+								delete(obstructionTimers, elevUpdate.Id)
+							}
+							break
+						}
+					}
+				}
+  
+      case request := <-requestFromElevChan:
 
 				//Request read
 				MapActionChan <- FleetAccess{Cmd: "read", ReadCh: ReadMapChan}
@@ -125,6 +155,7 @@ func ReassignHallOrders(wv Worldview, MapAccessChan chan FleetAccess, orderToEle
 	}
 }
 
+
 func fleetAccessManager(mapActionChan <-chan FleetAccess) {
 	elevators := make(map[string]Elevator) //GOD VALUE FOR FLEETSNAPSHOT
 	for {
@@ -176,11 +207,12 @@ func updateHallLights(wv Worldview, hallLights [][]bool, MapActionChan chan<- Fl
 				}
 			}
 		}
-	}
-	for floor := range NUM_FLOORS {
+	}	
+  for floor := range NUM_FLOORS {
 		for btn := range NUM_BUTTONS - 1 {
 			if prevHallLights[floor][btn] != hallLights[floor][btn] {
 				shouldUpdate = true
+
 			}
 		}
 	}
@@ -188,6 +220,45 @@ func updateHallLights(wv Worldview, hallLights [][]bool, MapActionChan chan<- Fl
 		hallLightsChan <- hallLights
 	}
 }
+
+func ReassignHallOrders2(wv Worldview, orderToElevChan chan<- Order, situation int, id string){
+  switch situation {
+  case Obstructed:
+    orderMatrix := wv.Elevators[id].Orders
+      for floor, floorOrders := range(orderMatrix){
+        for btn, isOrder := range(floorOrders){
+          if isOrder && btn != int(elevio.BT_Cab){
+            lostOrder:=Order{
+                  Id: id,
+                  Floor: floor,
+                  Button: btn,
+                }
+            lostOrder.Id = assigner.ChooseElevator(wv.Elevators,wv.PeerInfo.Peers,lostOrder)
+            orderToElevChan <- lostOrder
+          }
+        }
+      }
+
+  case ConnectionLost:
+    for _,lostId := range(wv.PeerInfo.Lost){
+      orderMatrix := wv.Elevators[lostId].Orders
+      for floor, floorOrders := range(orderMatrix){
+        for btn, isOrder := range(floorOrders){
+          if isOrder && btn != int(elevio.BT_Cab){
+            lostOrder:=Order{
+                  Id: lostId,
+                  Floor: floor,
+                  Button: btn,
+                }
+            lostOrder.Id = assigner.ChooseElevator(wv.Elevators,wv.PeerInfo.Peers,lostOrder)
+            orderToElevChan <- lostOrder
+          }
+        }
+      }
+    }
+  }
+}
+
 
 func printPeers(p PeerUpdate) {
 	fmt.Printf("Peer update:\n")

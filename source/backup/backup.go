@@ -18,17 +18,22 @@ func Run(
 	latestWV.FleetSnapshot = make(map[string]Elevator)
 	//Peers[0] doesnt exist before the first primary does
 
-	select {
-	case latestWV = <-worldViewChan:
-	case <-time.After(T_TIMEOUT):
-		becomePrimaryChan <- latestWV
+	select{
+		case latestWV = <- worldViewChan:
+		case <-time.After(T_PRIMARY_TIMEOUT):
+			becomePrimaryChan <- latestWV
 	}
 
 	for {
 		select {
 		case latestWV = <-worldViewChan:
-		case <-time.After(T_TIMEOUT):
-			if shouldTakeOver(latestWV, id) {
+			// fmt.Println("Worldview received")
+			// fmt.Printf("Active Peers: %v\n", latestWorldview.PeerInfo)
+			// fmt.Printf("Elevators: %v\n", latestWorldview.Elevators)
+		
+		case <-time.After(T_PRIMARY_TIMEOUT):
+			if shouldTakeOver(latestWV, id){
+
 				becomePrimaryChan <- latestWV
 				fmt.Println("Primary timeout - Taking over")
 			} else {
