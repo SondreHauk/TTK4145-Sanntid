@@ -8,6 +8,7 @@ import (
 	"source/network/bcast"
 	"source/network/localip"
 	"source/network/peers"
+	. "source/config"
 )
 
 type HelloMsg struct{
@@ -30,7 +31,7 @@ func main() {
 		id = fmt.Sprintf("peer-%s-%d", localIP, os.Getpid())
 	}
 
-	peerUpdateCh := make(chan peers.PeerUpdate)
+	peerUpdateCh := make(chan PeerUpdate)
 	peerTxEnable := make(chan bool)
 
 	go peers.Transmitter(15647, id, peerTxEnable)

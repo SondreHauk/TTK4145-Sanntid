@@ -6,13 +6,8 @@ import (
 	"sort"
 	"time"
 	"source/network/conn"
+	. "source/config"
 )
-
-type PeerUpdate struct {
-	Peers []string
-	New   string
-	Lost  []string
-}
 
 const interval = 15 * time.Millisecond
 const timeout = 500 * time.Millisecond
