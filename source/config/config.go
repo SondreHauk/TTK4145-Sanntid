@@ -65,7 +65,10 @@ type Order struct {
 	Id     string
 	Floor  int
 	Button int
+}
 
+func OrderConstructor(Id string, Floor int, Button int) Order {
+	return Order{Id: Id, Floor: Floor, Button: Button}
 }
 type PeerUpdate struct {
 	Peers []string

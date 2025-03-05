@@ -24,14 +24,14 @@ func Run(
 
 	var worldview Worldview
 	worldview.FleetSnapshot = make(map[string]Elevator)
-  obstructedElevators := make([]string, NUM_ELEVATORS)
+  	obstructedElevators := make([]string, NUM_ELEVATORS)
 	//Init hallLights matrix
 	hallLights := make([][]bool, NUM_FLOORS)
 	for i := range hallLights {
 		hallLights[i] = make([]bool, NUM_BUTTONS-1)
 	}
 
-	//Handling reads and writes from/to fleetAccessManager
+	//Owns and handles access to fleet map
 	go fleetAccessManager(MapActionChan)
 
 	select {
@@ -40,11 +40,11 @@ func Run(
 		worldview = wv
 		//drain(elevStateChan) //FIX FLUSHING OF CHANNELS(?)
 		MapActionChan <- FleetAccess{Cmd: "write all", ElevMap: worldview.FleetSnapshot}
+		obstructionTimers := make(map[string]*time.Timer)
 		HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
 		defer HeartbeatTimer.Stop()
-    obstructionTimers := make(map[string]*time.Timer)
-
-	//primaryLoop:
+    	
+		//primaryLoop:
 		for {
 			select {
 			case worldview.PeerInfo = <-peerUpdateChan:
@@ -92,20 +92,13 @@ func Run(
 					}
 				}
   
-      case request := <-requestFromElevChan:
-
-				//Request read
+			case request := <-requestFromElevChan:
 				MapActionChan <- FleetAccess{Cmd: "read", ReadCh: ReadMapChan}
 				select {
-				case worldview.FleetSnapshot = <-ReadMapChan:
+					case worldview.FleetSnapshot = <-ReadMapChan:
 				}
-
-				AssignedId := assigner.ChooseElevator(worldview.FleetSnapshot,
-					worldview.PeerInfo.Peers,
-					request)
-				orderToElevChan <- Order{Id: AssignedId,
-					Floor:  request.Floor,
-					Button: request.Button}
+				AssignedId := assigner.ChooseElevator(worldview.FleetSnapshot, worldview.PeerInfo.Peers, request)
+				orderToElevChan <- OrderConstructor(AssignedId, request.Floor, request.Button)
 				fmt.Printf("Assigned elevator %s to order\n", AssignedId)
 
 			case <-HeartbeatTimer.C:
@@ -115,13 +108,13 @@ func Run(
 				}
 				worldviewTXChan <- worldview
 
-			// case receivedWV := <-worldviewRXChan:
-			// 	receivedId := receivedWV.PrimaryId
-			// 	fmt.Print(receivedId)
-			// 	if receivedId < myId {
-			// 		fmt.Printf("Primary: %s, taking over\n", receivedId)
-			// 		break primaryLoop
-				//} //defere break om mulig?
+			/* case receivedWV := <-worldviewRXChan:
+				receivedId := receivedWV.PrimaryId
+				fmt.Print(receivedId)
+				if receivedId < myId {
+					fmt.Printf("Primary: %s, taking over\n", receivedId)
+					break primaryLoop */
+			 //defere break om mulig?
 			}
 		}
 	}
@@ -129,21 +122,21 @@ func Run(
 
 
 func fleetAccessManager(mapActionChan <-chan FleetAccess) {
-	elevators := make(map[string]Elevator) //GOD VALUE FOR FLEETSNAPSHOT
+	fleet := make(map[string]Elevator) // Real fleet map. All others are snapshots of this
 	for {
 		select {
 		case newAction := <-mapActionChan:
 			switch newAction.Cmd {
 			case "read":
-				deepCopy := make(map[string]Elevator, len(elevators))
-				for key, value := range elevators {
+				deepCopy := make(map[string]Elevator, len(fleet))
+				for key, value := range fleet {
 					deepCopy[key] = value
 				}
 				newAction.ReadCh <- deepCopy
 			case "write one":
-				elevators[newAction.Id] = newAction.Elev
+				fleet[newAction.Id] = newAction.Elev
 			case "write all":
-				elevators = newAction.ElevMap
+				fleet = newAction.ElevMap
 			}
 		}
 	}
@@ -245,9 +238,3 @@ func printPeers(p PeerUpdate) {
 	fmt.Printf("  New:      %q\n", p.New)
 	fmt.Printf("  Lost:     %q\n", p.Lost)
 }
-
-/* func drain(ch <- chan Elevator){
-	for len(ch) > 0{
-		<- ch
-	}
-} */

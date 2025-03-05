@@ -18,6 +18,11 @@ TODO
 - Elevator clears hall calls in both directions at the same time...
 - Primaries prioritation
 
+
+get obstruction logic out of run.
+fix eventuelle raceconds
+
+
  --- BUTTON LIGHT CONTRACT ---
  -- When and where to turn on?
  -- When where to turn off?
@@ -65,6 +70,10 @@ Scenario 2:
 - Is connected back online
 -- Receives messages from the primary of the other network
 --- Two primaries on the network!! Which one gets to stay?
+
+
+
+
 
 Questions for TAs:
 - Do we need to make the code runnable on any system (is this even possible), or is it fine to use OS-specific commands?
