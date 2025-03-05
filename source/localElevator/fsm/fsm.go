@@ -92,7 +92,7 @@ func Run(
 	ElevChan chan <-Elevator, 
 	AtFloorChan <-chan int, 
 	OrderChan <-chan Order,
-	hallLightsRXChan <-chan HallLights,
+	hallLightsRXChan <-chan [][]bool,
 	ObsChan <-chan bool,
 	myId string) {
 
