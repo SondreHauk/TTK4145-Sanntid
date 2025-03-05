@@ -27,9 +27,11 @@ func Run(
 	peerUpdateChan <-chan peers.PeerUpdate,
 	elevStateChan <-chan Elevator,
 	becomePrimaryChan <-chan Worldview,
-	worldviewChan chan <- Worldview,
+	worldviewTXChan chan <- Worldview,
+	worldviewRXChan <- chan Worldview, 
 	requestFromElevChan <- chan Order,
 	orderToElevChan chan <- Order,
+
 	hallLightsChan chan <- [][]bool,
 	id string){
 
@@ -49,14 +51,16 @@ func Run(
 	//Handling reads and writes from/to ElevatorMap
 	go ElevatorMap(MapActionChan)
 
-	select{
-	case worldview := <-becomePrimaryChan:
+  select{
+	case wv := <-becomePrimaryChan:
 		fmt.Println("Taking over as Primary")
-		MapActionChan <- ElevMapAction{cmd:"write all", elevMap: worldview.ElevatorSnapshot}
-		
-		//drain(elevStateChan) //FIX FLUSHING OF CHANNELS (?)
+		worldview = wv
+    //drain(elevStateChan) //FIX FLUSHING OF CHANNELS(?)
+		MapActionChan <- ElevMapAction{cmd:"write all", elevMap: worldview.ElevatorSnapshot}	
 		HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
+		defer HeartbeatTimer.Stop()
 
+		primaryLoop:
 		for{
 			select{
 			case worldview.PeerInfo = <-peerUpdateChan:
@@ -90,11 +94,14 @@ func Run(
 				select{ 
 					case worldview.ElevatorSnapshot = <-ReadMapChan: 
 				}
-				worldviewChan <- worldview
+				worldviewTXChan <- worldview
 
-			case <-becomePrimaryChan: //Needs logic //does it?
-				fmt.Println("Another Primary taking over...")
-				break
+			case receivedWV := <-worldviewRXChan:
+				receivedId := receivedWV.PrimaryId
+				//fmt.Print(receivedId)
+				if receivedId < myId {
+					fmt.Printf("Primary: %s, taking over\n", receivedId)
+					break primaryLoop} //defere break om mulig?
 			}
 		}
 	}

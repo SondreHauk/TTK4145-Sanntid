@@ -37,6 +37,23 @@ func kill(StopButtonCh<-chan bool){
 	os.Exit(1) 
 }
 
+func worldviewRouter(worldviewRXChan <- chan primary.Worldview,
+					worldviewPrimaryChan chan <- primary.Worldview,
+					worldviewBackupChan chan <- primary.Worldview) {
+
+    for msg := range worldviewRXChan {
+        select {
+        case worldviewPrimaryChan <- msg:
+        default: // Prevent blocking if primary isn't listening
+        }
+        
+        select {
+        case worldviewBackupChan <- msg:
+        default: // Prevent blocking if backup isn't listening
+        }
+    }
+}
+
 func main() {
 	
 	var port string
@@ -55,6 +72,10 @@ func main() {
 	worldviewTXChan := make(chan primary.Worldview, 10)
 	worldviewRXChan := make(chan primary.Worldview, 10)
 	becomePrimaryChan := make(chan primary.Worldview, 1)
+
+
+	worldviewPrimaryChan := make(chan primary.Worldview)
+	worldviewBackupChan := make(chan primary.Worldview)
 
 	hallLightsTXChan := make(chan [][]bool, 10)
 	hallLightsRXChan := make(chan [][]bool, 10)
@@ -84,7 +105,8 @@ func main() {
 	go fsm.Run(&elev, elevatorTXChan, atFloorChan, 
 				orderChan, hallLightsRXChan, obstructionChan, id)
 
-	// Goroutines communication
+
+	// Goroutines communication (TODO: reduce to two ports)
 	go bcast.Transmitter(PORT_ELEVSTATE, elevatorTXChan)
 	go bcast.Receiver(PORT_ELEVSTATE, elevatorRXChan)
 	go peers.Transmitter(PORT_PEERS, id, transmitEnableChan)
@@ -99,6 +121,8 @@ func main() {
 	go bcast.Receiver(PORT_ORDER, orderChan)
 	go bcast.Transmitter(PORT_HALLLIGHTS, hallLightsTXChan)
 	go bcast.Receiver(PORT_HALLLIGHTS, hallLightsRXChan)
+
+	go worldviewRouter(worldviewRXChan, worldviewPrimaryChan, worldviewBackupChan)
 
 	// Fault tolerance protocol
 	go backup.Run(worldviewRXChan, becomePrimaryChan, id)
