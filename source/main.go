@@ -122,6 +122,8 @@ func main() {
 
 	go worldviewRouter(worldviewRXChan, worldviewPrimaryChan, worldviewBackupChan)
 
+	//TODO: DRAIN CHANNELS GOING TO PRIMARY
+	
 	// Fault tolerance protocol
 	go backup.Run(worldviewBackupChan, becomePrimaryChan, id)
 	go primary.Run(peerUpdateChan, elevatorRXChan,

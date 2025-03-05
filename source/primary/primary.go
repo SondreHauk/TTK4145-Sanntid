@@ -45,7 +45,7 @@ func Run(
 		HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
 		defer HeartbeatTimer.Stop()
 
-	primaryLoop:
+	//primaryLoop:
 		for {
 			select {
 			case worldview.PeerInfo = <-peerUpdateChan:
@@ -75,6 +75,7 @@ func Run(
 				orderToElevChan <- Order{Id: AssignedId,
 					Floor:  request.Floor,
 					Button: request.Button}
+				fmt.Printf("Assigned elevator %s to order\n", AssignedId)
 
 			case <-HeartbeatTimer.C:
 				MapActionChan <- FleetAccess{Cmd: "read", ReadCh: ReadMapChan}
@@ -83,13 +84,13 @@ func Run(
 				}
 				worldviewTXChan <- worldview
 
-			case receivedWV := <-worldviewRXChan:
-				receivedId := receivedWV.PrimaryId
-				//fmt.Print(receivedId)
-				if receivedId < myId {
-					fmt.Printf("Primary: %s, taking over\n", receivedId)
-					break primaryLoop
-				} //defere break om mulig?
+			// case receivedWV := <-worldviewRXChan:
+			// 	receivedId := receivedWV.PrimaryId
+			// 	fmt.Print(receivedId)
+			// 	if receivedId < myId {
+			// 		fmt.Printf("Primary: %s, taking over\n", receivedId)
+			// 		break primaryLoop
+				//} //defere break om mulig?
 			}
 		}
 	}
