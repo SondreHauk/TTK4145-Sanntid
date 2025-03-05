@@ -29,23 +29,17 @@ func OrdersBelow(elev Elevator) bool {
 	return false
 }
 
-//PRIMARY MUST CLEAR HALL LIGHTS - NOT ELEVATOR!
 func ClearOrder(elev *Elevator, floor int) {
-	// Clear only the hall button in the right direction
 	switch elev.Direction {
 		case UP: // Clear hall up
 			elev.Orders[floor][elevio.BT_HallUp] = false
-			//elevio.SetButtonLamp(elevio.BT_HallUp, floor, false)
 			if !OrdersAbove(*elev) {
 				elev.Orders[floor][elevio.BT_HallDown] = false
-				//elevio.SetButtonLamp(elevio.BT_HallDown, floor, false)
 			}
 		case DOWN: // Clear hall down
 			elev.Orders[floor][elevio.BT_HallDown] = false
-			//elevio.SetButtonLamp(elevio.BT_HallDown, floor, false)
 			if !OrdersBelow(*elev) {
 				elev.Orders[floor][elevio.BT_HallUp] = false
-				//elevio.SetButtonLamp(elevio.BT_HallUp, floor, false)
 			}
 	}
 	elev.Orders[floor][elevio.BT_Cab] = false
@@ -69,7 +63,6 @@ func MakeRequest(btnEvent <-chan elevio.ButtonEvent,
 				if btn.Button == elevio.BT_Cab{
 					orderChan <- request // Assign directly to elev
 					elevio.SetButtonLamp(elevio.ButtonType(btn.Button), btn.Floor, true)
-					//Remember: Lights on = Order MUST be taken
 				} else {
 					requestToPrimary<- request
 				}
