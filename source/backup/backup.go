@@ -8,7 +8,7 @@ import (
 )
 
 func Run(
-	worldViewChan <-chan primary.Worldview, 
+	worldViewChan <- chan primary.Worldview, 
 	becomePrimaryChan chan <- primary.Worldview,
 	id string){
 
@@ -16,7 +16,7 @@ func Run(
 	//Init an empty worldview
 	var latestWV primary.Worldview
 	latestWV.PrimaryId = id
-	latestWV.Elevators = make(map[string]Elevator)	
+	latestWV.ElevatorSnapshot = make(map[string]Elevator)	
 	//Peers[0] doesnt exist before the first primary does
 	select{
 		case latestWV = <- worldViewChan:
