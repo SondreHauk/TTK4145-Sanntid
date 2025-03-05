@@ -20,24 +20,18 @@ Each elevator must be assigned an unique id at initialization.
 ## Requests and Orders
 In general, when a button is pressed in any elevator, a corresponding `request` is created. This request is then handled and an `order` is made. Each order is marked with an `id` and the order is accepted only by the elevator with the corresponding `id`.
 
-If the request is of type `cab`, it is assigned directly as an order to the elevator:
-`elevator -- btnevent (cab) --> makeRequest -- cab order --> elevator`
+If the request is of type `cab`, it is assigned directly as an order to the elevator.
+If the request is of type `hall`, it is sent to the primary, who creates an order and assigns it to the most suitable elevator on the network. 
+The resulting request/order flow can be seen in the below diagram.
 
-If the request is of type `hall`, it is sent to the primary, who creates an order and assigns it to the most suitable elevator on the network:
-`elevator -- btnevent (hall) --> makeRequest -- hall request --> primary -- hall order --> elevator`
-
+### Request/Order Flow
 ```mermaid
-graph TD;
-    title Hall & Cab Request Flow
-
-    %% Hall Request Flow
-    Elevator X -- btnevent (hall) --> MakeRequest;
+graph LR;
+    ElevatorX -- btnevent (hall) --> MakeRequest;
     MakeRequest -- hall request --> Primary;
-    Primary -- hall order --> Elevator Y;
-
-    %% Cab Request Flow
-    Elevator X -- btnevent (cab) --> MakeRequest;
-    MakeRequest -- cab order --> Elevator X;
+    Primary -- hall order --> ElevatorY;
+    ElevatorX -- btnevent (cab) --> MakeRequest;
+    MakeRequest -- cab order --> ElevatorX;
 ```
 
 ## When is the light set?
@@ -45,7 +39,18 @@ The `cab lights` are handled locally on the elevator. If an elevator recevies a 
 
 The `hall lights` are handled by the primary. The primary knows that an `order is accepted` when the assigned elevator returns an `elevator state` with the corresponding order set active, i.e with an updated order matrix. With this in mind, the primary uses the order matrices from the elevators to update the hall lights. It does this in a `hall light matrix`, which is essentially a union of all the order matrices. The hall light matrix is then broadcasted to the elevators, who updates their corresponding hall lights.
 
-`primary -- order --> elevator -- order matrix --> primary -- hall light matrix --> elevator`
+The Order/Light flow is illustrated in the below figure.
+1. Primary sends order to Elevator
+2. Elevator sends its updated order matrix to Primary
+3. Primary sends updated hall light matrix to elevator 
+
+### Order/Light flow
+```mermaid
+graph LR;
+    Primary -- 1.order --> Elevator;
+    Elevator -- 2.order matrix --> Primary;
+    Primary -- 3.hall light matrix --> Elevator;
+```
 
 # Improvements
 ## Improve obstruction robustness
