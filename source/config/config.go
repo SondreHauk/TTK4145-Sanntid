@@ -35,7 +35,7 @@ const (
 
 const(
 	Obstructed = iota
-	ConnectionLost
+	Disconnected
 )
 
 // TODO: Only two ports necessary
@@ -91,6 +91,11 @@ type FleetAccess struct {
 	Elev    Elevator
 	ElevMap map[string]Elevator
 	ReadCh  chan map[string]Elevator
+}
+
+type Reassignment struct {
+	Cause int
+	ObsId string //Only relevant for obstructed elevators
 }
 
 //--------------------------------------------

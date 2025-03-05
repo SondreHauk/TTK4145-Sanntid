@@ -52,7 +52,7 @@ func Run(
 				printPeers(worldview.PeerInfo)
 				lost := worldview.PeerInfo.Lost
 				if len(lost) != 0 {
-					ReassignHallOrders(worldview, MapActionChan, orderToElevChan)
+					ReassignHallOrders(worldview, MapActionChan, orderToElevChan, Reassignment{Cause: Disconnected})
 				}
 
 			case elevUpdate := <-elevStateChan:
@@ -61,15 +61,16 @@ func Run(
 				//has a race condition but works fine
 				updateHallLights(worldview, hallLights, MapActionChan, hallLightsChan)
 			
-        // ------ OBSTRUCTION ------- //
+        		// ------ OBSTRUCTION ------- //
 				//If elevator is obstructed for 3 sec, reassign hall orders
 				if elevUpdate.Obstructed {
 					obstructedElevators = append(obstructedElevators, elevUpdate.Id)
-					//start timer
-					if _, exists := obstructionTimers[elevUpdate.Id]; !exists{
+					//If no timer, start one
+					_, timerExists := obstructionTimers[elevUpdate.Id]
+					if !timerExists{
 						timer := time.AfterFunc(T_OBSTRUCTED_PRIMARY, func() {
-							obstructedId := obstructedElevators[len(obstructedElevators)-1]
-							ReassignHallOrders(worldview, orderToElevChan, Obstructed, obstructedId)
+							reassignmentDetails := Reassignment{Cause: Obstructed, ObsId: obstructedElevators[len(obstructedElevators)-1]}
+							ReassignHallOrders(worldview, MapActionChan, orderToElevChan, reassignmentDetails)
 						})
 						obstructionTimers[elevUpdate.Id] = timer
 					}
@@ -121,35 +122,6 @@ func Run(
 			// 		fmt.Printf("Primary: %s, taking over\n", receivedId)
 			// 		break primaryLoop
 				//} //defere break om mulig?
-			}
-		}
-	}
-}
-
-func ReassignHallOrders(wv Worldview, MapAccessChan chan FleetAccess, orderToElevChan chan<- Order) {
-	readChan := make(chan map[string]Elevator, 1)
-	defer close(readChan)
-	//Request read
-	MapAccessChan <- FleetAccess{Cmd: "read", ReadCh: readChan}
-
-	select {
-	case fleetSnapshot := <-readChan:
-		// Update with latest snapshot
-		wv = WorldviewConstructor(wv.PrimaryId, wv.PeerInfo, fleetSnapshot)
-		for _, lostId := range wv.PeerInfo.Lost {
-			orderMatrix := wv.FleetSnapshot[lostId].Orders
-			for floor, floorOrders := range orderMatrix {
-				for btn, isOrder := range floorOrders {
-					if isOrder && btn != int(elevio.BT_Cab) {
-						lostOrder := Order{
-							Id:     lostId,
-							Floor:  floor,
-							Button: btn,
-						}
-						lostOrder.Id = assigner.ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, lostOrder)
-						orderToElevChan <- lostOrder
-					}
-				}
 			}
 		}
 	}
@@ -221,44 +193,51 @@ func updateHallLights(wv Worldview, hallLights [][]bool, MapActionChan chan<- Fl
 	}
 }
 
-func ReassignHallOrders2(wv Worldview, orderToElevChan chan<- Order, situation int, id string){
-  switch situation {
-  case Obstructed:
-    orderMatrix := wv.Elevators[id].Orders
-      for floor, floorOrders := range(orderMatrix){
-        for btn, isOrder := range(floorOrders){
-          if isOrder && btn != int(elevio.BT_Cab){
-            lostOrder:=Order{
-                  Id: id,
-                  Floor: floor,
-                  Button: btn,
-                }
-            lostOrder.Id = assigner.ChooseElevator(wv.Elevators,wv.PeerInfo.Peers,lostOrder)
-            orderToElevChan <- lostOrder
-          }
-        }
-      }
+func ReassignHallOrders(wv Worldview, MapAccessChan chan FleetAccess, orderToElevChan chan<- Order, reassign Reassignment){
+	readChan := make(chan map[string]Elevator, 1)
+	defer close(readChan)
+	MapAccessChan <- FleetAccess{Cmd: "read", ReadCh: readChan}
 
-  case ConnectionLost:
-    for _,lostId := range(wv.PeerInfo.Lost){
-      orderMatrix := wv.Elevators[lostId].Orders
-      for floor, floorOrders := range(orderMatrix){
-        for btn, isOrder := range(floorOrders){
-          if isOrder && btn != int(elevio.BT_Cab){
-            lostOrder:=Order{
-                  Id: lostId,
-                  Floor: floor,
-                  Button: btn,
-                }
-            lostOrder.Id = assigner.ChooseElevator(wv.Elevators,wv.PeerInfo.Peers,lostOrder)
-            orderToElevChan <- lostOrder
-          }
-        }
-      }
-    }
-  }
+	select {
+	case fleetSnapshot := <-readChan:
+		wv := WorldviewConstructor(wv.PrimaryId, wv.PeerInfo, fleetSnapshot)
+
+		switch reassign.Cause{
+		case Disconnected:
+			for _, lostId := range wv.PeerInfo.Lost {
+			orderMatrix := wv.FleetSnapshot[lostId].Orders
+			for floor, floorOrders := range orderMatrix {
+				for btn, isOrder := range floorOrders {
+					if isOrder && btn != int(elevio.BT_Cab) {
+						lostOrder := Order{
+							Id:     lostId,
+							Floor:  floor,
+							Button: btn,
+						}
+						lostOrder.Id = assigner.ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, lostOrder)
+						orderToElevChan <- lostOrder
+					}
+				}
+			}
+		}
+		case Obstructed:
+			orderMatrix := wv.FleetSnapshot[reassign.ObsId].Orders
+			for floor, floorOrders := range(orderMatrix){
+			  for btn, isOrder := range(floorOrders){
+				if isOrder && btn != int(elevio.BT_Cab){
+				  lostOrder:=Order{
+						Id: reassign.ObsId,
+						Floor: floor,
+						Button: btn,
+					  }
+				  lostOrder.Id = assigner.ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, lostOrder)
+				  orderToElevChan <- lostOrder
+				}
+			  }
+			}
+		}
+	}
 }
-
 
 func printPeers(p PeerUpdate) {
 	fmt.Printf("Peer update:\n")
@@ -271,11 +250,4 @@ func printPeers(p PeerUpdate) {
 	for len(ch) > 0{
 		<- ch
 	}
-}
-
-func printElevator(e Elevator){
-	fmt.Println("Elevator State Updated")
-	fmt.Printf("ID: %s\n", e.Id)
-	fmt.Printf("Floor: %d\n", e.Floor)
-}
-*/
+} */
