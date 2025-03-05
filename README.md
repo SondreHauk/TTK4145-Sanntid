@@ -27,10 +27,17 @@ If the request is of type `hall`, it is sent to the primary, who creates an orde
 `elevator -- btnevent (hall) --> makeRequest -- hall request --> primary -- hall order --> elevator`
 
 ```mermaid
-    graph TD;
-        Elevator -- btnevent (hall) --> MakeRequest;
-        MakeRequest -- hall request --> Primary;
-        Primary -- hall order --> Elevator;
+graph TD;
+    title Hall & Cab Request Flow
+
+    %% Hall Request Flow
+    Elevator X -- btnevent (hall) --> MakeRequest;
+    MakeRequest -- hall request --> Primary;
+    Primary -- hall order --> Elevator Y;
+
+    %% Cab Request Flow
+    Elevator X -- btnevent (cab) --> MakeRequest;
+    MakeRequest -- cab order --> Elevator X;
 ```
 
 ## When is the light set?
