@@ -3,7 +3,7 @@
 ## Main approach - Primary Backup
 The problem: controll N elevators working in parallel across M floors.
 
-The approach: Primary Backup system. All elevators on the network are backups, while *only one is primary*.The primary handles and distributes all hall requests and lights. The backups receives worldviews from the primary and stores the latest worldview received. If the primary disconnects, one of the backups will take over as primary. 
+The approach: Primary Backup system. All elevators on the network are backups, *only one is primary*. The primary handles and distributes all hall requests and lights. The backups receives worldviews from the primary and stores the latest worldview received. If the primary disconnects, one of the backups will take over as primary. 
 
 ## Specifications
 - No calls are lost.
@@ -13,36 +13,51 @@ The approach: Primary Backup system. All elevators on the network are backups, w
 - Multiple elevators are more efficient than a single one
 
 ## Initialization of elevator
-An elevator can be initialized from the command line with: `go run main.go -port="..." -id="..."`.  
+An elevator can be initialized from the command line with: `go run main.go --port="..." --id="..."`.  
 Each elevator must be assigned an unique id at initialization.
 
 # The Button Light Contract
 ## Requests and Orders
 In general, when a button is pressed in any elevator, a corresponding `request` is created. This request is then handled and an `order` is made. Each order is marked with an `id` and the order is accepted only by the elevator with the corresponding `id`.
 
-If the request is of type `cab`, it is assigned directly as an order to the elevator:
-`elevator -- btnevent --> makeRequest -- cab order --> elevator`
+If the request is of type `cab`, it is assigned directly as an order to the elevator.
+If the request is of type `hall`, it is sent to the primary, who creates an order and assigns it to the most suitable elevator on the network. 
+The resulting request/order flow can be seen in the below diagram.
 
-If the request is of type `hall`, it is sent to the primary, who creates an order and assigns it to the most suitable elevator on the network:
-`elevator -- btnevent --> makeRequest -- hall request --> primary -- hall order --> elevator`
+### Request/Order Flow
+```mermaid
+graph LR;
+    ElevatorX -- btnevent (hall) --> MakeRequest;
+    MakeRequest -- hall request --> Primary;
+    Primary -- hall order --> ElevatorY;
+    ElevatorX -- btnevent (cab) --> MakeRequest;
+    MakeRequest -- cab order --> ElevatorX;
+```
 
 ## When is the light set?
-The handling of the `cab lights` is done locally on the elevator. If an elevator recevies a cab order it updates its `order matrix` and sets the corresponding cab light. Likewise, if it completes a cab order, it updates its order matrix and turns off the cab light.
+The `cab lights` are handled locally on the elevator. If an elevator recevies a cab order it updates its `order matrix` and sets the corresponding cab light. Likewise, if it completes a cab order, it updates its order matrix and turns off the cab light.
 
-The `hall lights` is handled by the primary. The primary knows that an `order is accepted` when the assigned elevator returns an `elevator state` with the corresponding order set active, i.e with an updated order matrix. With this in mind, the primary uses the order matrices from the elevators to update the hall lights. It does this in a `hall light matrix`, which is essentially a union of all the order matrices. The hall light matrix is then broadcasted to the elevators, who updates their corresponding hall lights.
+The `hall lights` are handled by the primary. The primary knows that an `order is accepted` when the assigned elevator returns an `elevator state` with the corresponding order set active, i.e with an updated order matrix. With this in mind, the primary uses the order matrices from the elevators to update the hall lights. It does this in a `hall light matrix`, which is essentially a union of all the order matrices. The hall light matrix is then broadcasted to the elevators, who updates their corresponding hall lights.
 
-`primary -- order --> elevator -- order matrix --> primary -- hall light matrix --> elevator`
+The Order/Light flow is illustrated in the below figure.
+1. Primary sends order to Elevator
+2. Elevator sends its updated order matrix to Primary
+3. Primary sends updated hall light matrix to elevator 
+
+### Order/Light flow
+```mermaid
+graph LR;
+    Primary -- 1.order --> Elevator;
+    Elevator -- 2.order matrix --> Primary;
+    Primary -- 3.hall light matrix --> Elevator;
+```
 
 # Improvements
-## Allow for elevators to remove active orders in case of an obstruction.
-As per now, it is not possible to remove an assigned order from an elevator. In the case of an elevator disconnect, the order can be reassigned to the other active elevator, but the disconnected elevator will still have the order as active. This causes redundancy and is necessary in the case of a disconnect. 
-
-However, in the case of an obstruction, this redundancy is unecessary and should be improved. When an elevator is obstructed, the orders are redestributed to all non-obstructed elevators after some time, but since the elevator is still online, it is unecessary to take the orders twise. To fix this problem however, demands some deep structural changes in the program.
+## Improve obstruction robustness
+As per now, when an elevator is obstructed, the primary reassigns its hall orders after `T_OBSTRUCTED_PIRMARY = 3 sec`. The elevator however, waits `T_OBSTRUCTED_LOCAL = 4 sec` before it deletes its hall orders. Alas, there is a time buffer of one second where the primary can reassign the orders before they are deleted. This is not very robust. If the delay between the obstruction event and the primarys detection of it is longer than one second, the active hall orders will be deleted before they are reassigned and thus permanently lost. This is bad. However, the corresponding hall lights will also turn off, and it is reasonable to expect that a client would push the hall button again, thus making a new hall request.
 
 ## One port for all message types
-As per now, each message type is sendt through an unique port. Fix this with a message handler. Assign all messages an ID, send them through the same port, and let the message handler assign the message to the right channel.
-
-When the primary assigns an order to an elevator, it starts a countdown timer. If the primary does not receive a correct stateUpdate from the assgined elevator within the deadline: declear the elevator for dead/broken and reassign all hall orders!
+As per now, each message type is sendt through an unique port. This could be fixed by utilizing the router function of the `Transmitter()` and `Receiver()` function from the peers and bcast modules.
 
 # Miscellaneous
 ## Variable naming convention
