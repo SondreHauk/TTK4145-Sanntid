@@ -92,39 +92,48 @@ func Run(
 	elev *Elevator, 
 	ElevChan chan <-Elevator, 
 	AtFloorChan <-chan int, 
-	/*OrderChan <-chan Order,
-	hallLightsRXChan <-chan [][]bool,*/
+	OrderChan chan Order,
+	/*hallLightsRXChan <-chan [][]bool,*/
 	ObstructionChan <-chan bool,
 	myId string,
 	worldviewRXChan <- chan Worldview) {
 
-	orderChan := make(chan Order, 10)
+	// Declear variables
+	var wv Worldview
+	hallLightsChan := make(chan [][]bool, 10)
+	currenthallLights := make([][]bool, NUM_FLOORS)
 
-	ElevChan <- *elev
-
+	// Initate timers
 	HeartbeatTimer := time.NewTimer(T_HEARTBEAT)
 	DoorTimer := time.NewTimer(T_DOOR_OPEN)
 	DoorTimer.Stop()
 	ObstructionTimer := time.NewTimer(T_OBSTRUCTED_LOCAL)
 	ObstructionTimer.Stop()
-	
-	currenthallLights := make([][]bool, NUM_FLOORS)
+
+	// Send first elevState
+	ElevChan <- *elev
 	
 	for {
 		select {
-		case wv := <- worldviewRXChan:
+		case wv = <- worldviewRXChan:
 			// if any assigned unaccepted order. Send order on Orderchan
 			orders, exists := wv.UnacceptedOrders[myId]
 			if exists {
 				for _, order := range orders{
-					orderChan <- order
+					OrderChan <- order
 				}
 			}
-			// if any update in hall lights. Send order in HallLightsChan
-			
+			// if any update in hall lights. Send new lights on HallLightsChan
+			for i := range currenthallLights {
+				for j := range currenthallLights[i] {
+					if currenthallLights[i][j] != wv.HallLight[i][j] {
+						hallLightsChan <- wv.HallLight
+					}
+				}
+			}
 	
-		case NewOrder := <-orderChan:
-			if NewOrder.Id == myId{
+		case NewOrder := <-OrderChan:
+			if NewOrder.Id == myId{ //not necessary with new logic?
 				elev.Orders[NewOrder.Floor][NewOrder.Button] = true
 				switch elev.State {
 				case IDLE:
@@ -159,9 +168,9 @@ func Run(
 				ElevChan <- *elev
 			}
 		
-		case hallLights := <- hallLightsRXChan:
-			for floor := range hallLights { // Iterate over floors
-				for btn := range hallLights[floor] { // Iterate over buttons
+		case hallLights := <- hallLightsChan:
+			for floor := range hallLights {
+				for btn := range hallLights[floor] {
 					elevio.SetButtonLamp(elevio.ButtonType(btn), floor, hallLights[floor][btn])
 				}
 			}

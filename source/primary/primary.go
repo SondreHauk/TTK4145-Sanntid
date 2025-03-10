@@ -16,7 +16,7 @@ func Run(
 	worldviewRXChan <-chan Worldview,
 	requestFromElevChan <-chan Order,
 	orderToElevChan chan<- Order,
-	hallLightsChan chan<- [][]bool,
+	/*hallLightsChan chan<- [][]bool,*/
 	myId string) {
 
 	MapActionChan := make(chan FleetAccess, 10)
@@ -58,9 +58,18 @@ func Run(
 			case elevUpdate := <-elevStateChan:
 				//Request write
 				MapActionChan <- FleetAccess{Cmd: "write one", Id: elevUpdate.Id, Elev: elevUpdate}
-				//has a race condition but works fine
-				//TODO: INCLUDE HALL LIGHTS IN WORLDVIEW AND BROADCAST PERIODICALLY
-				updateHallLights(worldview, hallLights, MapActionChan, hallLightsChan)
+
+				unaccOrders, exists := wv.UnacceptedOrders[elevUpdate.Id]
+				if exists {
+					for _, uaOrder := range unaccOrders {
+						if elevUpdate.Orders[uaOrder.Floor][uaOrder.Button] {
+							// TODO: pop from unaccepted orders
+							// TODO: update light matrix
+						}
+					}
+				}
+
+				// updateHallLights(worldview, hallLights, MapActionChan, hallLightsChan)			
 			
         		// ------ OBSTRUCTION ------- //
 				//If elevator is obstructed for 3 sec, reassign hall orders
@@ -93,15 +102,19 @@ func Run(
 					}
 				}
 			
-			//TODO: INCLUDE ORDER IN WORLDVIEW AND BROADCAST PERIODICALLY
 			case request := <-requestFromElevChan:
 				MapActionChan <- FleetAccess{Cmd: "read", ReadCh: ReadMapChan}
 				select {
 					case worldview.FleetSnapshot = <-ReadMapChan:
 				}
+				
 				AssignedId := assigner.ChooseElevator(worldview.FleetSnapshot, worldview.PeerInfo.Peers, request)
-				orderToElevChan <- OrderConstructor(AssignedId, request.Floor, request.Button)
-				fmt.Printf("Assigned elevator %s to order\n", AssignedId)
+				order := OrderConstructor(AssignedId, request.Floor, request.Button)
+				// Implement state handler to avoid race conditions
+				worldview.UnacceptedOrders[AssignedId] = append(worldview.UnacceptedOrders[AssignedId], order)
+
+				// orderToElevChan <- OrderConstructor(AssignedId, request.Floor, request.Button) //REDO
+				// fmt.Printf("Assigned elevator %s to order\n", AssignedId)
 
 			case <-HeartbeatTimer.C:
 				MapActionChan <- FleetAccess{Cmd: "read", ReadCh: ReadMapChan}
