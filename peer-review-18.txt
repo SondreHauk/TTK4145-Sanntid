@@ -1,0 +1,74 @@
+026b7588
+6
+Entry point: main.go, README.md and module names.
+- Unclear interaction between Main event loop and FSM module. Consider making a fsm.Run()
+- Unclear from entry point, whether this is a primary backup or peer-to-peer system.
+- FSM doesent handle orders, only sends them?
+
+Modules:
+- elevator: 
+-- Holds elevator Objects and initialization of an elevator
+
+- fsm:
+-- Seems to do too much stuff. 
+   Intiutively it should be event driven, run only the local elevator,
+   with inputs events from other modules.
+-- Uses types that are defined in multiple other modules, 
+   but with no obvious difference, 
+   e.g. why is both ElevatorState and State defined in orderDistribution?
+-- n, s and e, are not informative names 
+   makes it difficult to understand the code below.
+-- OptimalHallRequests, unclear from name what is does in the fsm module. 
+   It is imported from orderDistribution which implies that it has to do with distribution. 
+   This implies peer-to-peer functionallity, but the prints in network func implies master slave...
+-- Unecessary green text in many of the functions
+
+- newtwork:
+-- Not clear why this module and Network function is necessary.
+   Maybe start the transmitter and receiver in main, and scrap the rest.
+-- What happens with orderRx nodeUpdates? Are they just printed?
+
+- orderDistribution
+-- 20 func definitions and 18 var/type/const declerations/definitions...
+-- Unclear what the difference between localElevatorState and ElevatorState is.
+
+- requests:
+-- Unused module.
+
+- timer:
+-- Module is OK, buy most of these functions substitute only one line of code. 
+
+In general:
+- Difficult to follow the overall strategy and process flow of the program. 
+  Still not sure if this is a Master Slave or peer-to-peer solution.
+- Types, consts and variables are decleared and defined all over the place. 
+  Consider making a config.go file that holds all constants and type-definitions.
+- Remove debug prints before final hand inn
+- There lack some crucial logic and code here, but before you start with this, 
+  you should be clear on what approach you want, which modules you need, 
+  how they interract, and gather all types in a single file. Maybe some
+  of the modules, functions and types can be simplified and reduced.
+  We recommend making a README.md, where you write down your main approach, 
+  module interaction, process flow and possible improvements. This will make it
+  easier for you to cope with the task and for "outsiders" reading and understanding 
+  your code.
+
+2043ec35
+8
+- Need a readme with info about structure and main approach.
+- Overall good gode.
+- Seems like the main function loop handles both backup protocol and local elevator fsm protocol.
+  for clarity, consider separating backup and elevator, placing the backup protocol in a seperate module.
+- timer module seems a bit unecessary
+
+
+18225af3
+9
+- Nice README.md
+- master module contains network handling, this is nice, but the
+  the network hand out module has nice, modular functions for this.
+- move all types to top of file, see optimalhallrequests.go
+- maybe move optimalOrder.go to master module when transending to multiple elevators
+- sendMessage function is restricted to only sending message types. 
+  Think through that this message is really all you need to transmit.
+- ack approach might be more difficult than just spamming msg on bcast... nothing wrong with code quality though.
