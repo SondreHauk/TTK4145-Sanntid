@@ -5,6 +5,7 @@ import (
 	. "source/config"
 	"source/localElevator/elevio"
 	"source/primary/assigner"
+	"source/primary/sync"
 	"time"
 )
 
@@ -20,7 +21,7 @@ func Run(
 	myId string) {
 
 	mapActionChan := make(chan FleetAccess, 10)
-	ReadMapChan := make(chan map[string]Elevator, 2)
+	
 	elevUpdateObsChan := make(chan Elevator, NUM_ELEVATORS)
 	worldviewObsChan := make(chan Worldview, 10)
 	var worldview Worldview
@@ -32,7 +33,7 @@ func Run(
 	}
 
 	//Owns and handles access to fleet map
-	go fleetAccessManager(mapActionChan)
+	go sync.FleetAccessManager(mapActionChan)
 	go obstructionHandler(elevUpdateObsChan, worldviewObsChan, mapActionChan, orderToElevChan)
 
 	select {
@@ -40,9 +41,9 @@ func Run(
 		fmt.Println("Taking over as Primary")
 		worldview = wv
 		//drain(elevStateChan) //FIX FLUSHING OF CHANNELS(?)
-		mapActionChan <- FleetAccess{Cmd: "write all", ElevMap: worldview.FleetSnapshot}
-		HeartbeatTimer := time.NewTicker(T_HEARTBEAT)
-		defer HeartbeatTimer.Stop()
+		sync.FullFleetWrite(worldview.FleetSnapshot,mapActionChan)
+		heartbeatTimer := time.NewTicker(T_HEARTBEAT)
+		defer heartbeatTimer.Stop()
     	
 		//primaryLoop:
 		for {
@@ -56,24 +57,20 @@ func Run(
 				}
 
 			case elevUpdate := <-elevStateChan:
-				mapActionChan <- FleetAccess{Cmd: "write one", Id: elevUpdate.Id, Elev: elevUpdate}
+				sync.SingleFleetWrite(elevUpdate.Id,elevUpdate,mapActionChan)
 				//has a race condition but works fine
 				updateHallLights(worldview, hallLights, mapActionChan, hallLightsChan)
 				//Obstruction handler gets updated states
 				elevUpdateObsChan <- elevUpdate
 
 			case request := <-requestFromElevChan:
-				mapActionChan <- FleetAccess{Cmd: "read", ReadCh: ReadMapChan}
-				select {case worldview.FleetSnapshot = <-ReadMapChan:}
+				worldview.FleetSnapshot=sync.FleetRead(mapActionChan)
 				AssignedId := assigner.ChooseElevator(worldview.FleetSnapshot, worldview.PeerInfo.Peers, request)
 				orderToElevChan <- OrderConstructor(AssignedId, request.Floor, request.Button)
 				fmt.Printf("Assigned elevator %s to order\n", AssignedId)
 
-			case <-HeartbeatTimer.C:
-				mapActionChan <- FleetAccess{Cmd: "read", ReadCh: ReadMapChan}
-				select {
-				case worldview.FleetSnapshot = <-ReadMapChan:
-				}
+			case <-heartbeatTimer.C:
+				worldview.FleetSnapshot=sync.FleetRead(mapActionChan)
 				worldviewTXChan <- worldview
 				worldviewObsChan <- worldview
 
@@ -90,35 +87,10 @@ func Run(
 }
 
 
-func fleetAccessManager(mapActionChan <-chan FleetAccess) {
-	fleet := make(map[string]Elevator) // Real fleet map. All others are snapshots of this
-	for {
-		select {
-		case newAction := <-mapActionChan:
-			switch newAction.Cmd {
-			case "read":
-				deepCopy := make(map[string]Elevator, len(fleet))
-				for key, value := range fleet {
-					deepCopy[key] = value
-				}
-				newAction.ReadCh <- deepCopy
-			case "write one":
-				fleet[newAction.Id] = newAction.Elev
-			case "write all":
-				fleet = newAction.ElevMap
-			}
-		}
-	}
-}
-
 /* MAYBE implement function that owns hallLight state to avoid "trivial" race condition. Would be similar to fleetAccessManager
 NOT 1st priority.  */
 
-func updateHallLights(wv Worldview, hallLights [][]bool, mapActionChan chan<- FleetAccess, hallLightsChan chan<- [][]bool) {
-	readChan := make(chan map[string]Elevator, 1)
-	defer close(readChan)
-	//Request read
-	mapActionChan <- FleetAccess{Cmd: "read", ReadCh: readChan}
+func updateHallLights(wv Worldview, hallLights [][]bool, mapActionChan chan FleetAccess, hallLightsChan chan<- [][]bool) {
 	shouldUpdate := false
 	prevHallLights := make([][]bool, NUM_FLOORS)
 	for floor := range hallLights {
@@ -128,20 +100,18 @@ func updateHallLights(wv Worldview, hallLights [][]bool, mapActionChan chan<- Fl
 			hallLights[floor][btn] = false
 		}
 	}
-	select {
-	case fleetSnapshot := <-readChan:
-		wv = WorldviewConstructor(wv.PrimaryId, wv.PeerInfo, fleetSnapshot)
-		for _, id := range wv.PeerInfo.Peers {
-			orderMatrix := wv.FleetSnapshot[id].Orders
-			for floor, floorOrders := range orderMatrix {
-				for btn, isOrder := range floorOrders {
-					if isOrder && btn != int(elevio.BT_Cab) {
-						hallLights[floor][btn] = true
-					}
+	wv = WorldviewConstructor(wv.PrimaryId, wv.PeerInfo, sync.FleetRead(mapActionChan))
+	for _, id := range wv.PeerInfo.Peers {
+		orderMatrix := wv.FleetSnapshot[id].Orders
+		for floor, floorOrders := range orderMatrix {
+			for btn, isOrder := range floorOrders {
+				if isOrder && btn != int(elevio.BT_Cab) {
+					hallLights[floor][btn] = true
 				}
 			}
 		}
-	}	
+	}
+	
   for floor := range NUM_FLOORS {
 		for btn := range NUM_BUTTONS - 1 {
 			if prevHallLights[floor][btn] != hallLights[floor][btn] {
@@ -155,47 +125,39 @@ func updateHallLights(wv Worldview, hallLights [][]bool, mapActionChan chan<- Fl
 	}
 }
 
-func ReassignHallOrders(wv Worldview, MapAccessChan chan FleetAccess, orderToElevChan chan<- Order, reassign Reassignment){
-	readChan := make(chan map[string]Elevator, 1)
-	defer close(readChan)
-	MapAccessChan <- FleetAccess{Cmd: "read", ReadCh: readChan}
-
-	select {
-	case fleetSnapshot := <-readChan:
-		wv := WorldviewConstructor(wv.PrimaryId, wv.PeerInfo, fleetSnapshot)
-
-		switch reassign.Cause{
-		case Disconnected:
-			for _, lostId := range wv.PeerInfo.Lost {
-			orderMatrix := wv.FleetSnapshot[lostId].Orders
-			for floor, floorOrders := range orderMatrix {
-				for btn, isOrder := range floorOrders {
-					if isOrder && btn != int(elevio.BT_Cab) {
-						lostOrder := Order{
-							Id:     lostId,
-							Floor:  floor,
-							Button: btn,
-						}
-						lostOrder.Id = assigner.ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, lostOrder)
-						orderToElevChan <- lostOrder
+func ReassignHallOrders(wv Worldview, MapActionChan chan FleetAccess, orderToElevChan chan<- Order, reassign Reassignment){
+	wv = WorldviewConstructor(wv.PrimaryId, wv.PeerInfo, sync.FleetRead(MapActionChan))
+	switch reassign.Cause{
+	case Disconnected:
+		for _, lostId := range wv.PeerInfo.Lost {
+		orderMatrix := wv.FleetSnapshot[lostId].Orders
+		for floor, floorOrders := range orderMatrix {
+			for btn, isOrder := range floorOrders {
+				if isOrder && btn != int(elevio.BT_Cab) {
+					lostOrder := Order{
+						Id:     lostId,
+						Floor:  floor,
+						Button: btn,
 					}
+					lostOrder.Id = assigner.ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, lostOrder)
+					orderToElevChan <- lostOrder
 				}
 			}
 		}
-		case Obstructed:
-			orderMatrix := wv.FleetSnapshot[reassign.ObsId].Orders
-			for floor, floorOrders := range(orderMatrix){
-			  for btn, isOrder := range(floorOrders){
-				if isOrder && btn != int(elevio.BT_Cab){
-				  lostOrder:=Order{
-						Id: reassign.ObsId,
-						Floor: floor,
-						Button: btn,
-					  }
-				  lostOrder.Id = assigner.ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, lostOrder)
-				  orderToElevChan <- lostOrder
-				}
-			  }
+	}
+	case Obstructed:
+		orderMatrix := wv.FleetSnapshot[reassign.ObsId].Orders
+		for floor, floorOrders := range(orderMatrix){
+			for btn, isOrder := range(floorOrders){
+			if isOrder && btn != int(elevio.BT_Cab){
+				lostOrder:=Order{
+					Id: reassign.ObsId,
+					Floor: floor,
+					Button: btn,
+					}
+				lostOrder.Id = assigner.ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, lostOrder)
+				orderToElevChan <- lostOrder
+			}
 			}
 		}
 	}
@@ -227,7 +189,7 @@ func obstructionHandler(
 				//If no timer, start one
 				_, timerExists := obstructionTimers[elevUpdate.Id]
 				if !timerExists{
-					timer := time.AfterFunc(T_OBSTRUCTED_PRIMARY, func() {
+					timer := time.AfterFunc(T_REASSIGN_PRIMARY, func() {
 					reassignmentDetails := Reassignment{Cause: Obstructed, ObsId: obstructedElevators[len(obstructedElevators)-1]}
 					ReassignHallOrders(worldview, mapActionChan, orderToElevChan, reassignmentDetails)})
 					obstructionTimers[elevUpdate.Id] = timer

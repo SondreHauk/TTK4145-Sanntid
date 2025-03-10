@@ -34,6 +34,6 @@ Main FSM loop that:
 - If the obstruction is removed before the timeout, the elevator resumes normal operation.  
 
 ## Timers Used  
-- **DoorTimer**: Keeps track of door opening duration.  
-- **ObstructionTimer**: Monitors persistent obstructions and clears hall orders if exceeded.  
-- **HeartbeatTimer**: Periodically updates the elevator state to the system.
+- **doorTimer**: Keeps track of door opening duration.  
+- **obstructionTimer**: Monitors persistent obstructions and clears hall orders if exceeded.  
+- **heartbeatTimer**: Periodically updates the elevator state to the system.
