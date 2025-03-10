@@ -92,21 +92,38 @@ func Run(
 	elev *Elevator, 
 	ElevChan chan <-Elevator, 
 	AtFloorChan <-chan int, 
-	OrderChan <-chan Order,
-	hallLightsRXChan <-chan [][]bool,
+	/*OrderChan <-chan Order,
+	hallLightsRXChan <-chan [][]bool,*/
 	ObstructionChan <-chan bool,
-	myId string) {
+	myId string,
+	worldviewRXChan <- chan Worldview) {
+
+	orderChan := make(chan Order, 10)
 
 	ElevChan <- *elev
+
 	HeartbeatTimer := time.NewTimer(T_HEARTBEAT)
 	DoorTimer := time.NewTimer(T_DOOR_OPEN)
 	DoorTimer.Stop()
 	ObstructionTimer := time.NewTimer(T_OBSTRUCTED_LOCAL)
 	ObstructionTimer.Stop()
 	
+	currenthallLights := make([][]bool, NUM_FLOORS)
+	
 	for {
 		select {
-		case NewOrder := <-OrderChan:
+		case wv := <- worldviewRXChan:
+			// if any assigned unaccepted order. Send order on Orderchan
+			orders, exists := wv.UnacceptedOrders[myId]
+			if exists {
+				for _, order := range orders{
+					orderChan <- order
+				}
+			}
+			// if any update in hall lights. Send order in HallLightsChan
+			
+	
+		case NewOrder := <-orderChan:
 			if NewOrder.Id == myId{
 				elev.Orders[NewOrder.Floor][NewOrder.Button] = true
 				switch elev.State {

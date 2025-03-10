@@ -59,6 +59,7 @@ func Run(
 				//Request write
 				MapActionChan <- FleetAccess{Cmd: "write one", Id: elevUpdate.Id, Elev: elevUpdate}
 				//has a race condition but works fine
+				//TODO: INCLUDE HALL LIGHTS IN WORLDVIEW AND BROADCAST PERIODICALLY
 				updateHallLights(worldview, hallLights, MapActionChan, hallLightsChan)
 			
         		// ------ OBSTRUCTION ------- //
@@ -91,7 +92,8 @@ func Run(
 						}
 					}
 				}
-  
+			
+			//TODO: INCLUDE ORDER IN WORLDVIEW AND BROADCAST PERIODICALLY
 			case request := <-requestFromElevChan:
 				MapActionChan <- FleetAccess{Cmd: "read", ReadCh: ReadMapChan}
 				select {

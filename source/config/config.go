@@ -50,7 +50,6 @@ const (
 
 type ElevatorState int
 
-
 type Elevator struct {
 	Id            string
 	Floor         int
@@ -76,12 +75,14 @@ type PeerUpdate struct {
 	Lost  []string
 }
 
-//----------------PRIMARY/BACKUP--------------------
+// ----------------PRIMARY/BACKUP-------------------- //
 
 type Worldview struct {
 	PrimaryId     string
 	PeerInfo      PeerUpdate
-	FleetSnapshot map[string]Elevator // Owned by
+	FleetSnapshot map[string]Elevator
+	UnacceptedOrders map[string][]Order
+	HallLight [][]bool
 }
 
 func WorldviewConstructor(PrimaryId string, PeerInfo PeerUpdate, FleetSnapshot map[string]Elevator) Worldview {
@@ -100,6 +101,3 @@ type Reassignment struct {
 	Cause int
 	ObsId string //Only relevant for obstructed elevators
 }
-
-//--------------------------------------------
-

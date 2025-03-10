@@ -1,4 +1,10 @@
-TODO
+TODO:
+
+- Package Loss
+-- Include hall lights in Worldview
+-- Include orders in Worldview
+-- Let elevators receive Worldview
+-- Implement FSM logic to read and update lights and orders from received WorldView
 ------------------------------------------------------------------------------ Obstruction button
 ------------------------------------------------------------------------------ Only clear hall button in one (right) direction
 ------------------------------------------------------------------------------ UDP on same socket

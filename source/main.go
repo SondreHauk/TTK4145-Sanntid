@@ -38,19 +38,13 @@ func kill(StopButtonCh <-chan bool) {
 }
 
 func worldviewRouter(worldviewRXChan <-chan Worldview,
-	worldviewPrimaryChan chan<- Worldview,
-	worldviewBackupChan chan<- Worldview) {
-
-	for msg := range worldviewRXChan {
-		select {
-		case worldviewPrimaryChan <- msg:
-		default: // Prevent blocking if primary isn't listening
-		}
-
-		select {
-		case worldviewBackupChan <- msg:
-		default: // Prevent blocking if backup isn't listening
-		}
+	worldviewToPrimaryChan chan<- Worldview,
+	worldviewToBackupChan chan<- Worldview,
+	worldviewToElevatorChan chan<- Worldview) {
+	for wv := range worldviewRXChan {
+		worldviewToBackupChan <- wv
+		worldviewToPrimaryChan <- wv
+		worldviewToElevatorChan <- wv
 	}
 }
 
@@ -73,8 +67,9 @@ func main() {
 	worldviewRXChan := make(chan Worldview, 10)
 	becomePrimaryChan := make(chan Worldview, 1)
 
-	worldviewPrimaryChan := make(chan Worldview)
-	worldviewBackupChan := make(chan Worldview)
+	worldviewToPrimaryChan := make(chan Worldview)
+	worldviewToBackupChan := make(chan Worldview)
+	worldviewToElevatorChan := make(chan Worldview)
 
 	hallLightsTXChan := make(chan [][]bool, 10)
 	hallLightsRXChan := make(chan [][]bool, 10)
@@ -102,7 +97,7 @@ func main() {
 	go elevio.PollObstructionSwitch(obstructionChan)
 	go elevio.PollStopButton(stopChan)
 	go fsm.Run(&elev, elevatorTXChan, atFloorChan,
-		orderChan, hallLightsRXChan, obstructionChan, id)
+		orderChan, hallLightsRXChan, obstructionChan, id, worldviewToElevatorChan)
 
 	// Goroutines communication (TODO: reduce to two ports)
 	go bcast.Transmitter(PORT_ELEVSTATE, elevatorTXChan)
@@ -120,14 +115,14 @@ func main() {
 	go bcast.Transmitter(PORT_HALLLIGHTS, hallLightsTXChan)
 	go bcast.Receiver(PORT_HALLLIGHTS, hallLightsRXChan)
 
-	go worldviewRouter(worldviewRXChan, worldviewPrimaryChan, worldviewBackupChan)
+	go worldviewRouter(worldviewRXChan, worldviewToPrimaryChan, worldviewToBackupChan, worldviewToElevatorChan)
 
 	//TODO: DRAIN CHANNELS GOING TO PRIMARY
 	
 	// Fault tolerance protocol
-	go backup.Run(worldviewBackupChan, becomePrimaryChan, id)
+	go backup.Run(worldviewToBackupChan, becomePrimaryChan, id)
 	go primary.Run(peerUpdateChan, elevatorRXChan,
-		becomePrimaryChan, worldviewTXChan, worldviewPrimaryChan,
+		becomePrimaryChan, worldviewTXChan, worldviewToPrimaryChan,
 		requestFromElevChan, orderToElevChan,
 		hallLightsTXChan, id)
 
