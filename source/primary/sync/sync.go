@@ -24,5 +24,5 @@ func UnacceptedOrdersManager(ordersActionChan <- chan OrderAccess) {
 }
 
 func HallLightsManager() {
-
+	
 }

@@ -88,6 +88,27 @@ func TimeUntilPickup(elev Elevator, NewOrder Order) time.Duration{
 	}
 }
 
+// if any assigned unaccepted order. Send order on Orderchan
+func checkForNewOrders(wv Worldview, myId string, orderChan chan <- Order) {
+	orders, exists := wv.UnacceptedOrders[myId]
+	if exists {
+		for _, order := range orders{
+			orderChan <- order
+		}
+	}
+}
+
+func checkForNewLights(wv Worldview, currenthallLights [][]bool, hallLightsChan chan [][]bool) {
+	// if any update in hall lights. Send new lights on HallLightsChan
+	for i := range currenthallLights {
+		for j := range currenthallLights[i] {
+			if currenthallLights[i][j] != wv.HallLight[i][j] {
+				hallLightsChan <- wv.HallLight
+			}
+		}
+	}
+}
+
 func Run(
 	elev *Elevator, 
 	ElevChan chan <-Elevator, 
@@ -116,21 +137,8 @@ func Run(
 	for {
 		select {
 		case wv = <- worldviewRXChan:
-			// if any assigned unaccepted order. Send order on Orderchan
-			orders, exists := wv.UnacceptedOrders[myId]
-			if exists {
-				for _, order := range orders{
-					OrderChan <- order
-				}
-			}
-			// if any update in hall lights. Send new lights on HallLightsChan
-			for i := range currenthallLights {
-				for j := range currenthallLights[i] {
-					if currenthallLights[i][j] != wv.HallLight[i][j] {
-						hallLightsChan <- wv.HallLight
-					}
-				}
-			}
+			checkForNewOrders(wv, myId, OrderChan)
+			checkForNewLights(wv, currenthallLights, hallLightsChan)
 	
 		case NewOrder := <-OrderChan:
 			if NewOrder.Id == myId{ //not necessary with new logic?
@@ -229,7 +237,6 @@ func Run(
 			ElevChan <- *elev
 			HeartbeatTimer.Reset(T_HEARTBEAT)
 		}
-
 		time.Sleep(T_SLEEP)
 	}
 }

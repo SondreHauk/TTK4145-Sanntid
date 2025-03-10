@@ -21,6 +21,8 @@ func Run(
 
 	MapActionChan := make(chan FleetAccess, 10)
 	ReadMapChan := make(chan map[string]Elevator, 2)
+	OrderActionChan := make(chan OrderAccess, 10)
+	ReadOrderChan := make(chan map[string][]Order, 2)
 
 	var worldview Worldview
 	worldview.FleetSnapshot = make(map[string]Elevator)
