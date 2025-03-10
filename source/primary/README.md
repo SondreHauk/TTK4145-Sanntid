@@ -54,4 +54,4 @@ This module relies on:
 ## Notes
 - The `setHallLights` function is currently a placeholder for setting hall lights based on elevator states.
 - The failover mechanism (`becomePrimaryChan`) needs further refinement to prevent unnecessary transitions between primary nodes.
-
+- 

@@ -3,11 +3,11 @@ package fsm
 // This module should contain the finite state machine for the local elevator
 
 import (
+	"fmt"
 	. "source/config"
 	"source/localElevator/elevio"
 	"source/localElevator/requests"
 	"time"
-	"fmt"
 )
 
 func ShouldStop(elev Elevator) bool {
@@ -90,23 +90,26 @@ func TimeUntilPickup(elev Elevator, NewOrder Order) time.Duration{
 
 func Run(
 	elev *Elevator, 
-	ElevChan chan <-Elevator, 
-	AtFloorChan <-chan int, 
-	OrderChan <-chan Order,
+	elevChan chan <-Elevator, 
+	atFloorChan <-chan int, 
+	orderChan <-chan Order,
 	hallLightsRXChan <-chan [][]bool,
-	ObstructionChan <-chan bool,
+	obstructionChan <-chan bool,
 	myId string) {
 
-	ElevChan <- *elev
-	HeartbeatTimer := time.NewTimer(T_HEARTBEAT)
-	DoorTimer := time.NewTimer(T_DOOR_OPEN)
-	DoorTimer.Stop()
-	ObstructionTimer := time.NewTimer(T_OBSTRUCTED_LOCAL)
-	ObstructionTimer.Stop()
-	
+	elevChan <- *elev
+	heartbeatTimer := time.NewTimer(T_HEARTBEAT)
+	doorTimer := time.NewTimer(T_DOOR_OPEN)
+	doorTimer.Stop()
+	obstructionTimer := time.NewTimer(T_REASSIGN_LOCAL)
+	obstructionTimer.Stop()
+	/* motorstopTimer := time.NewTimer(T_REASSIGN_LOCAL)
+	motorstopTimer.Stop()
+	go motorstopPoll() */
+
 	for {
 		select {
-		case NewOrder := <-OrderChan:
+		case NewOrder := <-orderChan:
 			if NewOrder.Id == myId{
 				elev.Orders[NewOrder.Floor][NewOrder.Button] = true
 				switch elev.State {
@@ -115,10 +118,10 @@ func Run(
 					elevio.SetMotorDirection(elevio.MotorDirection(elev.Direction))
 					if elev.Direction == STOP {
 						elevio.SetDoorOpenLamp(true)
-						DoorTimer.Reset(T_DOOR_OPEN)
+						doorTimer.Reset(T_DOOR_OPEN)
 						//If order is at same floor, take order after opening door.
-						//Be carefull! Maybe this should be done after the door closes!
-						//i.e. at case <- DoorTimer.C
+						//Be careful! Maybe this should be done after the door closes!
+						//i.e. at case <- doorTimer.C
 						//What if someone obstructs the door so it cannot close after the order is accepted by an elev
 						//Intrduce a timer for that order. If not taken within 5 sec, redistribute. (Primary stuff)
 						elev.Orders[elev.Floor][NewOrder.Button] = false
@@ -135,11 +138,11 @@ func Run(
 						elev.Orders[elev.Floor][NewOrder.Button] = false
 						elevio.SetButtonLamp(elevio.ButtonType(NewOrder.Button), elev.Floor, false)
 						if !elev.Obstructed{
-							DoorTimer.Reset(T_DOOR_OPEN)
+							doorTimer.Reset(T_DOOR_OPEN)
 						}
 					}
 				}
-				ElevChan <- *elev
+				elevChan <- *elev
 			}
 		
 		case hallLights := <- hallLightsRXChan:
@@ -149,19 +152,19 @@ func Run(
 				}
 			}
 
-		case elev.Floor = <-AtFloorChan:
+		case elev.Floor = <-atFloorChan:
 			elevio.SetFloorIndicator(elev.Floor)
 			if ShouldStop(*elev) {
 				elevio.SetMotorDirection(elevio.MD_Stop)
 				requests.ClearOrder(elev, elev.Floor)
 				elev.Direction = STOP
 				elevio.SetDoorOpenLamp(true)
-				DoorTimer.Reset(T_DOOR_OPEN)
+				doorTimer.Reset(T_DOOR_OPEN)
 				elev.State = DOOR_OPEN
 			}
-			ElevChan <- *elev
+			elevChan <- *elev
 
-		case <-DoorTimer.C:
+		case <-doorTimer.C:
 
 			elevio.SetDoorOpenLamp(false)
 			elev.Direction = ChooseDirection(*elev)
@@ -171,24 +174,24 @@ func Run(
 				elevio.SetMotorDirection(elevio.MotorDirection(elev.Direction))
 				elev.State = MOVING
 			}
-			ElevChan <- *elev
+			elevChan <- *elev
 		
-		case ObsEvent:= <-ObstructionChan:
+		case ObsEvent:= <-obstructionChan:
 			fmt.Println("Obstruction switch")
 			if elev.State==DOOR_OPEN{
 				switch ObsEvent{
 					case true:
 						elev.Obstructed = true
-						DoorTimer.Stop()
-						ObstructionTimer.Reset(T_OBSTRUCTED_LOCAL)
+						doorTimer.Stop()
+						obstructionTimer.Reset(T_REASSIGN_LOCAL)
 					case false:
 						elev.Obstructed = false
-						DoorTimer.Reset(T_DOOR_OPEN)
+						doorTimer.Reset(T_DOOR_OPEN)
 				}
 			}
-			ElevChan <- *elev
+			elevChan <- *elev
 		
-		case <- ObstructionTimer.C:
+		case <- obstructionTimer.C:
 			//Delete active hall orders
 			for floor, floorOrders := range(elev.Orders){
 				for btn, orderActive := range(floorOrders){
@@ -197,11 +200,11 @@ func Run(
 					}
 				}
 			}
-			ObstructionTimer.Stop()
+			obstructionTimer.Stop()
 
-		case <-HeartbeatTimer.C:
-			ElevChan <- *elev
-			HeartbeatTimer.Reset(T_HEARTBEAT)
+		case <-heartbeatTimer.C:
+			elevChan <- *elev
+			heartbeatTimer.Reset(T_HEARTBEAT)
 		}
 
 		time.Sleep(T_SLEEP)
