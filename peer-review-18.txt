@@ -1,74 +1,37 @@
 026b7588
-6
-Entry point: main.go, README.md and module names.
+score1
 - Unclear interaction between Main event loop and FSM module. Consider making a fsm.Run()
-- Unclear from entry point, whether this is a primary backup or peer-to-peer system.
-- FSM doesent handle orders, only sends them?
+- It is rather unclear what the system approach is (e.g. Primary/Backup, P2P, circle) After scouring the entire codebase, I'm still not sure.
+- The state machine doesn't handle orders, only sends them?
+- It also uses types that are defined in multiple other modules, but with no obvious difference, e.g. why is both ElevatorState and State defined in orderDistribution?
 
-Modules:
-- elevator: 
--- Holds elevator Objects and initialization of an elevator
 
-- fsm:
--- Seems to do too much stuff. 
-   Intiutively it should be event driven, run only the local elevator,
-   with inputs events from other modules.
--- Uses types that are defined in multiple other modules, 
-   but with no obvious difference, 
-   e.g. why is both ElevatorState and State defined in orderDistribution?
--- n, s and e, are not informative names 
-   makes it difficult to understand the code below.
--- OptimalHallRequests, unclear from name what is does in the fsm module. 
-   It is imported from orderDistribution which implies that it has to do with distribution. 
-   This implies peer-to-peer functionallity, but the prints in network func implies master slave...
--- Unecessary green text in many of the functions
-
-- newtwork:
--- Not clear why this module and Network function is necessary.
-   Maybe start the transmitter and receiver in main, and scrap the rest.
--- What happens with orderRx nodeUpdates? Are they just printed?
-
-- orderDistribution
--- 20 func definitions and 18 var/type/const declerations/definitions...
--- Unclear what the difference between localElevatorState and ElevatorState is.
-
-- requests:
--- Unused module.
-
-- timer:
--- Module is OK, buy most of these functions substitute only one line of code. 
-
-In general:
-- Difficult to follow the overall strategy and process flow of the program. 
-  Still not sure if this is a Master Slave or peer-to-peer solution.
-- Types, consts and variables are decleared and defined all over the place. 
-  Consider making a config.go file that holds all constants and type-definitions.
-- Remove debug prints before final hand inn
-- There lack some crucial logic and code here, but before you start with this, 
-  you should be clear on what approach you want, which modules you need, 
-  how they interract, and gather all types in a single file. Maybe some
-  of the modules, functions and types can be simplified and reduced.
-  We recommend making a README.md, where you write down your main approach, 
-  module interaction, process flow and possible improvements. This will make it
-  easier for you to cope with the task and for "outsiders" reading and understanding 
-  your code.
+999da0a5
+score2
+- Obstruction code must be improved. Implementing this as an event makes sense.
+- System observability is still quite mediocre. There is no established logging paradigm.
+- Changing all local Worldview instances to wv would improve readability.
+- There is a bit of cluttering with commented code etc, but this is not a final version. These wrinkles should be ironed out prior to final release.
+- HallLights handling in primary could face race conditions. Should be handled either with mutexes or like the fleetMap with channel protection.
 
 2043ec35
 8
-- Need a readme with info about structure and main approach.
-- Overall good gode.
-- Seems like the main function loop handles both backup protocol and local elevator fsm protocol.
-  for clarity, consider separating backup and elevator, placing the backup protocol in a seperate module.
-- timer module seems a bit unecessary
-
+- The code is reasonably readable, although it could do with some renaming (report.Report hurts the eyes). It is clear what model you are trying to create and the overall quality seems good. Here are some bulletpoints of possible issues that have or could arise:
+- MaxDuration being 2^63-1 will cause an integer overflow and will stop the program from compiling on architectures with less than 64bits. A MaxDuration of 1hr is a practical inf for this project.
+- I'm not necessarily convinced deep copies need to be made for all elements of the Elevator struct. ElevatorCase, LatestFloor, ID, Dirn, Behaviour are all thread safe. Access to and from the non thread-safe elements can be done with channels. I'm not sure this would improve efficiency, but it seems like a slight oversight to not take full advantage of Go's features.
+- All the DeepCopyX functions only perform shallow copies of the maps and slices. Copying by reference (ex: copy.Mapname = original.Mapname) only copies a pointer to the original instance. This invites race conditions, as a data structure which "should" be thread safe, isn't. You might not experience race conditions due to this, but you certainly could. We did. To perform a true deep copy of, lets say, the FullCabRequests matrix, you would need to initialize a new matrix and iterate through the original matrix and copy individual values.
+- I dont understand why timer.UpdateTimer gets its own package all to itself while the gigantic for/select in main:64-150 doesnt (with some tweaking, it could become a function in fsm that is called as a goroutine from main). This is maybe more of a preference thing, but I think cleaning up the main and making it as concise as possible is a good move.
+- To answer the question on main:29: Go automatically closes and cleans channels at program termination. Only when the program is running and you want to signal that no more data will be sent on the channel or to avoid unexpected blocking you would close the channel. Master termination is such an example, and broadcast channels are closed correctly in that instance. If I were to change anything, it would be to defer closure after creation instead of putting it in the kill-case. This way it is easy to check if the channels are explicitly told to close after function is finished or not.
+- I would create a backup package that handles all of the backup-related tasks. This would also clean up the elevator.go file. Fault-tolerance-wise, it would be smart to divide the elevator struct from the backup as well. If the local elevator code breaks, there is no backup either.
+-Having README's would improve the accessibility of your project. Having to scour the entire codebase to get an overview shouldn't be necessary.
 
 18225af3
 9
-- Nice README.md
-- master module contains network handling, this is nice, but the
-  the network hand out module has nice, modular functions for this.
-- move all types to top of file, see optimalhallrequests.go
-- maybe move optimalOrder.go to master module when transending to multiple elevators
-- sendMessage function is restricted to only sending message types. 
-  Think through that this message is really all you need to transmit.
-- ack approach might be more difficult than just spamming msg on bcast... nothing wrong with code quality though.
+- Great README. Overall the codebase seems very reasonable. Layout is clean, no cluttering in main.
+- The master module contains network handling, consider including this in the transport module instead. Also, the network hand out module has modular functions for transmitting and receiving, which could've been used. This is not a "dig", but resources might have been better spent elsewhere (e.g. multiple elevator order assignment).
+- I would consider switching from mutexes to channel implementation for concurrent safe access. Mutexes work absolutely fine, but I think the channel implementation is elegant and makes use of Go's best features.
+- state.GetAll and similar functions show that you understand the importance of thread-safety.
+- The polling approach you have chosen is inefficient, as you are aware of. Implementing a fully event-driven polling system for functions like fsm.Run is smart.
+- It looks like you currently open a new udp connection for every message sent. This could be improved greatly by reusing established connections.
+- Channels should be buffered to improve robustness. (app:120-123) In the case of bugs and/or high traffic, goroutines could deadlock.
+- Having type declarations at the top of files makes sense and would be more readable than the current approach.
