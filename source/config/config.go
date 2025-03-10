@@ -81,7 +81,7 @@ type PeerUpdate struct {
 type Worldview struct {
 	PrimaryId     string
 	PeerInfo      PeerUpdate
-	FleetSnapshot map[string]Elevator // Owned by
+	FleetSnapshot map[string]Elevator // Original owned by primary.FleetAccessManager
 }
 
 func WorldviewConstructor(PrimaryId string, PeerInfo PeerUpdate, FleetSnapshot map[string]Elevator) Worldview {

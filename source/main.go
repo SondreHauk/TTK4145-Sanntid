@@ -41,7 +41,7 @@ func worldviewRouter(worldviewRXChan <-chan Worldview,
 	worldviewPrimaryChan chan<- Worldview,
 	worldviewBackupChan chan<- Worldview) {
 
-	for msg := range worldviewRXChan {
+	for msg := range worldviewRXChan {	
 		select {
 		case worldviewPrimaryChan <- msg:
 		default: // Prevent blocking if primary isn't listening
