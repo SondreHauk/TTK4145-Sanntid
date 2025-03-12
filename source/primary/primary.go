@@ -64,6 +64,8 @@ func Run(
 
 			case elevUpdate := <-elevStateChan:
 				sync.SingleFleetWrite(elevUpdate.Id,elevUpdate,fleetActionChan)
+				// if accepted order in elevupdate matches unaccpted order in worldview,
+				// remove order from unaccepted orders and update light matrix corresondingly.
 				//has a race condition but works fine
 				updateHallLights(worldview, hallLights, fleetActionChan, /*hallLightsChan*/)
 				//Obstruction handler gets updated states
