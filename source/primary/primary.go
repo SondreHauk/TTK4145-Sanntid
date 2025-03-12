@@ -17,31 +17,37 @@ func Run(
 	worldviewRXChan <-chan Worldview,
 	requestFromElevChan <-chan Order,
 	orderToElevChan chan<- Order,
-	hallLightsChan chan<- [][]bool,
+	/*hallLightsChan chan<- [][]bool,*/
 	myId string) {
 
-	mapActionChan := make(chan FleetAccess, 10)
-	
+	// local channels
+	fleetActionChan := make(chan FleetAccess, 10)
+	orderActionChan := make(chan OrderAccess, 10)
 	elevUpdateObsChan := make(chan Elevator, NUM_ELEVATORS)
 	worldviewObsChan := make(chan Worldview, 10)
+
+	// local variables
 	var worldview Worldview
 	worldview.FleetSnapshot = make(map[string]Elevator)
+	worldview.UnacceptedOrdersSnapshot = make(map[string][]Order)
+
 	//Init hallLights matrix
 	hallLights := make([][]bool, NUM_FLOORS)
 	for i := range hallLights {
 		hallLights[i] = make([]bool, NUM_BUTTONS-1)
 	}
 
-	//Owns and handles access to fleet map
-	go sync.FleetAccessManager(mapActionChan)
-	go obstructionHandler(elevUpdateObsChan, worldviewObsChan, mapActionChan, orderToElevChan)
+	//Owns and handles access to maps
+	go sync.FleetAccessManager(fleetActionChan)
+	go sync.UnacceptedOrdersManager(orderActionChan)
+	go obstructionHandler(elevUpdateObsChan, worldviewObsChan, fleetActionChan, orderToElevChan)
 
 	select {
 	case wv := <-becomePrimaryChan:
 		fmt.Println("Taking over as Primary")
 		worldview = wv
 		//drain(elevStateChan) //FIX FLUSHING OF CHANNELS(?)
-		sync.FullFleetWrite(worldview.FleetSnapshot,mapActionChan)
+		sync.FullFleetWrite(worldview.FleetSnapshot,fleetActionChan)
 		heartbeatTimer := time.NewTicker(T_HEARTBEAT)
 		defer heartbeatTimer.Stop()
     	
@@ -53,24 +59,24 @@ func Run(
 				printPeers(worldview.PeerInfo)
 				lost := worldview.PeerInfo.Lost
 				if len(lost) != 0 {
-					ReassignHallOrders(worldview, mapActionChan, orderToElevChan, Reassignment{Cause: Disconnected})
+					ReassignHallOrders(worldview, fleetActionChan, orderToElevChan, Reassignment{Cause: Disconnected})
 				}
 
 			case elevUpdate := <-elevStateChan:
-				sync.SingleFleetWrite(elevUpdate.Id,elevUpdate,mapActionChan)
+				sync.SingleFleetWrite(elevUpdate.Id,elevUpdate,fleetActionChan)
 				//has a race condition but works fine
-				updateHallLights(worldview, hallLights, mapActionChan, hallLightsChan)
+				updateHallLights(worldview, hallLights, fleetActionChan, /*hallLightsChan*/)
 				//Obstruction handler gets updated states
 				elevUpdateObsChan <- elevUpdate
 
 			case request := <-requestFromElevChan:
-				worldview.FleetSnapshot=sync.FleetRead(mapActionChan)
+				worldview.FleetSnapshot=sync.FleetRead(fleetActionChan)
 				AssignedId := assigner.ChooseElevator(worldview.FleetSnapshot, worldview.PeerInfo.Peers, request)
 				orderToElevChan <- OrderConstructor(AssignedId, request.Floor, request.Button)
 				fmt.Printf("Assigned elevator %s to order\n", AssignedId)
 
 			case <-heartbeatTimer.C:
-				worldview.FleetSnapshot=sync.FleetRead(mapActionChan)
+				worldview.FleetSnapshot=sync.FleetRead(fleetActionChan)
 				worldviewTXChan <- worldview
 				worldviewObsChan <- worldview
 
@@ -90,7 +96,7 @@ func Run(
 /* MAYBE implement function that owns hallLight state to avoid "trivial" race condition. Would be similar to fleetAccessManager
 NOT 1st priority.  */
 
-func updateHallLights(wv Worldview, hallLights [][]bool, mapActionChan chan FleetAccess, hallLightsChan chan<- [][]bool) {
+func updateHallLights(wv Worldview, hallLights [][]bool, mapActionChan chan FleetAccess, /*hallLightsChan chan<- [][]bool*/) {
 	shouldUpdate := false
 	prevHallLights := make([][]bool, NUM_FLOORS)
 	for floor := range hallLights {

@@ -40,7 +40,9 @@ const(
 
 // TODO: Only two ports necessary
 const (
+	PORT_BCAST      = 20019
 	PORT_PEERS      = 20020
+	// ----------------- //
 	PORT_ELEVSTATE  = 20030
 	PORT_WORLDVIEW  = 20040
 	PORT_REQUEST    = 20050
@@ -49,7 +51,6 @@ const (
 )
 
 type ElevatorState int
-
 
 type Elevator struct {
 	Id            string
@@ -82,10 +83,15 @@ type Worldview struct {
 	PrimaryId     string
 	PeerInfo      PeerUpdate
 	FleetSnapshot map[string]Elevator // Original owned by primary.FleetAccessManager
+	UnacceptedOrdersSnapshot map[string][]Order
+	HallLightsSnapshot [][]bool
 }
 
-func WorldviewConstructor(PrimaryId string, PeerInfo PeerUpdate, FleetSnapshot map[string]Elevator) Worldview {
-	return Worldview{PrimaryId: PrimaryId, PeerInfo: PeerInfo, FleetSnapshot: FleetSnapshot}
+func WorldviewConstructor(PrimaryId string, PeerInfo PeerUpdate, 
+	FleetSnapshot map[string]Elevator,/*, UnacceptedOrdersSnapshot map[string][]Order,
+	HallLightSnapshot [][]bool*/) Worldview {
+	return Worldview{PrimaryId: PrimaryId, PeerInfo: PeerInfo, FleetSnapshot: FleetSnapshot,
+	/*UnacceptedOrdersSnapshot: UnacceptedOrdersSnapshot, HallLightsSnapshot: HallLightSnapshot*/}
 }
 
 type FleetAccess struct {
@@ -94,6 +100,14 @@ type FleetAccess struct {
 	Elev    Elevator
 	ElevMap map[string]Elevator
 	ReadChan  chan map[string]Elevator
+}
+
+type OrderAccess struct {
+	Cmd		         string
+	Id 				 string
+	Orders			 []Order
+	UnacceptedOrders map[string][]Order
+	ReadChan 		 chan map[string][]Order
 }
 
 type Reassignment struct {
