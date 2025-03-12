@@ -92,11 +92,11 @@ func WorldviewConstructor(PrimaryId string, PeerInfo PeerUpdate, FleetSnapshot m
 }
 
 type FleetAccess struct {
-	Cmd     string //{"read","write one","write all"}
-	Id      string
-	Elev    Elevator
-	ElevMap map[string]Elevator
-	ReadCh  chan map[string]Elevator
+	Cmd      string //{"read","write one","write all"}
+	Id       string
+	Elev     Elevator
+	ElevMap  map[string]Elevator
+	ReadChan chan map[string]Elevator
 }
 
 type OrderAccess struct {
@@ -104,7 +104,7 @@ type OrderAccess struct {
 	Id 				 string
 	Orders			 []Order
 	UnacceptedOrders map[string][]Order
-	ReadCh 			 chan map[string][]Order
+	ReadChan 		 chan map[string][]Order
 }
 
 type Reassignment struct {

@@ -33,8 +33,9 @@ func Run(
 		hallLights[i] = make([]bool, NUM_BUTTONS-1)
 	}
 
-	//Owns and handles access to fleet map
-	go fleetAccessManager(MapActionChan)
+	//Owns and handles access to elevator fleet map
+	go FleetAccessManager(MapActionChan)
+	go 
 
 	select {
 	case wv := <-becomePrimaryChan:
@@ -132,28 +133,6 @@ func Run(
 					fmt.Printf("Primary: %s, taking over\n", receivedId)
 					break primaryLoop */
 			 //defere break om mulig?
-			}
-		}
-	}
-}
-
-
-func fleetAccessManager(mapActionChan <-chan FleetAccess) {
-	fleet := make(map[string]Elevator) // Real fleet map. All others are snapshots of this
-	for {
-		select {
-		case newAction := <-mapActionChan:
-			switch newAction.Cmd {
-			case "read":
-				deepCopy := make(map[string]Elevator, len(fleet))
-				for key, value := range fleet {
-					deepCopy[key] = value
-				}
-				newAction.ReadCh <- deepCopy
-			case "write one":
-				fleet[newAction.Id] = newAction.Elev
-			case "write all":
-				fleet = newAction.ElevMap
 			}
 		}
 	}
