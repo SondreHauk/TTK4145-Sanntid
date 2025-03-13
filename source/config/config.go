@@ -108,6 +108,7 @@ type OrderAccess struct {
 	Orders			 []Order
 	UnacceptedOrders map[string][]Order
 	ReadChan 		 chan map[string][]Order
+	ReadAllChan 	 chan map[string][]Order
 }
 
 type Reassignment struct {

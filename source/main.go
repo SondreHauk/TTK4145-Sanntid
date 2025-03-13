@@ -81,7 +81,7 @@ func main() {
 
 	requestToPrimaryChan := make(chan Order, 10)
 	requestFromElevChan := make(chan Order, 10)
-	orderToElevChan := make(chan Order, 10)
+	/*orderToElevChan := make(chan Order, 10)*/
 	orderChan := make(chan Order, 10)
 
 	//Initializations
@@ -124,7 +124,7 @@ func main() {
 	go backup.Run(worldviewToBackupChan, becomePrimaryChan, id)
 	go primary.Run(peerUpdateChan, elevatorRXChan,
 		becomePrimaryChan, worldviewTXChan, worldviewToPrimaryChan,
-		requestFromElevChan, orderToElevChan,
+		requestFromElevChan, /*orderToElevChan,*/
 		/*hallLightsTXChan,*/ id)
 
 	// Kills terminal if interrupted

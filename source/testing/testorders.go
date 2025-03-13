@@ -1,46 +1,23 @@
-package sync
+package main
 
 import (
-	. "source/config"
+	"fmt"
+	"time"
 )
 
-func FleetAccessManager(mapActionChan <-chan FleetAccess) {
-	fleet := make(map[string]Elevator) // Real fleet map. All others are snapshots of this
-	for {
-		select {
-		case newAction := <-mapActionChan:
-			switch newAction.Cmd {
-			case "read":
-				deepCopy := make(map[string]Elevator, len(fleet))
-				for key, value := range fleet {
-					deepCopy[key] = value
-				}
-				newAction.ReadChan <- deepCopy
-			case "write one":
-				fleet[newAction.Id] = newAction.Elev
-			case "write all":
-				fleet = newAction.ElevMap
-			}
-		}
-	}
+type Order struct {
+	Id     string
+	Floor  int
+	Button int
 }
 
-func SingleFleetWrite(id string, elev Elevator, mapActionChan chan FleetAccess){
-	mapActionChan<-FleetAccess{Cmd:"write one", Id:id, Elev:elev}
-}
-
-func FullFleetWrite(elevMap map[string]Elevator, mapActionChan chan FleetAccess){
-	mapActionChan<-FleetAccess{Cmd:"write all", ElevMap: elevMap}
-}
-
-func FleetRead(mapActionChan chan FleetAccess) map[string]Elevator{
-	readChan := make(chan map[string]Elevator, 1)
-	defer close(readChan)
-	mapActionChan<-FleetAccess{Cmd:"read", ReadChan:readChan}
-	select{
-	case output := <-readChan:
-		return output
-	}
+type OrderAccess struct {
+	Cmd              string
+	Id               string
+	Orders           []Order
+	UnacceptedOrders map[string][]Order
+	ReadChan         chan map[string][]Order
+	ReadAllChan      chan map[string][]Order
 }
 
 func UnacceptedOrdersManager(ordersActionChan <- chan OrderAccess) {
@@ -115,4 +92,35 @@ func GetAllUnacceptedOrders(orderActionChan chan<- OrderAccess) map[string][]Ord
     readAllChan := make(chan map[string][]Order)
     orderActionChan <- OrderAccess{Cmd: "read all", ReadAllChan: readAllChan}
     return <-readAllChan
+}
+
+
+func main() {
+	orderActionChan := make(chan OrderAccess)
+
+	// Start the manager
+	go UnacceptedOrdersManager(orderActionChan)
+
+	time.Sleep(100 * time.Millisecond) // Give the goroutine time to start
+
+	fmt.Println("=== Adding Orders ===")
+	AddUnacceptedOrder(orderActionChan, Order{Id: "1", Floor: 2, Button: 1})
+	fmt.Println(GetAllUnacceptedOrders(orderActionChan))
+	AddUnacceptedOrder(orderActionChan, Order{Id: "1", Floor: 3, Button: 2})
+	AddUnacceptedOrder(orderActionChan, Order{Id: "2", Floor: 1, Button: 0})
+	time.Sleep(100 * time.Millisecond)
+
+	fmt.Println("\n=== Reading All Orders ===")
+	allOrders := GetAllUnacceptedOrders(orderActionChan)
+	fmt.Println("Current unaccepted orders:", allOrders)
+
+	fmt.Println("\n=== Removing an Order ===")
+	RemoveUnacceptedOrder(orderActionChan, Order{Id: "1", Floor: 2, Button: 1})
+	time.Sleep(100 * time.Millisecond)
+
+	fmt.Println("\n=== Reading All Orders After Deletion ===")
+	allOrders = GetAllUnacceptedOrders(orderActionChan)
+	fmt.Println("Unaccepted orders after deletion:", allOrders)
+
+	fmt.Println("\n=== Test Complete ===")
 }
