@@ -16,6 +16,7 @@ func Run(
 	var latestWV Worldview
 	latestWV.PrimaryId = id
 	latestWV.FleetSnapshot = make(map[string]Elevator)
+	latestWV.UnacceptedOrdersSnapshot = make(map[string][]Order)
 	//Peers[0] doesnt exist before the first primary does
 
 	select{
@@ -27,9 +28,10 @@ func Run(
 	for {
 		select {
 		case latestWV = <-worldViewChan:
-			// fmt.Println("Worldview received")
-			// fmt.Printf("Active Peers: %v\n", latestWorldview.PeerInfo)
-			// fmt.Printf("Elevators: %v\n", latestWorldview.Elevators)
+			// fmt.Println("Worldview received by backup")
+			//fmt.Printf("Active Peers: %v\n", latestWV.PeerInfo)
+			//fmt.Printf("Lights: %v\n", latestWV.HallLightsSnapshot)
+			//fmt.Printf("Unaccepted Orders: %v\n", latestWV.UnacceptedOrdersSnapshot)
 		
 		case <-time.After(T_PRIMARY_TIMEOUT):
 			if shouldTakeOver(latestWV, id){

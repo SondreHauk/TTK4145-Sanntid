@@ -36,10 +36,12 @@ func Run(
 	for {
 		select {
 		case wv = <- worldviewToElevatorChan:
-			checkForNewOrders(wv, myId, orderChan)
+			// fmt.Println("Worldview received by elevator")
+			checkForNewOrders(wv, myId, orderChan, elev.Orders)
 			checkForNewLights(wv, currenthallLights, hallLightsChan)
 
 		case NewOrder := <-orderChan:
+			fmt.Println("New order received")
 			if NewOrder.Id == myId{
 				elev.Orders[NewOrder.Floor][NewOrder.Button] = true
 				switch elev.State {

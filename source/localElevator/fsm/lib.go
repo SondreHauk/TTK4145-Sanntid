@@ -86,11 +86,13 @@ func TimeUntilPickup(elev Elevator, NewOrder Order) time.Duration{
 }
 
 // if any assigned unaccepted order. Send order on Orderchan
-func checkForNewOrders(wv Worldview, myId string, orderChan chan <- Order) {
+func checkForNewOrders(wv Worldview, myId string, orderChan chan <- Order, acceptedorders [NUM_FLOORS][NUM_BUTTONS]bool) {
 	orders, exists := wv.UnacceptedOrdersSnapshot[myId]
 	if exists {
 		for _, order := range orders{
+			if !acceptedorders[order.Floor][order.Button] {
 			orderChan <- order
+			}
 		}
 	}
 }

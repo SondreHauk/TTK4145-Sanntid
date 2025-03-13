@@ -13,7 +13,7 @@ func Run(
 	elevStateChan <-chan Elevator,
 	becomePrimaryChan <-chan Worldview,
 	worldviewTXChan chan<- Worldview,
-	worldviewRXChan <-chan Worldview,
+	/*worldviewRXChan <-chan Worldview,*/
 	requestFromElevChan <-chan Order,
 	/*orderToElevChan chan<- Order,*/
 	/*hallLightsChan chan<- [][]bool,*/
@@ -22,6 +22,7 @@ func Run(
 	// local channels
 	fleetActionChan := make(chan FleetAccess, 10)
 	orderActionChan := make(chan OrderAccess, 10)
+	lightsActionChan := make(chan LightsAccess, 10)
 	elevUpdateObsChan := make(chan Elevator, NUM_ELEVATORS)
 	worldviewObsChan := make(chan Worldview, 10)
 
@@ -39,7 +40,8 @@ func Run(
 	//Owns and handles access to maps
 	go sync.FleetAccessManager(fleetActionChan)
 	go sync.UnacceptedOrdersManager(orderActionChan)
-	go obstructionHandler(elevUpdateObsChan, worldviewObsChan, fleetActionChan/*, orderToElevChan*/)
+	go sync.HallLightsManager(lightsActionChan)
+	go obstructionHandler(elevUpdateObsChan, worldviewObsChan, fleetActionChan, orderActionChan)
 
 	select {
 	case wv := <-becomePrimaryChan:
@@ -57,39 +59,29 @@ func Run(
 				printPeers(worldview.PeerInfo)
 				lost := worldview.PeerInfo.Lost
 				if len(lost) != 0 {
-					ReassignHallOrders(worldview, fleetActionChan, /*orderToElevChan,*/ Reassignment{Cause: Disconnected})
+					ReassignHallOrders(worldview, fleetActionChan, orderActionChan, Reassignment{Cause: Disconnected})
 				}
 
 			case elevUpdate := <-elevStateChan:
 				sync.SingleFleetWrite(elevUpdate.Id,elevUpdate,fleetActionChan)
 				unacceptedOrders := sync.GetUnacceptedOrder(orderActionChan, elevUpdate.Id)
-				// Remove accepted order TODO: make function
-				for floor, buttons := range elevUpdate.Orders {
-					for btn, orderAccepted := range buttons {
-						if orderAccepted {
-							for _, unaccOrder := range unacceptedOrders {
-								if unaccOrder.Floor == floor && unaccOrder.Button == btn {
-									sync.RemoveUnacceptedOrder(orderActionChan, 
-										Order{Id: elevUpdate.Id, Floor: floor, Button: btn})
-									break
-								}
-							} 
-						}
-					}
-				}
-				updateHallLights(worldview, hallLights, fleetActionChan, /*hallLightsChan*/)
+				checkforAcceptedOrders(orderActionChan, elevUpdate, unacceptedOrders)
+				updateHallLights(worldview, hallLights, fleetActionChan, lightsActionChan)
 				elevUpdateObsChan <- elevUpdate
 
 			case request := <-requestFromElevChan:
+				fmt.Printf("Request received from: %s\n ", request.Id)
 				worldview.FleetSnapshot=sync.FleetRead(fleetActionChan)
 				AssignedId := assigner.ChooseElevator(worldview.FleetSnapshot, worldview.PeerInfo.Peers, request)
+				sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(AssignedId, request.Floor, request.Button))
 				// APPEND TO UNACCEPTED ORDERS IN WORLDVIEW
 				/*orderToElevChan <- OrderConstructor(AssignedId, request.Floor, request.Button)*/
-				fmt.Printf("Assigned elevator %s to order\n", AssignedId)
+				fmt.Printf("Elevator %s assigned\n", AssignedId)
 
 			case <-heartbeatTimer.C:
-				worldview.FleetSnapshot=sync.FleetRead(fleetActionChan)
-				worldview.UnacceptedOrdersSnapshot=sync.GetAllUnacceptedOrders(orderActionChan)
+				worldview.FleetSnapshot = sync.FleetRead(fleetActionChan)
+				worldview.UnacceptedOrdersSnapshot = sync.GetAllUnacceptedOrders(orderActionChan)
+				worldview.HallLightsSnapshot = sync.ReadHallLights(lightsActionChan)
 				worldviewTXChan <- worldview
 				worldviewObsChan <- worldview
 

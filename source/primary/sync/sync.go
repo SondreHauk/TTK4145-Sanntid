@@ -37,10 +37,7 @@ func FleetRead(mapActionChan chan FleetAccess) map[string]Elevator{
 	readChan := make(chan map[string]Elevator, 1)
 	defer close(readChan)
 	mapActionChan<-FleetAccess{Cmd:"read", ReadChan:readChan}
-	select{
-	case output := <-readChan:
-		return output
-	}
+	return <- readChan
 }
 
 func UnacceptedOrdersManager(ordersActionChan <- chan OrderAccess) {
@@ -92,7 +89,8 @@ func AddUnacceptedOrder(ordersActionChan chan<- OrderAccess, order Order) {
 }
 
 func GetUnacceptedOrder(ordersActionChan chan<- OrderAccess, id string) []Order {
-	readChan := make(chan map[string][]Order) // Create a temporary channel to receive the data
+	readChan := make(chan map[string][]Order)
+	defer close(readChan)
 
 	ordersActionChan <- OrderAccess{
 		Cmd:      "read",
@@ -113,6 +111,40 @@ func RemoveUnacceptedOrder(ordersActionChan chan<- OrderAccess, order Order) {
 
 func GetAllUnacceptedOrders(orderActionChan chan<- OrderAccess) map[string][]Order {
     readAllChan := make(chan map[string][]Order)
+	defer close(readAllChan)
     orderActionChan <- OrderAccess{Cmd: "read all", ReadAllChan: readAllChan}
     return <-readAllChan
+}
+
+func HallLightsManager(lightsActionChan <-chan LightsAccess) {
+	hallLights := make([][]bool, NUM_FLOORS)
+	for {
+		select {
+		case action := <- lightsActionChan:
+			switch action.Cmd {
+			case "read":
+				action.ReadChan <- hallLights
+			case "write":
+				hallLights = action.NewHallLights
+			}
+		}
+	}
+}
+
+func ReadHallLights(lightsActionChan chan LightsAccess) [][]bool {
+	readChan := make(chan [][]bool)
+	defer close(readChan)
+
+	lightsActionChan <- LightsAccess{
+		Cmd: 	  "read",
+		ReadChan: readChan,
+	}
+	return <- readChan
+}
+
+func WriteHallLights(lightsActionChan chan LightsAccess, newHallLights [][]bool){
+	lightsActionChan <- LightsAccess{
+		Cmd: "write",
+		NewHallLights: newHallLights,
+	}
 }

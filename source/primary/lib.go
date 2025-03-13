@@ -9,7 +9,23 @@ import(
 	"fmt"
 )
 
-func updateHallLights(wv Worldview, hallLights [][]bool, mapActionChan chan FleetAccess, /*hallLightsChan chan<- [][]bool*/) {
+func checkforAcceptedOrders(orderActionChan chan OrderAccess, elevUpdate Elevator, unacceptedOrders []Order){
+	for floor, buttons := range elevUpdate.Orders {
+		for btn, orderAccepted := range buttons {
+			if orderAccepted {
+				for _, unaccOrder := range unacceptedOrders {
+					if unaccOrder.Floor == floor && unaccOrder.Button == btn {
+						sync.RemoveUnacceptedOrder(orderActionChan, 
+							Order{Id: elevUpdate.Id, Floor: floor, Button: btn})
+						break
+					}
+				} 
+			}
+		}
+	}
+}
+
+func updateHallLights(wv Worldview, hallLights [][]bool, mapActionChan chan FleetAccess, lightsActionChan chan LightsAccess) {
 	shouldUpdate := false
 	prevHallLights := make([][]bool, NUM_FLOORS)
 	for floor := range hallLights {
@@ -41,11 +57,12 @@ func updateHallLights(wv Worldview, hallLights [][]bool, mapActionChan chan Flee
 	}
 	if shouldUpdate {
 		// UPDATE HALLLIGHTS IN WORLDVIEW
+		sync.WriteHallLights(lightsActionChan, hallLights)
 		/*hallLightsChan <- hallLights*/
 	}
 }
 
-func ReassignHallOrders(wv Worldview, MapActionChan chan FleetAccess, /*orderToElevChan chan<- Order,*/ reassign Reassignment){
+func ReassignHallOrders(wv Worldview, MapActionChan chan FleetAccess, ordersActionChan chan OrderAccess, reassign Reassignment){
 	wv = WorldviewConstructor(wv.PrimaryId, wv.PeerInfo, sync.FleetRead(MapActionChan))
 	switch reassign.Cause{
 	case Disconnected:
@@ -61,6 +78,7 @@ func ReassignHallOrders(wv Worldview, MapActionChan chan FleetAccess, /*orderToE
 					}
 					lostOrder.Id = assigner.ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, lostOrder)
 					// APPEND TO UNACCEPTED ORDERS IN WORLDVIEW
+					sync.AddUnacceptedOrder(ordersActionChan, lostOrder)
 					/*orderToElevChan <- lostOrder*/
 				}
 			}
@@ -78,6 +96,7 @@ func ReassignHallOrders(wv Worldview, MapActionChan chan FleetAccess, /*orderToE
 					}
 				lostOrder.Id = assigner.ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, lostOrder)
 				// APPEND TO UNACCEPTED ORDERS IN WORLDVIEW
+				sync.AddUnacceptedOrder(ordersActionChan, lostOrder)
 				/*orderToElevChan <- lostOrder*/
 			}
 			}
@@ -89,6 +108,7 @@ func obstructionHandler(
 	elevUpdateObsChan chan Elevator,
 	worldviewObsChan chan Worldview, 
 	mapActionChan chan FleetAccess,
+	ordersActionChan chan OrderAccess,
 	/*orderToElevChan chan<- Order,*/
 	){
 	obstructedElevators := make([]string, NUM_ELEVATORS)
@@ -106,7 +126,7 @@ func obstructionHandler(
 				if !timerExists{
 					timer := time.AfterFunc(T_REASSIGN_PRIMARY, func() {
 					reassignmentDetails := Reassignment{Cause: Obstructed, ObsId: obstructedElevators[len(obstructedElevators)-1]}
-					ReassignHallOrders(worldview, mapActionChan, /*orderToElevChan,*/ reassignmentDetails)})
+					ReassignHallOrders(worldview, mapActionChan,ordersActionChan, reassignmentDetails)})
 					obstructionTimers[elevUpdate.Id] = timer
 				}
 			} else {
