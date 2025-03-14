@@ -49,7 +49,7 @@ func Run(
 			checkForNewLights(wv, currentHallLights, hallLightsChan)
 
 		case NewOrder := <-orderChan:
-			// fmt.Println("New order received")
+			fmt.Println("New order received")
 			if NewOrder.Id == myId{
 				elev.Orders[NewOrder.Floor][NewOrder.Button] = true
 				switch elev.State {
@@ -80,11 +80,11 @@ func Run(
 				elevChan <- *elev
 			}
 		
-		case hallLights := <- hallLightsChan:
-			// fmt.Println("New lights received")
-			for floor := range hallLights {
-				for btn := range hallLights[floor] {
-					elevio.SetButtonLamp(elevio.ButtonType(btn), floor, hallLights[floor][btn])
+		case currentHallLights = <- hallLightsChan:
+			fmt.Println("New lights received")
+			for floor := range currentHallLights {
+				for btn := range currentHallLights[floor] {
+					elevio.SetButtonLamp(elevio.ButtonType(btn), floor, currentHallLights[floor][btn])
 				}
 			}
 
