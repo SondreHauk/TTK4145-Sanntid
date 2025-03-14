@@ -1,10 +1,11 @@
 package fsm
 
 import (
-	."source/config"
-	"source/localElevator/requests"
+	. "source/config"
 	"source/localElevator/elevio"
-	"time")
+	"source/localElevator/requests"
+	"time"
+)
 
 
 func ShouldStop(elev Elevator) bool {
@@ -101,8 +102,10 @@ func checkForNewLights(wv Worldview, currenthallLights [][]bool, hallLightsChan 
 	// if any update in hall lights. Send new lights on HallLightsChan
 	for i := range currenthallLights {
 		for j := range currenthallLights[i] {
+			// Indexing empty hallightssnapshot error
 			if currenthallLights[i][j] != wv.HallLightsSnapshot[i][j] {
 				hallLightsChan <- wv.HallLightsSnapshot
+				return
 			}
 		}
 	}

@@ -17,6 +17,16 @@ func Run(
 	latestWV.PrimaryId = id
 	latestWV.FleetSnapshot = make(map[string]Elevator)
 	latestWV.UnacceptedOrdersSnapshot = make(map[string][]Order)
+
+	hallLights := make([][]bool, NUM_ELEVATORS)
+	for i := range hallLights {
+		hallLights[i] = make([]bool, NUM_BUTTONS-1)
+		for j := range hallLights[i] {
+			hallLights[i][j] = false 
+		}
+	}
+
+	latestWV.HallLightsSnapshot = hallLights
 	//Peers[0] doesnt exist before the first primary does
 
 	select{

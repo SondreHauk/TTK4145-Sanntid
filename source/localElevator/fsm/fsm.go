@@ -21,7 +21,15 @@ func Run(
 	// Define variables
 	var wv Worldview
 	hallLightsChan := make(chan [][]bool, 10)
-	currenthallLights := make([][]bool, NUM_FLOORS)
+
+	//Init hallLights matrix
+	currentHallLights := make([][]bool, NUM_FLOORS)
+	for i := range currentHallLights {
+		currentHallLights[i] = make([]bool, NUM_BUTTONS-1)
+		for j := range currentHallLights[i] {
+			currentHallLights[i][j] = true
+		}
+	}
 
 	// Set timers
 	heartbeatTimer := time.NewTimer(T_HEARTBEAT)
@@ -38,10 +46,10 @@ func Run(
 		case wv = <- worldviewToElevatorChan:
 			// fmt.Println("Worldview received by elevator")
 			checkForNewOrders(wv, myId, orderChan, elev.Orders)
-			checkForNewLights(wv, currenthallLights, hallLightsChan)
+			checkForNewLights(wv, currentHallLights, hallLightsChan)
 
 		case NewOrder := <-orderChan:
-			fmt.Println("New order received")
+			// fmt.Println("New order received")
 			if NewOrder.Id == myId{
 				elev.Orders[NewOrder.Floor][NewOrder.Button] = true
 				switch elev.State {
@@ -73,6 +81,7 @@ func Run(
 			}
 		
 		case hallLights := <- hallLightsChan:
+			// fmt.Println("New lights received")
 			for floor := range hallLights {
 				for btn := range hallLights[floor] {
 					elevio.SetButtonLamp(elevio.ButtonType(btn), floor, hallLights[floor][btn])

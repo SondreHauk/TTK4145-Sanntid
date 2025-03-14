@@ -57,6 +57,7 @@ func updateHallLights(wv Worldview, hallLights [][]bool, mapActionChan chan Flee
 	}
 	if shouldUpdate {
 		// UPDATE HALLLIGHTS IN WORLDVIEW
+		fmt.Println("lights updated")
 		sync.WriteHallLights(lightsActionChan, hallLights)
 		/*hallLightsChan <- hallLights*/
 	}

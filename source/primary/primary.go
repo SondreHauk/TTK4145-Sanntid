@@ -23,6 +23,7 @@ func Run(
 	fleetActionChan := make(chan FleetAccess, 10)
 	orderActionChan := make(chan OrderAccess, 10)
 	lightsActionChan := make(chan LightsAccess, 10)
+
 	elevUpdateObsChan := make(chan Elevator, NUM_ELEVATORS)
 	worldviewObsChan := make(chan Worldview, 10)
 
@@ -49,6 +50,7 @@ func Run(
 		worldview = wv
 		// TODO: FIX FLUSHING/ROUTING OF CHANNELS
 		sync.FullFleetWrite(worldview.FleetSnapshot,fleetActionChan)
+		sync.WriteHallLights(lightsActionChan, wv.HallLightsSnapshot)
 		heartbeatTimer := time.NewTicker(T_HEARTBEAT)
 		defer heartbeatTimer.Stop()
     	
@@ -82,6 +84,21 @@ func Run(
 				worldview.FleetSnapshot = sync.FleetRead(fleetActionChan)
 				worldview.UnacceptedOrdersSnapshot = sync.GetAllUnacceptedOrders(orderActionChan)
 				worldview.HallLightsSnapshot = sync.ReadHallLights(lightsActionChan)
+
+				// matrix := worldview.HallLightsSnapshot
+				// // Print the slice matrix
+				// fmt.Println("4x2 Boolean Matrix:")
+				// for _, row := range matrix {
+				// 	for _, val := range row {
+				// 		if val {
+				// 			fmt.Printf("1 ")
+				// 		} else {
+				// 			fmt.Printf("0 ")
+				// 		}
+				// 	}
+				// 	fmt.Println() // New line after each row
+				// }
+
 				worldviewTXChan <- worldview
 				worldviewObsChan <- worldview
 
