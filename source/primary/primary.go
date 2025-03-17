@@ -33,10 +33,7 @@ func Run(
 	worldview.UnacceptedOrdersSnapshot = make(map[string][]Order)
 
 	//Init hallLights matrix
-	hallLights := make([][]bool, NUM_FLOORS)
-	for i := range hallLights {
-		hallLights[i] = make([]bool, NUM_BUTTONS-1)
-	}
+	hallLights := HallLights{}
 
 	//Owns and handles access to maps
 	go sync.FleetAccessManager(fleetActionChan)

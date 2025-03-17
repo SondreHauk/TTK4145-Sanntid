@@ -98,7 +98,7 @@ func checkForNewOrders(wv Worldview, myId string, orderChan chan <- Order, accep
 	}
 }
 
-func checkForNewLights(wv Worldview, currenthallLights [][]bool, hallLightsChan chan [][]bool) {
+func checkForNewLights(wv Worldview, currenthallLights HallLights, hallLightsChan chan HallLights) {
 	// if any update in hall lights. Send new lights on HallLightsChan
 	for i := range currenthallLights {
 		for j := range currenthallLights[i] {

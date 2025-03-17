@@ -117,7 +117,10 @@ func GetAllUnacceptedOrders(orderActionChan chan<- OrderAccess) map[string][]Ord
 }
 
 func HallLightsManager(lightsActionChan <-chan LightsAccess) {
-	hallLights := make([][]bool, NUM_FLOORS)
+	hallLights := HallLights{}
+	// for i := range hallLights {
+    // 	hallLights[i] = make([]bool, NUM_BUTTONS-1) // Ensure all rows exist
+	// }
 	for {
 		select {
 		case action := <- lightsActionChan:
@@ -131,8 +134,8 @@ func HallLightsManager(lightsActionChan <-chan LightsAccess) {
 	}
 }
 
-func ReadHallLights(lightsActionChan chan LightsAccess) [][]bool {
-	readChan := make(chan [][]bool)
+func ReadHallLights(lightsActionChan chan LightsAccess) HallLights {
+	readChan := make(chan HallLights)
 	defer close(readChan)
 
 	lightsActionChan <- LightsAccess{
@@ -142,7 +145,7 @@ func ReadHallLights(lightsActionChan chan LightsAccess) [][]bool {
 	return <- readChan
 }
 
-func WriteHallLights(lightsActionChan chan LightsAccess, newHallLights [][]bool){
+func WriteHallLights(lightsActionChan chan LightsAccess, newHallLights HallLights){
 	lightsActionChan <- LightsAccess{
 		Cmd: "write",
 		NewHallLights: newHallLights,

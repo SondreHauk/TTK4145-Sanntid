@@ -77,6 +77,8 @@ type PeerUpdate struct {
 	Lost  []string
 }
 
+type HallLights [NUM_FLOORS][NUM_BUTTONS-1]bool
+
 //----------------PRIMARY/BACKUP--------------------
 
 type Worldview struct {
@@ -84,7 +86,7 @@ type Worldview struct {
 	PeerInfo      PeerUpdate
 	FleetSnapshot map[string]Elevator // Original owned by primary.FleetAccessManager
 	UnacceptedOrdersSnapshot map[string][]Order
-	HallLightsSnapshot [][]bool
+	HallLightsSnapshot HallLights
 }
 
 func WorldviewConstructor(PrimaryId string, PeerInfo PeerUpdate, 
@@ -113,8 +115,8 @@ type OrderAccess struct {
 
 type LightsAccess struct {
 	Cmd 	 	  string
-	NewHallLights 	  [][]bool
-	ReadChan chan [][]bool
+	NewHallLights HallLights
+	ReadChan      chan HallLights
 }
 
 type Reassignment struct {

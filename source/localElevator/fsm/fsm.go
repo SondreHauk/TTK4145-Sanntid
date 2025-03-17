@@ -20,16 +20,17 @@ func Run(
 
 	// Define variables
 	var wv Worldview
-	hallLightsChan := make(chan [][]bool, 10)
+	hallLightsChan := make(chan HallLights, 10)
 
 	//Init hallLights matrix
-	currentHallLights := make([][]bool, NUM_FLOORS)
-	for i := range currentHallLights {
-		currentHallLights[i] = make([]bool, NUM_BUTTONS-1)
-		for j := range currentHallLights[i] {
-			currentHallLights[i][j] = true
-		}
-	}
+	currentHallLights := [NUM_FLOORS][NUM_BUTTONS-1]bool{}
+	// currentHallLights := make([][]bool, NUM_FLOORS)
+	// for i := range currentHallLights {
+	// 	currentHallLights[i] = make([]bool, NUM_BUTTONS-1)
+	// 	for j := range currentHallLights[i] {
+	// 		currentHallLights[i][j] = true
+	// 	}
+	// }
 
 	// Set timers
 	heartbeatTimer := time.NewTimer(T_HEARTBEAT)
@@ -81,7 +82,11 @@ func Run(
 			}
 		
 		case currentHallLights = <- hallLightsChan:
-			fmt.Println("New lights received")
+			// fmt.Println("New lights received")
+			// for _, row := range currentHallLights {
+			// 	fmt.Println(row) // Print each row
+			// }
+			
 			for floor := range currentHallLights {
 				for btn := range currentHallLights[floor] {
 					elevio.SetButtonLamp(elevio.ButtonType(btn), floor, currentHallLights[floor][btn])
