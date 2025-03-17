@@ -19,7 +19,7 @@ func Run(
 	/*hallLightsChan chan<- [][]bool,*/
 	myId string) {
 
-	// local channels
+	// Local channels
 	fleetActionChan := make(chan FleetAccess, 10)
 	orderActionChan := make(chan OrderAccess, 10)
 	lightsActionChan := make(chan LightsAccess, 10)
@@ -27,15 +27,13 @@ func Run(
 	elevUpdateObsChan := make(chan Elevator, NUM_ELEVATORS)
 	worldviewObsChan := make(chan Worldview, 10)
 
-	// local variables
+	// Local variables
 	var worldview Worldview
 	worldview.FleetSnapshot = make(map[string]Elevator)
 	worldview.UnacceptedOrdersSnapshot = make(map[string][]Order)
-
-	//Init hallLights matrix
 	hallLights := HallLights{}
 
-	//Owns and handles access to maps
+	// Owns and handles access to maps
 	go sync.FleetAccessManager(fleetActionChan)
 	go sync.UnacceptedOrdersManager(orderActionChan)
 	go sync.HallLightsManager(lightsActionChan)
@@ -58,7 +56,8 @@ func Run(
 				printPeers(worldview.PeerInfo)
 				lost := worldview.PeerInfo.Lost
 				if len(lost) != 0 {
-					ReassignHallOrders(worldview, fleetActionChan, orderActionChan, Reassignment{Cause: Disconnected})
+					ReassignHallOrders(worldview, fleetActionChan, 
+						orderActionChan, Reassignment{Cause: Disconnected})
 				}
 
 			case elevUpdate := <-elevStateChan:
@@ -81,20 +80,6 @@ func Run(
 				worldview.FleetSnapshot = sync.FleetRead(fleetActionChan)
 				worldview.UnacceptedOrdersSnapshot = sync.GetAllUnacceptedOrders(orderActionChan)
 				worldview.HallLightsSnapshot = sync.ReadHallLights(lightsActionChan)
-
-				// matrix := worldview.HallLightsSnapshot
-				// // Print the slice matrix
-				// fmt.Println("4x2 Boolean Matrix:")
-				// for _, row := range matrix {
-				// 	for _, val := range row {
-				// 		if val {
-				// 			fmt.Printf("1 ")
-				// 		} else {
-				// 			fmt.Printf("0 ")
-				// 		}
-				// 	}
-				// 	fmt.Println() // New line after each row
-				// }
 
 				worldviewTXChan <- worldview
 				worldviewObsChan <- worldview
