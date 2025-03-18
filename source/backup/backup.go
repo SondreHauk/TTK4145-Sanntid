@@ -7,47 +7,44 @@ import (
 )
 
 func Run(
-	worldViewChan <-chan Worldview,
+	worldViewToBackupChan <-chan Worldview,
+	worldViewToElevChan chan <- Worldview,
 	becomePrimaryChan chan<- Worldview,
-	id string) {
+	myId string) {
 
 	fmt.Println("Enter Backup mode - listening for primary")
 	//Init an empty worldview
 	var latestWV Worldview
-	latestWV.PrimaryId = id
+	hallLights := HallLights{}
+	latestWV.PrimaryId = myId
 	latestWV.FleetSnapshot = make(map[string]Elevator)
 	latestWV.UnacceptedOrdersSnapshot = make(map[string][]Order)
-
-	hallLights := HallLights{}
-
-	// hallLights := make([][]bool, NUM_ELEVATORS)
-	// for i := range hallLights {
-	// 	hallLights[i] = make([]bool, NUM_BUTTONS-1)
-	// 	for j := range hallLights[i] {
-	// 		hallLights[i][j] = false 
-	// 	}
-	// }
-
 	latestWV.HallLightsSnapshot = hallLights
 	//Peers[0] doesnt exist before the first primary does
 
+	// go func() {
+	// 	for wv := range worldViewToBackupChan {
+	// 		fmt.Printf("Backup: Received worldview update from primary %s\n", wv.PrimaryId)
+	// 		latestWV = wv
+	// 	}
+	// }()
+
 	select{
-		case latestWV = <- worldViewChan:
-		case <-time.After(T_PRIMARY_TIMEOUT):
-			becomePrimaryChan <- latestWV
+	case latestWV = <- worldViewToBackupChan:
+		fmt.Printf ("Wordview prio received by primary: %s\n", latestWV.PrimaryId)
+	case <-time.After(T_PRIMARY_TIMEOUT):
+		becomePrimaryChan <- latestWV
 	}
 
 	for {
 		select {
-		case latestWV = <-worldViewChan:
-			// fmt.Println("Worldview received by backup")
-			//fmt.Printf("Active Peers: %v\n", latestWV.PeerInfo)
-			//fmt.Printf("Lights: %v\n", latestWV.HallLightsSnapshot)
-			//fmt.Printf("Unaccepted Orders: %v\n", latestWV.UnacceptedOrdersSnapshot)
+		case latestWV = <-worldViewToBackupChan:
+			worldViewToElevChan <- latestWV
+			fmt.Printf("Worldview post received by primary: %s\n", latestWV.PrimaryId)
 		
 		case <-time.After(T_PRIMARY_TIMEOUT):
-			if shouldTakeOver(latestWV, id){
-
+			if shouldTakeOver(latestWV, myId){
+				latestWV.PrimaryId = myId
 				becomePrimaryChan <- latestWV
 				fmt.Println("Primary timeout - Taking over")
 			} else {
@@ -59,5 +56,9 @@ func Run(
 
 func shouldTakeOver(backupWorldview Worldview, id string) bool {
 	peerIds := backupWorldview.PeerInfo.Peers
-	return peerIds[0] == id
+	if len(peerIds) == 0 {
+		return true
+	} else {
+		return peerIds[0] == id
+	}
 }

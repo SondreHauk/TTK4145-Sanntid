@@ -26,28 +26,6 @@ func checkforAcceptedOrders(orderActionChan chan OrderAccess, elevUpdate Elevato
 }
 
 func updateHallLights(wv Worldview, hallLights HallLights, mapActionChan chan FleetAccess, lightsActionChan chan LightsAccess) {
-	shouldUpdate := false
-	prevHallLights := HallLights{}
-	// for floor := range hallLights {
-	// 	copy(prevHallLights[floor][:], hallLights[floor][:])
-	// 	for btn := range NUM_BUTTONS - 1 {
-	// 		hallLights[floor][btn] = false
-	// 	}
-	// }
-
-	for floor := range hallLights {
-		prevHallLights[floor] = [NUM_BUTTONS-1]bool{}
-		copy(prevHallLights[floor][:], hallLights[floor][:])
-	}
-
-	for floor := range hallLights {
-		for btn := 0; btn < NUM_BUTTONS-1; btn++ {
-			hallLights[floor][btn] = false
-		}
-	}
-
-	/* fmt.Println("Befor WVConst:", hallLights) */
-
 	wv = WorldviewConstructor(wv.PrimaryId, wv.PeerInfo, sync.FleetRead(mapActionChan))
 	for _, id := range wv.PeerInfo.Peers {
 		orderMatrix := wv.FleetSnapshot[id].Orders
@@ -59,23 +37,7 @@ func updateHallLights(wv Worldview, hallLights HallLights, mapActionChan chan Fl
 			}
 		}
 	}
-	
-	/* fmt.Println("After WVConst:", hallLights) */
-
-  for floor := range NUM_FLOORS {
-		for btn := range NUM_BUTTONS - 1 {
-			if prevHallLights[floor][btn] != hallLights[floor][btn] {
-				shouldUpdate = true
-
-			}
-		}
-	}
-	if shouldUpdate {
-		// UPDATE HALLLIGHTS IN WORLDVIEW
-		// fmt.Println("lights updated")
-		sync.WriteHallLights(lightsActionChan, hallLights)
-		/*hallLightsChan <- hallLights*/
-	}
+	sync.WriteHallLights(lightsActionChan, hallLights)
 }
 
 func ReassignHallOrders(wv Worldview, MapActionChan chan FleetAccess, ordersActionChan chan OrderAccess, reassign Reassignment){
