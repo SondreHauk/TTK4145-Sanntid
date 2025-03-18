@@ -56,12 +56,15 @@ graph LR;
 ## Improve obstruction robustness
 As per now, when an elevator is obstructed, the primary reassigns its hall orders after `T_OBSTRUCTED_PIRMARY = 3 sec`. The elevator however, waits `T_OBSTRUCTED_LOCAL = 4 sec` before it deletes its hall orders. Alas, there is a time buffer of one second where the primary can reassign the orders before they are deleted. This is not very robust. If the delay between the obstruction event and the primarys detection of it is longer than one second, the active hall orders will be deleted before they are reassigned and thus permanently lost. This is bad. However, the corresponding hall lights will also turn off, and it is reasonable to expect that a client would push the hall button again, thus making a new hall request.
 
-## One port for all message types
-As per now, each message type is sendt through an unique port. This could be fixed by utilizing the router function of the `Transmitter()` and `Receiver()` function from the peers and bcast modules.
+## Reduse number of network ports
+As per now, the application uses three ports in stead of two. This is due to a (up until this point not understood) bug where the transmission of worldviews would halt. A bit clumsy, this was fixed (on the surface at least) by broadcasting the worldview on a separate port. The improvement includes fixing this bug, utilizing the router function of the `Transmitter()` and `Receiver()` function from the peers and bcast modules and reduce the number of ports used.
+
+## Reduse the transmission of unecessary overhead  
+As the worldview struct grew larger, the transmitter `bufSize` was increased to `2048` bytes instead of the initial `1024` bytes. This increase is probably not necessary. In stead the size of the worldview could be more dynamic, redusing unecessary overhead e.g. like an empty 4 x 4 matrix containing no orders.
 
 # Miscellaneous
 ## Variable naming convention
-As a general rule, camel-case convention is used. Initial capitalization is handled as such: lowercase for localVariables and helperFunctions, uppercase for ExportedVariables and FunctionsUsedElsewhere. Global constants are fully capitalized with underscores between words: PORT_WORLDVIEW, NUM_FLOORS, etc.
+As a general rule, camel-case convention is used. Initial capitalization is handled as such: lowercase for localVariables and helperFunctions, uppercase for ExportedVariables and FunctionsUsedElsewhere. Global constants are fully capitalized with underscores between words: PORT_BCAST, NUM_FLOORS, etc.
 
 ## Config
 The config module holds constants, types and constructor functions that are used in most of the other modules. These are all static; so to increase the overall readability of the code, the config package is dot-imported.
