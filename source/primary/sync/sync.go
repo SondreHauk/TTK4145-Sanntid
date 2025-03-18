@@ -25,26 +25,26 @@ func FleetAccessManager(mapActionChan <-chan FleetAccess) {
 	}
 }
 
-func SingleFleetWrite(id string, elev Elevator, mapActionChan chan FleetAccess){
-	mapActionChan<-FleetAccess{Cmd:"write one", Id:id, Elev:elev}
+func SingleFleetWrite(id string, elev Elevator, mapActionChan chan FleetAccess) {
+	mapActionChan <- FleetAccess{Cmd: "write one", Id: id, Elev: elev}
 }
 
-func FullFleetWrite(elevMap map[string]Elevator, mapActionChan chan FleetAccess){
-	mapActionChan<-FleetAccess{Cmd:"write all", ElevMap: elevMap}
+func FullFleetWrite(elevMap map[string]Elevator, mapActionChan chan FleetAccess) {
+	mapActionChan <- FleetAccess{Cmd: "write all", ElevMap: elevMap}
 }
 
-func FleetRead(mapActionChan chan FleetAccess) map[string]Elevator{
+func FleetRead(mapActionChan chan FleetAccess) map[string]Elevator {
 	readChan := make(chan map[string]Elevator, 1)
 	defer close(readChan)
-	mapActionChan<-FleetAccess{Cmd:"read", ReadChan:readChan}
-	return <- readChan
+	mapActionChan <- FleetAccess{Cmd: "read", ReadChan: readChan}
+	return <-readChan
 }
 
-func UnacceptedOrdersManager(ordersActionChan <- chan OrderAccess) {
+func UnacceptedOrdersManager(ordersActionChan <-chan OrderAccess) {
 	orders := make(map[string][]Order) //The true map of unaccpeted orders
 	for {
 		select {
-		case action := <- ordersActionChan:
+		case action := <-ordersActionChan:
 			switch action.Cmd {
 			case "read":
 				deepCopy := make(map[string][]Order, len(orders))
@@ -53,8 +53,8 @@ func UnacceptedOrdersManager(ordersActionChan <- chan OrderAccess) {
 				}
 				action.ReadChan <- deepCopy
 
-			case "read all":
-				action.ReadAllChan <- orders
+			/* case "read all":
+			action.ReadAllChan <- orders */
 
 			case "write":
 				orders[action.Id] = append(orders[action.Id], action.Orders...)
@@ -88,17 +88,15 @@ func AddUnacceptedOrder(ordersActionChan chan<- OrderAccess, order Order) {
 	}
 }
 
-func GetUnacceptedOrder(ordersActionChan chan<- OrderAccess, id string) []Order {
+func GetUnacceptedOrders(ordersActionChan chan<- OrderAccess) map[string][]Order {
 	readChan := make(chan map[string][]Order)
 	defer close(readChan)
 
 	ordersActionChan <- OrderAccess{
 		Cmd:      "read",
-		Id:		  id,
 		ReadChan: readChan,
 	}
-	result := <-readChan
-	return result[id]
+	return <-readChan
 }
 
 func RemoveUnacceptedOrder(ordersActionChan chan<- OrderAccess, order Order) {
@@ -109,21 +107,21 @@ func RemoveUnacceptedOrder(ordersActionChan chan<- OrderAccess, order Order) {
 	}
 }
 
-func GetAllUnacceptedOrders(orderActionChan chan<- OrderAccess) map[string][]Order {
-    readAllChan := make(chan map[string][]Order)
+/* func GetAllUnacceptedOrders(orderActionChan chan<- OrderAccess) map[string][]Order {
+	readAllChan := make(chan map[string][]Order)
 	defer close(readAllChan)
-    orderActionChan <- OrderAccess{Cmd: "read all", ReadAllChan: readAllChan}
-    return <-readAllChan
-}
+	orderActionChan <- OrderAccess{Cmd: "read all", ReadAllChan: readAllChan}
+	return <-readAllChan
+} */
 
 func HallLightsManager(lightsActionChan <-chan LightsAccess) {
 	hallLights := HallLights{}
 	// for i := range hallLights {
-    // 	hallLights[i] = make([]bool, NUM_BUTTONS-1) // Ensure all rows exist
+	// 	hallLights[i] = make([]bool, NUM_BUTTONS-1) // Ensure all rows exist
 	// }
 	for {
 		select {
-		case action := <- lightsActionChan:
+		case action := <-lightsActionChan:
 			switch action.Cmd {
 			case "read":
 				action.ReadChan <- hallLights
@@ -139,15 +137,15 @@ func ReadHallLights(lightsActionChan chan LightsAccess) HallLights {
 	defer close(readChan)
 
 	lightsActionChan <- LightsAccess{
-		Cmd: 	  "read",
+		Cmd:      "read",
 		ReadChan: readChan,
 	}
-	return <- readChan
+	return <-readChan
 }
 
-func WriteHallLights(lightsActionChan chan LightsAccess, newHallLights HallLights){
+func WriteHallLights(lightsActionChan chan LightsAccess, newHallLights HallLights) {
 	lightsActionChan <- LightsAccess{
-		Cmd: "write",
+		Cmd:           "write",
 		NewHallLights: newHallLights,
 	}
 }

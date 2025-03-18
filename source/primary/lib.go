@@ -46,7 +46,7 @@ func updateHallLights(wv Worldview, hallLights HallLights, mapActionChan chan Fl
 		}
 	}
 
-	fmt.Println("Befor WVConst:", hallLights)
+	/* fmt.Println("Befor WVConst:", hallLights) */
 
 	wv = WorldviewConstructor(wv.PrimaryId, wv.PeerInfo, sync.FleetRead(mapActionChan))
 	for _, id := range wv.PeerInfo.Peers {
@@ -60,7 +60,7 @@ func updateHallLights(wv Worldview, hallLights HallLights, mapActionChan chan Fl
 		}
 	}
 	
-	fmt.Println("After WVConst:", hallLights)
+	/* fmt.Println("After WVConst:", hallLights) */
 
   for floor := range NUM_FLOORS {
 		for btn := range NUM_BUTTONS - 1 {
