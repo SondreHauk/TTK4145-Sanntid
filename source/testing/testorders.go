@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"time"
+	"source/primary/sync"
 )
 
 type Order struct {
@@ -20,11 +21,11 @@ type OrderAccess struct {
 	ReadAllChan      chan map[string][]Order
 }
 
-func UnacceptedOrdersManager(ordersActionChan <- chan OrderAccess) {
+func UnacceptedOrdersManager(ordersActionChan <-chan OrderAccess) {
 	orders := make(map[string][]Order) //The true map of unaccpeted orders
 	for {
 		select {
-		case action := <- ordersActionChan:
+		case action := <-ordersActionChan:
 			switch action.Cmd {
 			case "read":
 				deepCopy := make(map[string][]Order, len(orders))
@@ -68,17 +69,17 @@ func AddUnacceptedOrder(ordersActionChan chan<- OrderAccess, order Order) {
 	}
 }
 
-func GetUnacceptedOrder(ordersActionChan chan<- OrderAccess, id string) []Order {
+/* func GetUnacceptedOrders(ordersActionChan chan<- OrderAccess, id string) []Order {
 	readChan := make(chan map[string][]Order) // Create a temporary channel to receive the data
 
 	ordersActionChan <- OrderAccess{
 		Cmd:      "read",
-		Id:		  id,
+		Id:       id,
 		ReadChan: readChan,
 	}
 	result := <-readChan
 	return result[id]
-}
+} */
 
 func RemoveUnacceptedOrder(ordersActionChan chan<- OrderAccess, order Order) {
 	ordersActionChan <- OrderAccess{
@@ -88,12 +89,11 @@ func RemoveUnacceptedOrder(ordersActionChan chan<- OrderAccess, order Order) {
 	}
 }
 
-func GetAllUnacceptedOrders(orderActionChan chan<- OrderAccess) map[string][]Order {
-    readAllChan := make(chan map[string][]Order)
-    orderActionChan <- OrderAccess{Cmd: "read all", ReadAllChan: readAllChan}
-    return <-readAllChan
-}
-
+/* func GetUnacceptedOrders(orderActionChan chan<- OrderAccess) map[string][]Order {
+	readAllChan := make(chan map[string][]Order)
+	orderActionChan <- OrderAccess{Cmd: "read all", ReadAllChan: readAllChan}
+	return <-readAllChan
+} */
 
 func main() {
 	orderActionChan := make(chan OrderAccess)
@@ -105,13 +105,13 @@ func main() {
 
 	fmt.Println("=== Adding Orders ===")
 	AddUnacceptedOrder(orderActionChan, Order{Id: "1", Floor: 2, Button: 1})
-	fmt.Println(GetAllUnacceptedOrders(orderActionChan))
+	fmt.Println(sync.GetUnacceptedOrders(orderActionChan))
 	AddUnacceptedOrder(orderActionChan, Order{Id: "1", Floor: 3, Button: 2})
 	AddUnacceptedOrder(orderActionChan, Order{Id: "2", Floor: 1, Button: 0})
 	time.Sleep(100 * time.Millisecond)
 
 	fmt.Println("\n=== Reading All Orders ===")
-	allOrders := GetAllUnacceptedOrders(orderActionChan)
+	allOrders := sync.GetUnacceptedOrders(orderActionChan)
 	fmt.Println("Current unaccepted orders:", allOrders)
 
 	fmt.Println("\n=== Removing an Order ===")
@@ -119,7 +119,7 @@ func main() {
 	time.Sleep(100 * time.Millisecond)
 
 	fmt.Println("\n=== Reading All Orders After Deletion ===")
-	allOrders = GetAllUnacceptedOrders(orderActionChan)
+	allOrders = sync.GetUnacceptedOrders(orderActionChan)
 	fmt.Println("Unaccepted orders after deletion:", allOrders)
 
 	fmt.Println("\n=== Test Complete ===")
