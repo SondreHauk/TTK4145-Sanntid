@@ -98,9 +98,8 @@ func main() {
 	obstructionChan := make(chan bool, 1)
 	stopChan := make(chan bool, 1)
 
-	requestToPrimaryChan := make(chan Order, 10)
-	requestFromElevChan := make(chan Order, 10)
-	/*orderToElevChan := make(chan Order, 10)*/
+	requestTXChan := make(chan Order, 10)
+	requestRXChan := make(chan Order, 10)
 	orderChan := make(chan Order, 10)
 
 	//Initializations
@@ -110,20 +109,22 @@ func main() {
 	inits.ElevatorInit(&elev, id)
 
 	// Goroutines Local elevator
-	go requests.MakeRequest(buttonChan, requestToPrimaryChan, orderChan, id)
+	go requests.MakeRequest(buttonChan, requestTXChan, orderChan, id)
 	go elevio.PollButtons(buttonChan)
 	go elevio.PollFloorSensor(atFloorChan)
 	go elevio.PollObstructionSwitch(obstructionChan)
 	go elevio.PollStopButton(stopChan)
-	go fsm.Run(&elev, elevatorTXChan, atFloorChan,
-		orderChan, /*hallLightsRXChan,*/ obstructionChan, 
-		worldviewToElevatorChan, id)
+	go fsm.Run(&elev, elevatorTXChan, atFloorChan, orderChan, 
+		obstructionChan, worldviewToElevatorChan, id)
 
 	// Goroutines communication (TODO: reduce to two ports)
-	go bcast.Transmitter(PORT_BCAST, elevatorTXChan, requestToPrimaryChan, worldviewTXChan)
-	go bcast.Receiver(PORT_BCAST, elevatorRXChan, requestFromElevChan, worldviewRXChan)
+	go bcast.Transmitter(PORT_BCAST, elevatorTXChan, requestTXChan, /*worldviewTXChan*/)
+	go bcast.Receiver(PORT_BCAST, elevatorRXChan, requestRXChan, /*worldviewRXChan*/)
 	go peers.Transmitter(PORT_PEERS, id, transmitEnableChan)
 	go peers.Receiver(PORT_PEERS, peerUpdateChan)
+
+	go bcast.Transmitter(PORT_WV, worldviewTXChan)
+	go bcast.Receiver(PORT_WV, worldviewRXChan)
 
 	// go worldviewRouter(worldviewRXChan, /*worldviewToPrimaryChan,*/ worldviewToBackupChan, worldviewToElevatorChan)
 
@@ -131,10 +132,8 @@ func main() {
 	
 	// Fault tolerance protocol
 	go backup.Run(worldviewRXChan, worldviewToElevatorChan, becomePrimaryChan, id)
-	go primary.Run(peerUpdateChan, elevatorRXChan,
-		becomePrimaryChan, worldviewTXChan, /*worldviewToPrimaryChan,*/
-		requestFromElevChan, /*orderToElevChan,*/
-		/*hallLightsTXChan,*/ id)
+	go primary.Run(peerUpdateChan, elevatorRXChan, becomePrimaryChan, 
+		worldviewTXChan, /*worldviewToPrimaryChan,*/ requestRXChan, id)
 
 	// Kills terminal if interrupted
 	go kill(stopChan)

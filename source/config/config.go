@@ -2,6 +2,7 @@ package config
 
 import (
 	"time"
+	"fmt"
 )
 
 const (
@@ -43,7 +44,7 @@ const (
 	PORT_BCAST      = 20019
 	PORT_PEERS      = 20020
 	// PORT_ELEVSTATE  = 20030
-	// PORT_WORLDVIEW  = 20040
+	PORT_WV         = 20040
 	// PORT_REQUEST    = 20050
 	// PORT_ORDER      = 20060
 	// PORT_HALLLIGHTS = 20070
@@ -125,3 +126,33 @@ type Reassignment struct {
 
 //--------------------------------------------
 
+func PrintWorldView(wv Worldview) {
+	fmt.Println("--- Worldview Snapshot ---")
+	fmt.Println("PrimaryId:", wv.PrimaryId)
+	fmt.Println("Peers:", wv.PeerInfo.Peers)
+	fmt.Println("New Peer:", wv.PeerInfo.New)
+	fmt.Println("Lost Peers:", wv.PeerInfo.Lost)
+	fmt.Println("Fleet Snapshot:")
+	for id, elev := range wv.FleetSnapshot {
+		fmt.Printf("  Elevator ID: %s\n", id)
+		fmt.Printf("    Floor: %d, Direction: %d, PrevDirection: %d, State: %d\n", 
+			elev.Floor, elev.Direction, elev.PrevDirection, elev.State)
+		fmt.Printf("    Obstructed: %t\n", elev.Obstructed)
+		fmt.Println("    Orders:")
+		for i := 0; i < NUM_FLOORS; i++ {
+			fmt.Printf("      Floor %d: %v\n", i, elev.Orders[i])
+		}
+	}
+	fmt.Println("Unaccepted Orders Snapshot:")
+	for id, orders := range wv.UnacceptedOrdersSnapshot {
+		fmt.Printf("  Orders for Elevator %s:\n", id)
+		for _, order := range orders {
+			fmt.Printf("    Floor: %d, Button: %d\n", order.Floor, order.Button)
+		}
+	}
+	fmt.Println("Hall Lights Snapshot:")
+	for i := 0; i < NUM_FLOORS; i++ {
+		fmt.Printf("  Floor %d: %v\n", i, wv.HallLightsSnapshot[i])
+	}
+	fmt.Println("-------------------------")
+}

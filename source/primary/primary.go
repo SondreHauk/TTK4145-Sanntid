@@ -80,7 +80,7 @@ func Run(
 				worldview.FleetSnapshot = sync.FleetRead(fleetActionChan)
 				worldview.UnacceptedOrdersSnapshot = sync.GetUnacceptedOrders(orderActionChan)
 				worldview.HallLightsSnapshot = sync.ReadHallLights(lightsActionChan)
-
+				PrintWorldView(worldview)
 				worldviewTXChan <- worldview
 				worldviewObsChan <- worldview
 

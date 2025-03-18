@@ -15,11 +15,11 @@ func Run(
 	fmt.Println("Enter Backup mode - listening for primary")
 	//Init an empty worldview
 	var latestWV Worldview
-	hallLights := HallLights{}
+	// hallLights := HallLights{}
 	latestWV.PrimaryId = myId
 	latestWV.FleetSnapshot = make(map[string]Elevator)
 	latestWV.UnacceptedOrdersSnapshot = make(map[string][]Order)
-	latestWV.HallLightsSnapshot = hallLights
+	// latestWV.HallLightsSnapshot = hallLights
 	//Peers[0] doesnt exist before the first primary does
 
 	// go func() {
@@ -31,7 +31,7 @@ func Run(
 
 	select{
 	case latestWV = <- worldViewToBackupChan:
-		fmt.Printf ("Wordview prio received by primary: %s\n", latestWV.PrimaryId)
+		// fmt.Printf ("Wordview prio received by primary: %s\n", latestWV.PrimaryId)
 	case <-time.After(T_PRIMARY_TIMEOUT):
 		becomePrimaryChan <- latestWV
 	}
@@ -40,7 +40,7 @@ func Run(
 		select {
 		case latestWV = <-worldViewToBackupChan:
 			worldViewToElevChan <- latestWV
-			fmt.Printf("Worldview post received by primary: %s\n", latestWV.PrimaryId)
+			// fmt.Printf("Worldview post received by primary: %s\n", latestWV.PrimaryId)
 		
 		case <-time.After(T_PRIMARY_TIMEOUT):
 			if shouldTakeOver(latestWV, myId){
