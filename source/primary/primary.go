@@ -15,8 +15,6 @@ func Run(
 	worldviewTXChan chan<- Worldview,
 	/*worldviewRXChan <-chan Worldview,*/
 	requestFromElevChan <-chan Order,
-	/*orderToElevChan chan<- Order,*/
-	/*hallLightsChan chan<- [][]bool,*/
 	myId string) {
 
 	// Local channels
@@ -80,7 +78,7 @@ func Run(
 				worldview.FleetSnapshot = sync.FleetRead(fleetActionChan)
 				worldview.UnacceptedOrdersSnapshot = sync.GetUnacceptedOrders(orderActionChan)
 				worldview.HallLightsSnapshot = sync.ReadHallLights(lightsActionChan)
-				PrintWorldView(worldview)
+				// PrintWorldView(worldview)
 				worldviewTXChan <- worldview
 				worldviewObsChan <- worldview
 
