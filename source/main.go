@@ -123,8 +123,8 @@ func main() {
 	go peers.Transmitter(PORT_PEERS, id, transmitEnableChan)
 	go peers.Receiver(PORT_PEERS, peerUpdateChan)
 
-	go bcast.Transmitter(PORT_WV, worldviewTXChan)
-	go bcast.Receiver(PORT_WV, worldviewRXChan)
+	go bcast.Transmitter(PORT_WORLDVIEW, worldviewTXChan)
+	go bcast.Receiver(PORT_WORLDVIEW, worldviewRXChan)
 
 	// go worldviewRouter(worldviewRXChan, /*worldviewToPrimaryChan,*/ worldviewToBackupChan, worldviewToElevatorChan)
 

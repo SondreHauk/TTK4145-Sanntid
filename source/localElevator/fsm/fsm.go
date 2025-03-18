@@ -41,7 +41,7 @@ func Run(
 			checkForNewLights(wv, currentHallLights, hallLightsChan)
 
 		case NewOrder := <-orderChan:
-			fmt.Println("New order received")
+			// fmt.Println("New order received")
 			if NewOrder.Id == myId{
 				elev.Orders[NewOrder.Floor][NewOrder.Button] = true
 				switch elev.State {

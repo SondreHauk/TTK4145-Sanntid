@@ -18,13 +18,13 @@ const (
 )
 
 const (
-	T_HEARTBEAT = time.Millisecond*500 //Must be much faster than .5 s
+	T_HEARTBEAT = time.Millisecond*100 //Must be much faster than .5 s
 	T_SLEEP = time.Millisecond*20
 	T_DOOR_OPEN = time.Second*3
 	T_REASSIGN_PRIMARY = time.Second*3
 	T_REASSIGN_LOCAL = time.Second*4
 	T_TRAVEL = time.Second*2 	//Approximate time to travel from floor i to floor i+-1
-	T_PRIMARY_TIMEOUT = time.Millisecond*2000
+	T_PRIMARY_TIMEOUT = time.Millisecond*1000
 	T_BLINK = time.Millisecond*100
 )
 
@@ -42,7 +42,7 @@ const(
 const (
 	PORT_BCAST      = 20019
 	PORT_PEERS      = 20020
-	PORT_WV         = 20040
+	PORT_WORLDVIEW  = 20040
 )
 
 type ElevatorState int

@@ -66,13 +66,13 @@ func Run(
 				elevUpdateObsChan <- elevUpdate
 
 			case request := <-requestFromElevChan:
-				fmt.Printf("Request received from: %s\n ", request.Id)
+				// fmt.Printf("Request received from: %s\n ", request.Id)
 				worldview.FleetSnapshot = sync.FleetRead(fleetActionChan)
 				AssignedId := assigner.ChooseElevator(worldview.FleetSnapshot, worldview.PeerInfo.Peers, request)
 				sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(AssignedId, request.Floor, request.Button))
 				// APPEND TO UNACCEPTED ORDERS IN WORLDVIEW
 				/*orderToElevChan <- OrderConstructor(AssignedId, request.Floor, request.Button)*/
-				fmt.Printf("Elevator %s assigned\n", AssignedId)
+				// fmt.Printf("Elevator %s assigned\n", AssignedId)
 
 			case <-heartbeatTimer.C:
 				worldview.FleetSnapshot = sync.FleetRead(fleetActionChan)
