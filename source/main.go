@@ -37,22 +37,38 @@ func kill(StopButtonCh <-chan bool) {
 	os.Exit(1)
 }
 
-func worldviewRouter(worldviewRXChan <-chan Worldview,
-	worldviewPrimaryChan chan<- Worldview,
-	worldviewBackupChan chan<- Worldview) {
+// func worldviewRouter(worldviewRXChan <-chan Worldview,
+// 	/*worldviewToPrimaryChan chan<- Worldview,*/
+// 	worldviewToBackupChan chan<- Worldview,
+// 	worldviewToElevatorChan chan<- Worldview) {
+// 	for wv := range worldviewRXChan {
+// 		worldviewToBackupChan <- wv
+// 		/*worldviewToPrimaryChan <- wv*/
+// 		worldviewToElevatorChan <- wv
+// 	}
+// }
 
-	for msg := range worldviewRXChan {	
-		select {
-		case worldviewPrimaryChan <- msg:
-		default: // Prevent blocking if primary isn't listening
-		}
+// func worldviewRouter(worldviewRXChan <-chan Worldview,
+// 	/*worldviewToPrimaryChan chan<- Worldview,*/
+// 	worldviewToBackupChan chan<- Worldview,
+// 	worldviewToElevatorChan chan<- Worldview) {
 
-		select {
-		case worldviewBackupChan <- msg:
-		default: // Prevent blocking if backup isn't listening
-		}
-	}
-}
+// 	for wv := range worldviewRXChan {
+// 		select {
+// 		case worldviewToBackupChan <- wv:
+// 			fmt.Println("Sent to backup")
+// 		default:
+// 			fmt.Println("Warning: Dropped worldviewToBackup due to full channel")
+// 		}
+
+// 		select {
+// 		case worldviewToElevatorChan <- wv:
+// 			// fmt.Println("Sent to elev")
+// 		default:
+// 			fmt.Println("Warning: Dropped worldviewToElevator due to full channel")
+// 		}
+// 	}
+// }
 
 func main() {
 
@@ -64,7 +80,7 @@ func main() {
 
 	//Channels
 	elevatorTXChan := make(chan Elevator, 10)
-	elevatorRXChan := make(chan Elevator)
+	elevatorRXChan := make(chan Elevator, 10)
 
 	transmitEnableChan := make(chan bool)
 	peerUpdateChan := make(chan PeerUpdate)
@@ -73,20 +89,17 @@ func main() {
 	worldviewRXChan := make(chan Worldview, 10)
 	becomePrimaryChan := make(chan Worldview, 1)
 
-	worldviewPrimaryChan := make(chan Worldview)
-	worldviewBackupChan := make(chan Worldview)
-
-	hallLightsTXChan := make(chan [][]bool, 10)
-	hallLightsRXChan := make(chan [][]bool, 10)
+	// worldviewToPrimaryChan := make(chan Worldview, 10)
+	// worldviewToBackupChan := make(chan Worldview, 10)
+	worldviewToElevatorChan := make(chan Worldview, 10)
 
 	atFloorChan := make(chan int, 1)
 	buttonChan := make(chan elevio.ButtonEvent, 10)
 	obstructionChan := make(chan bool, 1)
 	stopChan := make(chan bool, 1)
 
-	requestToPrimaryChan := make(chan Order, 10)
-	requestFromElevChan := make(chan Order, 10)
-	orderToElevChan := make(chan Order, 10)
+	requestTXChan := make(chan Order, 10)
+	requestRXChan := make(chan Order, 10)
 	orderChan := make(chan Order, 10)
 
 	//Initializations
@@ -96,40 +109,31 @@ func main() {
 	inits.ElevatorInit(&elev, id)
 
 	// Goroutines Local elevator
-	go requests.MakeRequest(buttonChan, requestToPrimaryChan, orderChan, id)
+	go requests.MakeRequest(buttonChan, requestTXChan, orderChan, id)
 	go elevio.PollButtons(buttonChan)
 	go elevio.PollFloorSensor(atFloorChan)
 	go elevio.PollObstructionSwitch(obstructionChan)
 	go elevio.PollStopButton(stopChan)
-	go fsm.Run(&elev, elevatorTXChan, atFloorChan,
-		orderChan, hallLightsRXChan, obstructionChan, id)
+	go fsm.Run(&elev, elevatorTXChan, atFloorChan, orderChan, 
+		obstructionChan, worldviewToElevatorChan, id)
 
 	// Goroutines communication (TODO: reduce to two ports)
-	go bcast.Transmitter(PORT_ELEVSTATE, elevatorTXChan)
-	go bcast.Receiver(PORT_ELEVSTATE, elevatorRXChan)
+	go bcast.Transmitter(PORT_BCAST, elevatorTXChan, requestTXChan, /*worldviewTXChan*/)
+	go bcast.Receiver(PORT_BCAST, elevatorRXChan, requestRXChan, /*worldviewRXChan*/)
 	go peers.Transmitter(PORT_PEERS, id, transmitEnableChan)
 	go peers.Receiver(PORT_PEERS, peerUpdateChan)
+
 	go bcast.Transmitter(PORT_WORLDVIEW, worldviewTXChan)
 	go bcast.Receiver(PORT_WORLDVIEW, worldviewRXChan)
 
-	// Elevator --- Request ---> Primary --- Order ---> Elevator
-	go bcast.Transmitter(PORT_REQUEST, requestToPrimaryChan)
-	go bcast.Receiver(PORT_REQUEST, requestFromElevChan)
-	go bcast.Transmitter(PORT_ORDER, orderToElevChan)
-	go bcast.Receiver(PORT_ORDER, orderChan)
-	go bcast.Transmitter(PORT_HALLLIGHTS, hallLightsTXChan)
-	go bcast.Receiver(PORT_HALLLIGHTS, hallLightsRXChan)
-
-	go worldviewRouter(worldviewRXChan, worldviewPrimaryChan, worldviewBackupChan)
+	// go worldviewRouter(worldviewRXChan, /*worldviewToPrimaryChan,*/ worldviewToBackupChan, worldviewToElevatorChan)
 
 	//TODO: DRAIN CHANNELS GOING TO PRIMARY
 	
 	// Fault tolerance protocol
-	go backup.Run(worldviewBackupChan, becomePrimaryChan, id)
-	go primary.Run(peerUpdateChan, elevatorRXChan,
-		becomePrimaryChan, worldviewTXChan, worldviewPrimaryChan,
-		requestFromElevChan, orderToElevChan,
-		hallLightsTXChan, id)
+	go backup.Run(worldviewRXChan, worldviewToElevatorChan, becomePrimaryChan, id)
+	go primary.Run(peerUpdateChan, elevatorRXChan, becomePrimaryChan, 
+		worldviewTXChan, /*worldviewToPrimaryChan,*/ requestRXChan, id)
 
 	// Kills terminal if interrupted
 	go kill(stopChan)

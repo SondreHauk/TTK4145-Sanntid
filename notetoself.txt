@@ -1,0 +1,20 @@
+Sjå på når ordrane vert klarerte i fsm. Ser ut som det kan vere logisk feil.
+Må markere hallorders som aktive så primary får med seg at ordren eksisterer
+og er akseptert.
+Sjekke IDLE case.
+kanskje <-DoorTimer casen kan slette lokale ordrar (da vil ikkje lys skrus av når døra åpner. test)
+pass på hall lights.
+
+mulig flyt:
+
+btn -> request -> toprimary
+primary assigner -> unaccepted -> fsm 
+fsm -> inn i DOOR_OPEN
+    local orders -> open door (ikkje clear)
+    fsm -> elevupdate -> toprimary -> accepted -> updatehalllights (turn on)
+    primary -> sethallights (turn on)
+    fsm -> if sethallight at currentfloor ->clear local order (elns)
+    fsm -> elevupdate -> toprimary -> ordercleared -> updatehallights (turn off)
+    primary -> sethallights (turn off)
+    <- DoorTimer -> close door
+fsm -> ut av DOOR_OPEN state

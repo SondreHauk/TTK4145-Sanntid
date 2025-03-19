@@ -7,33 +7,44 @@ import (
 )
 
 func Run(
-	worldViewChan <-chan Worldview,
+	worldViewToBackupChan <-chan Worldview,
+	worldViewToElevChan chan <- Worldview,
 	becomePrimaryChan chan<- Worldview,
-	id string) {
+	myId string) {
 
 	fmt.Println("Enter Backup mode - listening for primary")
 	//Init an empty worldview
 	var latestWV Worldview
-	latestWV.PrimaryId = id
+	// hallLights := HallLights{}
+	latestWV.PrimaryId = myId
 	latestWV.FleetSnapshot = make(map[string]Elevator)
+	latestWV.UnacceptedOrdersSnapshot = make(map[string][]Order)
+	// latestWV.HallLightsSnapshot = hallLights
 	//Peers[0] doesnt exist before the first primary does
 
-	select{
-		case latestWV = <- worldViewChan:
-		case <-time.After(T_PRIMARY_TIMEOUT):
-			becomePrimaryChan <- latestWV
+	// go func() {
+	// 	for wv := range worldViewToBackupChan {
+	// 		fmt.Printf("Backup: Received worldview update from primary %s\n", wv.PrimaryId)
+	// 		latestWV = wv
+	// 	}
+	// }()
+
+	select{ //INIT
+	case latestWV = <- worldViewToBackupChan:
+		// fmt.Printf ("Wordview prio received by primary: %s\n", latestWV.PrimaryId)
+	case <-time.After(T_PRIMARY_TIMEOUT):
+		becomePrimaryChan <- latestWV
 	}
 
 	for {
 		select {
-		case latestWV = <-worldViewChan:
-			// fmt.Println("Worldview received")
-			// fmt.Printf("Active Peers: %v\n", latestWorldview.PeerInfo)
-			// fmt.Printf("Elevators: %v\n", latestWorldview.Elevators)
+		case latestWV = <-worldViewToBackupChan:
+			worldViewToElevChan <- latestWV
+			// fmt.Printf("Worldview post received by primary: %s\n", latestWV.PrimaryId)
 		
 		case <-time.After(T_PRIMARY_TIMEOUT):
-			if shouldTakeOver(latestWV, id){
-
+			if shouldTakeOver(latestWV, myId){
+				latestWV.PrimaryId = myId
 				becomePrimaryChan <- latestWV
 				fmt.Println("Primary timeout - Taking over")
 			} else {
@@ -45,5 +56,9 @@ func Run(
 
 func shouldTakeOver(backupWorldview Worldview, id string) bool {
 	peerIds := backupWorldview.PeerInfo.Peers
-	return peerIds[0] == id
+	if len(peerIds) == 0 {
+		return true
+	} else {
+		return peerIds[0] == id
+	}
 }
