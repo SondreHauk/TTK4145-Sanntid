@@ -39,7 +39,6 @@ func Run(
 			// fmt.Println("Worldview received by elevator")
 			checkForNewOrders(wv, myId, orderChan, elev.Orders)
 			checkForNewLights(wv, currentHallLights, hallLightsChan)
-
 		case NewOrder := <-orderChan:
 			// fmt.Println("New order received")
 			if NewOrder.Id == myId{
@@ -51,6 +50,8 @@ func Run(
 					if elev.Direction == STOP {
 						elevio.SetDoorOpenLamp(true)
 						doorTimer.Reset(T_DOOR_OPEN)
+						elevChan <- *elev //AVOID LOOP
+						time.Sleep(T_SLEEP)
 						elev.Orders[elev.Floor][NewOrder.Button] = false
 						if(NewOrder.Button == int(elevio.BT_Cab)){
 							elevio.SetButtonLamp(elevio.BT_Cab, NewOrder.Floor, false)
@@ -62,6 +63,8 @@ func Run(
 				case MOVING: //NOOP
 				case DOOR_OPEN:
 					if elev.Floor == NewOrder.Floor {
+						elevChan <- *elev //AVOID LOOP BY ACKNOWLEDGING ORDER OBEFORE CLEARING
+						time.Sleep(T_SLEEP)
 						elev.Orders[elev.Floor][NewOrder.Button] = false
 						elevio.SetButtonLamp(elevio.ButtonType(NewOrder.Button), elev.Floor, false)
 						if !elev.Obstructed{
@@ -92,7 +95,6 @@ func Run(
 			elevChan <- *elev
 
 		case <-doorTimer.C:
-
 			elevio.SetDoorOpenLamp(false)
 			elev.Direction = ChooseDirection(*elev)
 			if elev.Direction == STOP {

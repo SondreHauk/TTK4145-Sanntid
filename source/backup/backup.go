@@ -29,7 +29,7 @@ func Run(
 	// 	}
 	// }()
 
-	select{
+	select{ //INIT
 	case latestWV = <- worldViewToBackupChan:
 		// fmt.Printf ("Wordview prio received by primary: %s\n", latestWV.PrimaryId)
 	case <-time.After(T_PRIMARY_TIMEOUT):
