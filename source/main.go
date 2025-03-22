@@ -98,10 +98,10 @@ func main() {
 	obstructionChan := make(chan bool, 1)
 	stopChan := make(chan bool, 1)
 
-	requestTXChan := make(chan Order, 10)
-	requestRXChan := make(chan Order, 10)
-	orderChan := make(chan Order, 10)
+	requestTXChan := make(chan HallMatrix, 10)
+	requestRXChan := make(chan HallMatrix, 10)
 	accReqChan := make(chan HallMatrix, 10)
+	orderChan := make(chan Order, 10)
 
 	//Initializations
 	elevio.Init("localhost:"+port, NUM_FLOORS)

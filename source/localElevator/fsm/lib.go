@@ -125,3 +125,19 @@ func checkForNewLights(wv Worldview, currenthallLights HallMatrix, hallLightsCha
 		}
 	}
 }
+
+// //Make modular with for loop up to NUM_ELEV
+// func PrintRequests(elev Elevator){
+// 	fmt.Printf("Floor 4: %t %t %t\n",elev.Orders[3][0],elev.Orders[3][1],elev.Orders[3][2])
+// 	fmt.Printf("Floor 3: %t %t %t\n",elev.Orders[2][0],elev.Orders[2][1],elev.Orders[2][2])
+// 	fmt.Printf("Floor 2: %t %t %t\n",elev.Orders[1][0],elev.Orders[1][1],elev.Orders[1][2])
+// 	fmt.Printf("Floor 1: %t %t %t\n\n",elev.Orders[0][0],elev.Orders[0][1],elev.Orders[0][2])
+// }
+
+// func PrintState(elev Elevator){
+// 	switch elev.State{
+// 		case IDLE: fmt.Printf("State: IDLE\n")
+// 		case MOVING: fmt.Printf("State: MOVING\n")
+// 		case DOOR_OPEN: fmt.Printf("State: DOOR_OPEN\n")
+// 	}
+// }

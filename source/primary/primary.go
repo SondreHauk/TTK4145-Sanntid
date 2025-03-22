@@ -14,7 +14,7 @@ func Run(
 	becomePrimaryChan <-chan Worldview,
 	worldviewTXChan chan<- Worldview,
 	/*worldviewRXChan <-chan Worldview,*/
-	requestFromElevChan <-chan Order,
+	requestFromElevChan <-chan HallMatrix,
 	myId string) {
 
 	// Local channels
@@ -65,14 +65,19 @@ func Run(
 				updateHallLights(worldview, hallLights, fleetActionChan, lightsActionChan)
 				elevUpdateObsChan <- elevUpdate
 
-			case request := <-requestFromElevChan:
+			case requests := <-requestFromElevChan:
 				// fmt.Printf("Request received from: %s\n ", request.Id)
-				worldview.FleetSnapshot = sync.FleetRead(fleetActionChan)
-				AssignedId := assigner.ChooseElevator(worldview.FleetSnapshot, worldview.PeerInfo.Peers, request)
-				sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(AssignedId, request.Floor, request.Button))
-				// APPEND TO UNACCEPTED ORDERS IN WORLDVIEW
-				/*orderToElevChan <- OrderConstructor(AssignedId, request.Floor, request.Button)*/
-				// fmt.Printf("Elevator %s assigned\n", AssignedId)
+				worldview.FleetSnapshot = sync.FleetRead(fleetActionChan) // Should this be done each time and not once?
+				// TODO: extract requests into order format and run the following for each order:
+				for floor, request := range requests {
+					for btn, active := range request {
+						if active {
+							order := OrderConstructor("arbitrary", floor, btn) // Id or not?
+							AssignedId := assigner.ChooseElevator(worldview.FleetSnapshot, worldview.PeerInfo.Peers, order)
+							sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(AssignedId, order.Floor, order.Button))
+						}
+					}
+				}
 
 			case <-heartbeatTimer.C:
 				worldview.FleetSnapshot = sync.FleetRead(fleetActionChan)

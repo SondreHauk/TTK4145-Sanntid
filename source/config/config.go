@@ -45,6 +45,8 @@ const (
 	PORT_WORLDVIEW  = 20040
 )
 
+type HallMatrix [NUM_FLOORS][NUM_BUTTONS-1]bool
+
 type ElevatorState int
 
 type Elevator struct {
@@ -54,6 +56,7 @@ type Elevator struct {
 	PrevDirection int
 	State         ElevatorState
 	Orders        [NUM_FLOORS][NUM_BUTTONS]bool
+	Requests  	  HallMatrix
  	Obstructed 	  bool
 }
 
@@ -71,8 +74,6 @@ type PeerUpdate struct {
 	New   string
 	Lost  []string
 }
-
-type HallMatrix [NUM_FLOORS][NUM_BUTTONS-1]bool
 
 //----------------PRIMARY/BACKUP--------------------
 
