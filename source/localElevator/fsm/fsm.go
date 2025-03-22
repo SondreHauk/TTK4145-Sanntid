@@ -13,15 +13,15 @@ func Run(
 	elevChan chan <-Elevator, 
 	atFloorChan <-chan int, 
 	orderChan chan Order,
-	/*hallLightsRXChan <-chan [][]bool,*/
+	accReqChan chan <- HallMatrix,
 	obstructionChan <-chan bool,
 	worldviewToElevatorChan <-chan Worldview,
 	myId string) {
 
 	// Define local variables
 	var wv Worldview
-	currentHallLights := HallLights{}
-	hallLightsChan := make(chan HallLights, 10)
+	currentHallLights := HallMatrix{}
+	hallLightsChan := make(chan HallMatrix, 10)
 
 	// Set timers
 	heartbeatTimer := time.NewTimer(T_HEARTBEAT)
@@ -37,7 +37,7 @@ func Run(
 		select {
 		case wv = <- worldviewToElevatorChan:
 			// fmt.Println("Worldview received by elevator")
-			checkForNewOrders(wv, myId, orderChan, elev.Orders)
+			checkForNewOrders(wv, myId, orderChan, accReqChan, elev.Orders)
 			checkForNewLights(wv, currentHallLights, hallLightsChan)
 		case NewOrder := <-orderChan:
 			// fmt.Println("New order received")
@@ -63,7 +63,7 @@ func Run(
 				case MOVING: //NOOP
 				case DOOR_OPEN:
 					if elev.Floor == NewOrder.Floor {
-						elevChan <- *elev //AVOID LOOP BY ACKNOWLEDGING ORDER OBEFORE CLEARING
+						elevChan <- *elev //AVOID LOOP BY ACKNOWLEDGING ORDER BEFORE CLEARING
 						time.Sleep(T_SLEEP)
 						elev.Orders[elev.Floor][NewOrder.Button] = false
 						elevio.SetButtonLamp(elevio.ButtonType(NewOrder.Button), elev.Floor, false)

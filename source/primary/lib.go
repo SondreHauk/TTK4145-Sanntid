@@ -25,7 +25,7 @@ func checkforAcceptedOrders(orderActionChan chan OrderAccess, elevUpdate Elevato
 	}
 }
 
-func updateHallLights(wv Worldview, hallLights HallLights, mapActionChan chan FleetAccess, lightsActionChan chan LightsAccess) {
+func updateHallLights(wv Worldview, hallLights HallMatrix, mapActionChan chan FleetAccess, lightsActionChan chan LightsAccess) {
 	wv = WorldviewConstructor(wv.PrimaryId, wv.PeerInfo, sync.FleetRead(mapActionChan))
 	for _, id := range wv.PeerInfo.Peers {
 		orderMatrix := wv.FleetSnapshot[id].Orders

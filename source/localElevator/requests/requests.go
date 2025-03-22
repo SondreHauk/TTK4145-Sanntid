@@ -31,12 +31,12 @@ func OrdersBelow(elev Elevator) bool {
 
 func ClearOrder(elev *Elevator, floor int) {
 	switch elev.Direction {
-		case UP: // Clear hall up
+		case UP:
 			elev.Orders[floor][elevio.BT_HallUp] = false
 			if !OrdersAbove(*elev) {
 				elev.Orders[floor][elevio.BT_HallDown] = false
 			}
-		case DOWN: // Clear hall down
+		case DOWN:
 			elev.Orders[floor][elevio.BT_HallDown] = false
 			if !OrdersBelow(*elev) {
 				elev.Orders[floor][elevio.BT_HallUp] = false
@@ -52,20 +52,26 @@ func ClearAll(elev *Elevator) {
 	}
 }
 
-func MakeRequest(btnEvent <-chan elevio.ButtonEvent, 
+func MakeRequest(
+	btnEvent <-chan elevio.ButtonEvent, 
 	requestToPrimary chan <-Order, 
 	orderChan chan <- Order,
+	accReqChan <- chan HallMatrix,
 	id string) {
 	for{
 		select {
-			case btn := <-btnEvent:
-				request := Order{Id: id, Floor: btn.Floor, Button: int(btn.Button)}
-				if btn.Button == elevio.BT_Cab{
-					orderChan <- request // Assign directly to elev
-					elevio.SetButtonLamp(elevio.ButtonType(btn.Button), btn.Floor, true)
-				} else {
-					requestToPrimary<- request
-				}
+		// case accReq := <- accReqChan:
+		// 	for _, row := range accReq{
+		// 		fmt.Println(row)
+		// 	}
+		case btn := <- btnEvent:
+			request := Order{Id: id, Floor: btn.Floor, Button: int(btn.Button)}
+			if btn.Button == elevio.BT_Cab{
+				orderChan <- request // Assign directly to elev
+				elevio.SetButtonLamp(elevio.ButtonType(btn.Button), btn.Floor, true)
+			} else {
+				requestToPrimary<- request
+			}
 		}
 		time.Sleep(T_SLEEP) //Necessary?
 	}

@@ -86,8 +86,23 @@ func TimeUntilPickup(elev Elevator, NewOrder Order) time.Duration{
 	}
 }
 
-// if any assigned unaccepted order. Send order on Orderchan
-func checkForNewOrders(wv Worldview, myId string, orderChan chan <- Order, acceptedorders [NUM_FLOORS][NUM_BUTTONS]bool) {
+func checkForNewOrders(
+	wv Worldview,
+	 myId string, 
+	 orderChan chan <- Order, 
+	 requestAcceptedChan chan <- HallMatrix,
+	 acceptedorders [NUM_FLOORS][NUM_BUTTONS]bool) {
+	
+	// send acc hall orders to request module 
+	accHallOrders := HallMatrix{}
+	for _, accOrders := range wv.UnacceptedOrdersSnapshot{
+			for _, ord := range accOrders{
+				accHallOrders[ord.Floor][ord.Button] = true
+			}
+		}
+	requestAcceptedChan <- accHallOrders
+
+	// send assigned order to elevator
 	orders, exists := wv.UnacceptedOrdersSnapshot[myId]
 	if exists {
 		for _, order := range orders{
@@ -98,7 +113,7 @@ func checkForNewOrders(wv Worldview, myId string, orderChan chan <- Order, accep
 	}
 }
 
-func checkForNewLights(wv Worldview, currenthallLights HallLights, hallLightsChan chan HallLights) {
+func checkForNewLights(wv Worldview, currenthallLights HallMatrix, hallLightsChan chan HallMatrix) {
 	// if any update in hall lights. Send new lights on HallLightsChan
 	for i := range currenthallLights {
 		for j := range currenthallLights[i] {

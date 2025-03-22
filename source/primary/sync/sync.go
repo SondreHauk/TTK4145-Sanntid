@@ -107,18 +107,8 @@ func RemoveUnacceptedOrder(ordersActionChan chan<- OrderAccess, order Order) {
 	}
 }
 
-/* func GetAllUnacceptedOrders(orderActionChan chan<- OrderAccess) map[string][]Order {
-	readAllChan := make(chan map[string][]Order)
-	defer close(readAllChan)
-	orderActionChan <- OrderAccess{Cmd: "read all", ReadAllChan: readAllChan}
-	return <-readAllChan
-} */
-
 func HallLightsManager(lightsActionChan <-chan LightsAccess) {
-	hallLights := HallLights{}
-	// for i := range hallLights {
-	// 	hallLights[i] = make([]bool, NUM_BUTTONS-1) // Ensure all rows exist
-	// }
+	hallLights := HallMatrix{}
 	for {
 		select {
 		case action := <-lightsActionChan:
@@ -132,8 +122,8 @@ func HallLightsManager(lightsActionChan <-chan LightsAccess) {
 	}
 }
 
-func ReadHallLights(lightsActionChan chan LightsAccess) HallLights {
-	readChan := make(chan HallLights)
+func ReadHallLights(lightsActionChan chan LightsAccess) HallMatrix {
+	readChan := make(chan HallMatrix)
 	defer close(readChan)
 
 	lightsActionChan <- LightsAccess{
@@ -143,7 +133,7 @@ func ReadHallLights(lightsActionChan chan LightsAccess) HallLights {
 	return <-readChan
 }
 
-func WriteHallLights(lightsActionChan chan LightsAccess, newHallLights HallLights) {
+func WriteHallLights(lightsActionChan chan LightsAccess, newHallLights HallMatrix) {
 	lightsActionChan <- LightsAccess{
 		Cmd:           "write",
 		NewHallLights: newHallLights,

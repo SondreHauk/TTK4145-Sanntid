@@ -22,13 +22,6 @@ func Run(
 	// latestWV.HallLightsSnapshot = hallLights
 	//Peers[0] doesnt exist before the first primary does
 
-	// go func() {
-	// 	for wv := range worldViewToBackupChan {
-	// 		fmt.Printf("Backup: Received worldview update from primary %s\n", wv.PrimaryId)
-	// 		latestWV = wv
-	// 	}
-	// }()
-
 	select{ //INIT
 	case latestWV = <- worldViewToBackupChan:
 		// fmt.Printf ("Wordview prio received by primary: %s\n", latestWV.PrimaryId)
@@ -40,6 +33,7 @@ func Run(
 		select {
 		case latestWV = <-worldViewToBackupChan:
 			worldViewToElevChan <- latestWV
+			
 			// fmt.Printf("Worldview post received by primary: %s\n", latestWV.PrimaryId)
 		
 		case <-time.After(T_PRIMARY_TIMEOUT):

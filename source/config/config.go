@@ -72,7 +72,7 @@ type PeerUpdate struct {
 	Lost  []string
 }
 
-type HallLights [NUM_FLOORS][NUM_BUTTONS-1]bool
+type HallMatrix [NUM_FLOORS][NUM_BUTTONS-1]bool
 
 //----------------PRIMARY/BACKUP--------------------
 
@@ -81,7 +81,7 @@ type Worldview struct {
 	PeerInfo      PeerUpdate
 	FleetSnapshot map[string]Elevator
 	UnacceptedOrdersSnapshot map[string][]Order
-	HallLightsSnapshot HallLights
+	HallLightsSnapshot HallMatrix
 }
 
 func WorldviewConstructor(PrimaryId string, PeerInfo PeerUpdate, 
@@ -110,8 +110,8 @@ type OrderAccess struct {
 
 type LightsAccess struct {
 	Cmd 	 	  string
-	NewHallLights HallLights
-	ReadChan      chan HallLights
+	NewHallLights HallMatrix
+	ReadChan      chan HallMatrix
 }
 
 type Reassignment struct {

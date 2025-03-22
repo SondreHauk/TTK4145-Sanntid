@@ -29,7 +29,7 @@ func Run(
 	var worldview Worldview
 	worldview.FleetSnapshot = make(map[string]Elevator)
 	worldview.UnacceptedOrdersSnapshot = make(map[string][]Order)
-	hallLights := HallLights{}
+	hallLights := HallMatrix{}
 
 	// Owns and handles access to maps
 	go sync.FleetAccessManager(fleetActionChan)
