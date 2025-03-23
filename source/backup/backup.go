@@ -49,6 +49,9 @@ func Run(
 }
 
 func shouldTakeOver(backupWorldview Worldview, id string) bool {
+	// if backupWorldview.PrimaryId == id { // avoid taking over if own primary already active
+	// 	return false
+	// }
 	peerIds := backupWorldview.PeerInfo.Peers
 	if len(peerIds) == 0 {
 		return true

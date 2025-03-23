@@ -1,7 +1,6 @@
 package fsm
 
 import (
-	"fmt"
 	. "source/config"
 	"source/localElevator/elevio"
 	"source/localElevator/requests"
@@ -106,7 +105,6 @@ func Run(
 			elevChan <- *elev
 		
 		case ObsEvent:= <-obstructionChan:
-			fmt.Println("Obstruction switch")
 			if elev.State==DOOR_OPEN{
 				switch ObsEvent{
 					case true:

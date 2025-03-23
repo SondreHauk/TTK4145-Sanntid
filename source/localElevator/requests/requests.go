@@ -1,7 +1,6 @@
 package requests
 
 import (
-	"fmt"
 	. "source/config"
 	"source/localElevator/elevio"
 	"time"
@@ -69,7 +68,7 @@ func MakeRequest(
 			for floor, orders := range accReq{
 				for btn := range orders{
 					if accReq[floor][btn] {
-						hallRequests[floor][btn] = false // RACE CONDITION
+						hallRequests[floor][btn] = false
 					}
 				}
 			}
@@ -79,15 +78,13 @@ func MakeRequest(
 				orderChan <- OrderConstructor(id, req.Floor, int(req.Button)) // Assign directly to elev
 				elevio.SetButtonLamp(elevio.ButtonType(req.Button), req.Floor, true)
 			} else {
-				hallRequests[req.Floor][req.Button] = true // RACE CONDITION
+				hallRequests[req.Floor][req.Button] = true
 			 	requestToPrimaryChan <- hallRequests
 			}
 
 		case <- heartBeat.C:
-			// fmt.Println("Heartbeat")
 			if checkForActiveRequests(hallRequests) {
-				requestToPrimaryChan <- hallRequests // RACE CONDITION
-				fmt.Println("sendt")
+				requestToPrimaryChan <- hallRequests
 			}
 		}
 		time.Sleep(T_SLEEP)
