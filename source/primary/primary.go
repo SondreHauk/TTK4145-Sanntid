@@ -3,7 +3,6 @@ package primary
 import (
 	"fmt"
 	. "source/config"
-	"source/primary/assigner"
 	"source/primary/sync"
 	"time"
 )
@@ -69,15 +68,17 @@ func Run(
 				// fmt.Printf("Request received from: %s\n ", request.Id)
 				worldview.FleetSnapshot = sync.FleetRead(fleetActionChan) // Should this be done each time and not once?
 				// TODO: extract requests into order format and run the following for each order:
-				for floor, request := range requests {
-					for btn, active := range request {
-						if active {
-							order := OrderConstructor("arbitrary", floor, btn) // Id or not?
-							AssignedId := assigner.ChooseElevator(worldview.FleetSnapshot, worldview.PeerInfo.Peers, order)
-							sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(AssignedId, order.Floor, order.Button))
-						}
-					}
-				}
+
+				assignRequests(requests, worldview, orderActionChan)
+				// for floor, request := range requests {
+				// 	for btn, active := range request {
+				// 		if active {
+				// 			order := OrderConstructor("arbitrary", floor, btn) // Id or not?
+				// 			AssignedId := assigner.ChooseElevator(worldview.FleetSnapshot, worldview.PeerInfo.Peers, order)
+				// 			sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(AssignedId, order.Floor, order.Button))
+				// 		}
+				// 	}
+				// }
 
 			case <-heartbeatTimer.C:
 				worldview.FleetSnapshot = sync.FleetRead(fleetActionChan)

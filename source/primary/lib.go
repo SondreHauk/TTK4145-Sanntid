@@ -9,6 +9,18 @@ import(
 	"fmt"
 )
 
+func assignRequests(requests HallMatrix, wv Worldview, orderActionChan chan OrderAccess){
+	for floor, request := range requests {
+		for btn, active := range request {
+			if active {
+				order := OrderConstructor("arbitrary", floor, btn) // Id or not?
+				AssignedId := assigner.ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, order)
+				sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(AssignedId, order.Floor, order.Button))
+			}
+		}
+	}
+}
+
 func checkforAcceptedOrders(orderActionChan chan OrderAccess, elevUpdate Elevator, unacceptedOrders []Order){
 	for floor, buttons := range elevUpdate.Orders {
 		for btn, orderAccepted := range buttons {
