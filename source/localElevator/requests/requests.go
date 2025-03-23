@@ -66,7 +66,6 @@ func MakeRequest(
 	for{
 		select {
 		case accReq := <- accReqChan:
-			// fmt.Println("acc Req received")
 			for floor, orders := range accReq{
 				for btn := range orders{
 					if accReq[floor][btn] {
