@@ -149,13 +149,3 @@ func WriteHallLights(lightsActionChan chan LightsAccess, newHallLights HallLight
 		NewHallLights: newHallLights,
 	}
 }
-
-func Drain() {
-	// Empty the channel
-	for {
-		select {
-		default:
-			return
-		}
-	}
-}

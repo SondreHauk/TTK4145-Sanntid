@@ -88,6 +88,7 @@ func main() {
 	worldviewTXChan := make(chan Worldview, 10)
 	worldviewRXChan := make(chan Worldview, 10)
 	becomePrimaryChan := make(chan Worldview, 1)
+	//becomePrimaryDupeChan := make(chan Worldview, 1)
 
 	// worldviewToPrimaryChan := make(chan Worldview, 10)
 	// worldviewToBackupChan := make(chan Worldview, 10)
@@ -129,9 +130,8 @@ func main() {
 	// go worldviewRouter(worldviewRXChan, /*worldviewToPrimaryChan,*/ worldviewToBackupChan, worldviewToElevatorChan)
 	
 	//TODO: DRAIN CHANNELS GOING TO PRIMARY
-	peerUpdateChan
-	elevatorRXChan
-	go sync.Drain(peerUpdateChan, elevatorRXChan, requestRXChan)
+	
+	//go primary.DrainChans(becomePrimaryChan, becomePrimaryDupeChan, peerUpdateChan, elevatorRXChan, requestRXChan)
 
 	// Fault tolerance protocol
 	go backup.Run(worldviewRXChan, worldviewToElevatorChan, becomePrimaryChan, id)

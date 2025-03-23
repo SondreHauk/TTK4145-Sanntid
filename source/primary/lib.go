@@ -104,7 +104,7 @@ func obstructionHandler(
 				if !timerExists{
 					timer := time.AfterFunc(T_REASSIGN_PRIMARY, func() {
 					reassignmentDetails := Reassignment{Cause: Obstructed, ObsId: obstructedElevators[len(obstructedElevators)-1]}
-					ReassignHallOrders(worldview, mapActionChan,ordersActionChan, reassignmentDetails)})
+					ReassignHallOrders(worldview, mapActionChan, ordersActionChan, reassignmentDetails)})
 					obstructionTimers[elevUpdate.Id] = timer
 				}
 			} else {
