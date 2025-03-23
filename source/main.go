@@ -103,7 +103,7 @@ func main() {
 	orderChan := make(chan Order, 10)
 
 	//Initializations
-	elevio.Init("localhost:"+port, NUM_FLOORS)
+	elevio.Init("localhost:" + port, NUM_FLOORS)
 	elev := Elevator{}
 	inits.LightsInit()
 	inits.ElevatorInit(&elev, id)
@@ -127,9 +127,12 @@ func main() {
 	go bcast.Receiver(PORT_WORLDVIEW, worldviewRXChan)
 
 	// go worldviewRouter(worldviewRXChan, /*worldviewToPrimaryChan,*/ worldviewToBackupChan, worldviewToElevatorChan)
-
-	//TODO: DRAIN CHANNELS GOING TO PRIMARY
 	
+	//TODO: DRAIN CHANNELS GOING TO PRIMARY
+	peerUpdateChan
+	elevatorRXChan
+	go sync.Drain(peerUpdateChan, elevatorRXChan, requestRXChan)
+
 	// Fault tolerance protocol
 	go backup.Run(worldviewRXChan, worldviewToElevatorChan, becomePrimaryChan, id)
 	go primary.Run(peerUpdateChan, elevatorRXChan, becomePrimaryChan, 
