@@ -17,7 +17,7 @@ func Run(
 	requestFromElevChan <-chan HallMatrix,
 	myId string) {
 
-	// Local channels
+	// Syncronization channels
 	fleetActionChan := make(chan FleetAccess, 10)
 	orderActionChan := make(chan OrderAccess, 10)
 	lightsActionChan := make(chan LightsAccess, 10)

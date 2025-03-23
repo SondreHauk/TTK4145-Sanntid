@@ -88,10 +88,10 @@ func TimeUntilPickup(elev Elevator, NewOrder Order) time.Duration{
 
 func checkForNewOrders(
 	wv Worldview,
-	 myId string, 
-	 orderChan chan <- Order, 
-	 requestAcceptedChan chan <- HallMatrix,
-	 acceptedorders [NUM_FLOORS][NUM_BUTTONS]bool) {
+	myId string, 
+	orderChan chan <- Order, 
+	accReqChan chan <- HallMatrix,
+	acceptedorders [NUM_FLOORS][NUM_BUTTONS]bool) {
 	
 	// send acc hall orders to request module 
 	accHallOrders := HallMatrix{}
@@ -100,7 +100,7 @@ func checkForNewOrders(
 				accHallOrders[ord.Floor][ord.Button] = true
 			}
 		}
-	requestAcceptedChan <- accHallOrders
+	accReqChan <- accHallOrders
 
 	// send assigned order to elevator
 	orders, exists := wv.UnacceptedOrdersSnapshot[myId]

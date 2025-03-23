@@ -24,7 +24,7 @@ const (
 	T_REASSIGN_PRIMARY = time.Second*3
 	T_REASSIGN_LOCAL = time.Second*4
 	T_TRAVEL = time.Second*2 	//Approximate time to travel from floor i to floor i+-1
-	T_PRIMARY_TIMEOUT = time.Millisecond*1000
+	T_PRIMARY_TIMEOUT = time.Millisecond*2000
 	T_BLINK = time.Millisecond*100
 )
 

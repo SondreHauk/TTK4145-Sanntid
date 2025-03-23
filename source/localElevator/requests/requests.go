@@ -1,6 +1,7 @@
 package requests
 
 import (
+	"fmt"
 	. "source/config"
 	"source/localElevator/elevio"
 	"time"
@@ -58,36 +59,36 @@ func MakeRequest(
 	accReqChan <- chan HallMatrix,
 	id string) {
 
-	requests := HallMatrix{}
+	hallRequests := HallMatrix{}
 	heartBeat := time.NewTicker(T_HEARTBEAT)
 	defer heartBeat.Stop()
 
 	for{
 		select {
 		case accReq := <- accReqChan:
+			// fmt.Println("acc Req received")
 			for floor, orders := range accReq{
 				for btn := range orders{
 					if accReq[floor][btn] {
-						requests[floor][btn] = false // RACE CONDITION
+						hallRequests[floor][btn] = false // RACE CONDITION
 					}
 				}
 			}
 
 		case req := <- reqEventChan:
-
-			requests[req.Floor][req.Button] = true // RACE CONDITION
-			request := Order{Id: id, Floor: req.Floor, Button: int(req.Button)}
-			
 			if req.Button == elevio.BT_Cab{
-				orderChan <- request // Assign directly to elev
+				orderChan <- OrderConstructor(id, req.Floor, int(req.Button)) // Assign directly to elev
 				elevio.SetButtonLamp(elevio.ButtonType(req.Button), req.Floor, true)
 			} else {
-				requestToPrimaryChan <- requests
+				hallRequests[req.Floor][req.Button] = true // RACE CONDITION
+			 	requestToPrimaryChan <- hallRequests
 			}
 
 		case <- heartBeat.C:
-			if checkForActiveRequests(requests) {
-				requestToPrimaryChan <- requests // RACE CONDITION
+			// fmt.Println("Heartbeat")
+			if checkForActiveRequests(hallRequests) {
+				requestToPrimaryChan <- hallRequests // RACE CONDITION
+				fmt.Println("sendt")
 			}
 		}
 		time.Sleep(T_SLEEP)

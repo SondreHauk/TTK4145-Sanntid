@@ -119,8 +119,8 @@ func main() {
 		accReqChan, obstructionChan, worldviewToElevatorChan, id)
 
 	// Goroutines communication
-	go bcast.Transmitter(PORT_BCAST, elevatorTXChan, requestTXChan, /*worldviewTXChan*/)
-	go bcast.Receiver(PORT_BCAST, elevatorRXChan, requestRXChan, /*worldviewRXChan*/)
+	go bcast.Transmitter(PORT_BCAST, elevatorTXChan, requestTXChan)
+	go bcast.Receiver(PORT_BCAST, elevatorRXChan, requestRXChan)
 	go peers.Transmitter(PORT_PEERS, id, transmitEnableChan)
 	go peers.Receiver(PORT_PEERS, peerUpdateChan)
 
