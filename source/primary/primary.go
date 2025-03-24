@@ -31,6 +31,7 @@ func Run(
 	worldview.FleetSnapshot = make(map[string]Elevator)
 	worldview.UnacceptedOrdersSnapshot = make(map[string][]Order)
 	hallLights := HallMatrix{}
+	var lostCabOrders []Order
 
 	// Owns and handles access to maps
 	go sync.FleetAccessManager(fleetActionChan)
@@ -57,20 +58,23 @@ func Run(
 				case worldview.PeerInfo = <-peerUpdateChan:
 					printPeers(worldview.PeerInfo)
 
-					// new := worldview.PeerInfo.New
-					// lostOrders := worldview.FleetSnapshot[new].Orders
-					// for floor, orders := range lostOrders {
-					// 	for order, active := range orders {
-					// 		if order == int(elevio.BT_Cab) && active {
-					// 			sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(new, floor, int(elevio.BT_Cab)))
-					// 		}
-					// 	}
-					// }
+					newId := worldview.PeerInfo.New
+					for i := len(lostCabOrders) - 1; i >= 0; i-- {
+						if lostCabOrders[i].Id == newId {
+							sync.AddUnacceptedOrder(orderActionChan,
+								OrderConstructor(newId, lostCabOrders[i].Floor, lostCabOrders[i].Button))
+							lostCabOrders = append(lostCabOrders[:i], lostCabOrders[i+1:]...)
+						}
+					}
 
 					lost := worldview.PeerInfo.Lost
 					if len(lost) != 0 {
-						ReassignHallOrders(worldview, fleetActionChan, 
+						reassignHallOrders(worldview, fleetActionChan, 
 							orderActionChan, Reassignment{Cause: Disconnected})
+						storeLostCabOrders(lost, &lostCabOrders, worldview)
+						for _, order := range lostCabOrders {
+							fmt.Printf("Lost cab id: %s\n", order.Id)
+						}
 					}
 
 				case elevUpdate := <-elevStateChan:

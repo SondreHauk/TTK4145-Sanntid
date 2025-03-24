@@ -40,7 +40,7 @@ func updateHallLights(wv Worldview, lights HallMatrix, mapActionChan chan FleetA
 	sync.WriteHallLights(lightsActionChan, lights)
 }
 
-func ReassignHallOrders(wv Worldview, MapActionChan chan FleetAccess, ordersActionChan chan OrderAccess, reassign Reassignment){
+func reassignHallOrders(wv Worldview, MapActionChan chan FleetAccess, ordersActionChan chan OrderAccess, reassign Reassignment){
 	wv = WorldviewConstructor(wv.PrimaryId, wv.PeerInfo, sync.FleetRead(MapActionChan))
 	switch reassign.Cause{
 	case Disconnected:
@@ -55,9 +55,7 @@ func ReassignHallOrders(wv Worldview, MapActionChan chan FleetAccess, ordersActi
 						Button: btn,
 					}
 					lostOrder.Id = assigner.ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, lostOrder)
-					// APPEND TO UNACCEPTED ORDERS IN WORLDVIEW
 					sync.AddUnacceptedOrder(ordersActionChan, lostOrder)
-					/*orderToElevChan <- lostOrder*/
 				}
 			}
 		}
@@ -77,6 +75,20 @@ func ReassignHallOrders(wv Worldview, MapActionChan chan FleetAccess, ordersActi
 				sync.AddUnacceptedOrder(ordersActionChan, lostOrder)
 				/*orderToElevChan <- lostOrder*/
 			}
+			}
+		}
+	}
+}
+
+func storeLostCabOrders(lost []string, lostCabOrders *[]Order, wv Worldview){
+	for _, id := range lost {
+		lostOrders := wv.FleetSnapshot[id].Orders
+		for floor, orders := range lostOrders {
+			for ord, active := range orders {
+				if active && ord == int(elevio.BT_Cab) {
+					cabOrder := OrderConstructor(id, floor, ord)
+					*lostCabOrders = append(*lostCabOrders, cabOrder)
+				}
 			}
 		}
 	}
@@ -103,7 +115,7 @@ func obstructionHandler(
 				if !timerExists{
 					timer := time.AfterFunc(T_REASSIGN_PRIMARY, func() {
 					reassignmentDetails := Reassignment{Cause: Obstructed, ObsId: obstructedElevators[len(obstructedElevators)-1]}
-					ReassignHallOrders(worldview, mapActionChan,ordersActionChan, reassignmentDetails)}) // DATA RACE
+					reassignHallOrders(worldview, mapActionChan,ordersActionChan, reassignmentDetails)}) // DATA RACE
 					obstructionTimers[elevUpdate.Id] = timer
 				}
 			} else {
