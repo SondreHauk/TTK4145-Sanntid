@@ -12,7 +12,7 @@ func Run(
 	elevStateChan <-chan Elevator,
 	becomePrimaryChan <-chan Worldview,
 	worldviewTXChan chan<- Worldview,
-	/*worldviewRXChan <-chan Worldview,*/
+	worldviewRXChan <-chan Worldview,
 	requestFromElevChan <-chan HallMatrix,
 	myId string) {
 
@@ -35,12 +35,14 @@ func Run(
 	go sync.UnacceptedOrdersManager(orderActionChan)
 	go sync.HallLightsManager(lightsActionChan)
 	go obstructionHandler(elevUpdateObsChan, worldviewObsChan, fleetActionChan, orderActionChan)
+	
 	for{
 		select {
+		// Draining of channels prior to primary activation
+		case <-worldviewRXChan:
 		case <-elevStateChan:
-			// Drain channel
 		case <-requestFromElevChan:
-			// Drain channel
+		// Primary activation
 		case wv := <-becomePrimaryChan:
 			fmt.Println("Taking over as Primary")
 			worldview = wv
@@ -49,7 +51,7 @@ func Run(
 			heartbeatTimer := time.NewTicker(T_HEARTBEAT)
 			defer heartbeatTimer.Stop()
 
-			//primaryLoop:
+			primaryLoop:
 			for {
 				select {
 				case worldview.PeerInfo = <-peerUpdateChan:
@@ -67,39 +69,25 @@ func Run(
 					updateHallLights(worldview, hallLights, fleetActionChan, lightsActionChan)
 					elevUpdateObsChan <- elevUpdate
           
-			case requests := <-requestFromElevChan:
-				// fmt.Printf("Request received from: %s\n ", request.Id)
-				worldview.FleetSnapshot = sync.FleetRead(fleetActionChan) // Should this be done each time and not once?
-				// TODO: extract requests into order format and run the following for each order:
-
-				assignRequests(requests, worldview, orderActionChan)
-				// for floor, request := range requests {
-				// 	for btn, active := range request {
-				// 		if active {
-				// 			order := OrderConstructor("arbitrary", floor, btn) // Id or not?
-				// 			AssignedId := assigner.ChooseElevator(worldview.FleetSnapshot, worldview.PeerInfo.Peers, order)
-				// 			sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(AssignedId, order.Floor, order.Button))
-				// 		}
-				// 	}
-				// }
+				case requests := <-requestFromElevChan:
+					worldview.FleetSnapshot = sync.FleetRead(fleetActionChan)
+					assignRequests(requests, worldview, orderActionChan)
 
 				case <-heartbeatTimer.C:
 					worldview.FleetSnapshot = sync.FleetRead(fleetActionChan)
 					worldview.UnacceptedOrdersSnapshot = sync.GetUnacceptedOrders(orderActionChan)
 					worldview.HallLightsSnapshot = sync.ReadHallLights(lightsActionChan)
-					// PrintWorldView(worldview)
 					worldviewTXChan <- worldview
 					worldviewObsChan <- worldview
 
-					/* case receivedWV := <-worldviewRXChan:
-					receivedId := receivedWV.PrimaryId
-					fmt.Print(receivedId)
-					if receivedId < myId {
-						fmt.Printf("Primary: %s, taking over\n", receivedId)
-						break primaryLoop */
-					//defere break om mulig?
+				case receivedWV := <-worldviewRXChan:
+					if receivedWV.PrimaryId < myId {
+						fmt.Printf("Primary: %s, taking over\n", receivedWV.PrimaryId)
+						fmt.Println("Enter Backup mode - listening for primary")
+						break primaryLoop
+					}
 				}
-			}
+			}	
 		}
 	}
 }
