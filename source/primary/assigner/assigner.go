@@ -1,9 +1,3 @@
-// This module will assign a hall call to an elevator
-// based on the current state of the elevator and the hall call
-// This will be done in a cost function.
-
-// Alternative 1: Assigning only the new request.
-
 package assigner
 
 import (
@@ -11,7 +5,25 @@ import (
 	"source/localElevator/fsm"
 	"source/localElevator/requests"
 	"time"
+	"source/localElevator/elevio"
+	"source/primary/sync"
 )
+
+func AssignRequests(requests Requests, wv Worldview, orderActionChan chan OrderAccess){
+	for floor, request := range requests.Requests {
+		for req, active := range request {
+			if active {
+				order := OrderConstructor(requests.Id, floor, req)
+				if order.Button == int(elevio.BT_Cab) {
+					sync.AddUnacceptedOrder(orderActionChan, order)
+				} else {
+					AssignedId := ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, order)
+					sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(AssignedId, order.Floor, order.Button))
+				}
+			}
+		}
+	}
+}
 
 //Creates a copy of the elevator and simulates executing remaining orders
 //NOT USED
@@ -51,8 +63,6 @@ func TimeToIdle(elev Elevator) time.Duration {
 // and not sending cabcalls to the primary.
 func ChooseElevator(elevators map[string]Elevator, activeIds []string, NewOrder Order)string{
 	
-	// Reobustness: if order is cab-call, assign to Id.
-
 	bestTime := time.Hour //inf
 	var bestId string
 	

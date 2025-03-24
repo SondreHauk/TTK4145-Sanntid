@@ -91,7 +91,7 @@ func checkForNewOrders(
 	myId string, 
 	orderChan chan <- Order, 
 	accReqChan chan <- OrderMatrix,
-	acceptedorders [NUM_FLOORS][NUM_BUTTONS]bool) {
+	acceptedorders OrderMatrix) {
 	
 	// send acc orders to request module 
 	accOrdersMatrix := OrderMatrix{}
@@ -113,15 +113,23 @@ func checkForNewOrders(
 	}
 }
 
-func checkForNewLights(wv Worldview, currenthallLights HallMatrix, hallLightsChan chan HallMatrix) {
+func checkForNewLights(wv Worldview, lights HallMatrix, lightsChan chan HallMatrix) {
 	// if any update in hall lights. Send new lights on HallLightsChan
-	for i := range currenthallLights {
-		for j := range currenthallLights[i] {
+	for floor, buttons := range lights {
+		for btn := range buttons {
 			// Indexing empty hallightssnapshot error
-			if currenthallLights[i][j] != wv.HallLightsSnapshot[i][j] {
-				hallLightsChan <- wv.HallLightsSnapshot
+			if lights[floor][btn] != wv.HallLightsSnapshot[floor][btn] {
+				lightsChan <- wv.HallLightsSnapshot
 				return
 			}
+		}
+	}
+}
+
+func setHallLights(lights HallMatrix){
+	for floor, btns := range lights {
+		for btn, status := range btns {
+			elevio.SetButtonLamp(elevio.ButtonType(btn), floor, status)
 		}
 	}
 }

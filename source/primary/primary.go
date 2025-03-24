@@ -3,7 +3,8 @@ package primary
 import (
 	"fmt"
 	. "source/config"
-	"source/localElevator/elevio"
+	// "source/localElevator/elevio"
+	"source/primary/assigner"
 	"source/primary/sync"
 	"time"
 )
@@ -48,7 +49,7 @@ func Run(
 			sync.FullFleetWrite(worldview.FleetSnapshot, fleetActionChan)
 			sync.WriteHallLights(lightsActionChan, wv.HallLightsSnapshot)
 			heartbeatTimer := time.NewTicker(T_HEARTBEAT)
-			defer heartbeatTimer.Stop()
+			// defer heartbeatTimer.Stop()
 
 			//primaryLoop:
 			for {
@@ -56,15 +57,15 @@ func Run(
 				case worldview.PeerInfo = <-peerUpdateChan:
 					printPeers(worldview.PeerInfo)
 
-					new := worldview.PeerInfo.New
-					lostOrders := worldview.FleetSnapshot[new].Orders
-					for floor, orders := range lostOrders {
-						for order, active := range orders {
-							if order == int(elevio.BT_Cab) && active {
-								sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(new, floor, int(elevio.BT_Cab)))
-							}
-						}
-					}
+					// new := worldview.PeerInfo.New
+					// lostOrders := worldview.FleetSnapshot[new].Orders
+					// for floor, orders := range lostOrders {
+					// 	for order, active := range orders {
+					// 		if order == int(elevio.BT_Cab) && active {
+					// 			sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(new, floor, int(elevio.BT_Cab)))
+					// 		}
+					// 	}
+					// }
 
 					lost := worldview.PeerInfo.Lost
 					if len(lost) != 0 {
@@ -79,10 +80,9 @@ func Run(
 					updateHallLights(worldview, hallLights, fleetActionChan, lightsActionChan)
 					elevUpdateObsChan <- elevUpdate
           
-			case requests := <-requestsRXChan:
-				// fmt.Printf("Request received from: %s\n ", request.Id)
-				worldview.FleetSnapshot = sync.FleetRead(fleetActionChan)
-				assignRequests(requests, wv, orderActionChan)
+				case requests := <-requestsRXChan:
+					worldview.FleetSnapshot = sync.FleetRead(fleetActionChan)
+					assigner.AssignRequests(requests, worldview, orderActionChan)
 
 				case <-heartbeatTimer.C:
 					worldview.FleetSnapshot = sync.FleetRead(fleetActionChan)

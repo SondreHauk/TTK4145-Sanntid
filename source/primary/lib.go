@@ -9,22 +9,6 @@ import(
 	"fmt"
 )
 
-func assignRequests(requests Requests, wv Worldview, orderActionChan chan OrderAccess){
-	for floor, request := range requests.Requests {
-		for req, active := range request {
-			if active {
-				if req == int(elevio.BT_Cab) {
-					sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(requests.Id, floor, req))
-				} else {
-					order := OrderConstructor(requests.Id, floor, req)
-					AssignedId := assigner.ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, order)
-					sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(AssignedId, order.Floor, order.Button))
-				}
-			}
-		}
-	}
-}
-
 func checkforAcceptedOrders(orderActionChan chan OrderAccess, elevUpdate Elevator, unacceptedOrders []Order){
 	for floor, buttons := range elevUpdate.Orders {
 		for btn, orderAccepted := range buttons {
@@ -41,19 +25,19 @@ func checkforAcceptedOrders(orderActionChan chan OrderAccess, elevUpdate Elevato
 	}
 }
 
-func updateHallLights(wv Worldview, hallLights HallMatrix, mapActionChan chan FleetAccess, lightsActionChan chan LightsAccess) {
+func updateHallLights(wv Worldview, lights HallMatrix, mapActionChan chan FleetAccess, lightsActionChan chan LightsAccess) {
 	wv = WorldviewConstructor(wv.PrimaryId, wv.PeerInfo, sync.FleetRead(mapActionChan))
 	for _, id := range wv.PeerInfo.Peers {
 		orderMatrix := wv.FleetSnapshot[id].Orders
 		for floor, floorOrders := range orderMatrix {
 			for btn, isOrder := range floorOrders {
 				if isOrder && btn != int(elevio.BT_Cab) {
-					hallLights[floor][btn] = true
+					lights[floor][btn] = true
 				}
 			}
 		}
 	}
-	sync.WriteHallLights(lightsActionChan, hallLights)
+	sync.WriteHallLights(lightsActionChan, lights)
 }
 
 func ReassignHallOrders(wv Worldview, MapActionChan chan FleetAccess, ordersActionChan chan OrderAccess, reassign Reassignment){
