@@ -68,8 +68,8 @@ func UnacceptedOrdersManager(ordersActionChan <-chan OrderAccess) {
 					// If no orders remain, delete the key from the map
 					if len(newOrders) > 0 {
 						orders[action.Id] = newOrders
-					} else {
-						delete(orders, action.Id)
+					// } else {
+					// 	delete(orders, action.Id)
 					}
 				}
 			}

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	. "source/config"
 	// "source/localElevator/elevio"
+
+	// "source/localElevator/elevio"
 	"source/primary/assigner"
 	"source/primary/sync"
 	"time"
@@ -31,7 +33,7 @@ func Run(
 	worldview.FleetSnapshot = make(map[string]Elevator)
 	worldview.UnacceptedOrdersSnapshot = make(map[string][]Order)
 	hallLights := HallMatrix{}
-	var lostCabOrders []Order
+	// var lostCabOrders []Order
 
 	// Owns and handles access to maps
 	go sync.FleetAccessManager(fleetActionChan)
@@ -57,24 +59,11 @@ func Run(
 				select {
 				case worldview.PeerInfo = <-peerUpdateChan:
 					printPeers(worldview.PeerInfo)
-
-					newId := worldview.PeerInfo.New
-					for i := len(lostCabOrders) - 1; i >= 0; i-- {
-						if lostCabOrders[i].Id == newId {
-							sync.AddUnacceptedOrder(orderActionChan,
-								OrderConstructor(newId, lostCabOrders[i].Floor, lostCabOrders[i].Button))
-							lostCabOrders = append(lostCabOrders[:i], lostCabOrders[i+1:]...)
-						}
-					}
-
 					lost := worldview.PeerInfo.Lost
 					if len(lost) != 0 {
 						reassignHallOrders(worldview, fleetActionChan, 
 							orderActionChan, Reassignment{Cause: Disconnected})
-						storeLostCabOrders(lost, &lostCabOrders, worldview)
-						for _, order := range lostCabOrders {
-							fmt.Printf("Lost cab id: %s\n", order.Id)
-						}
+						rememberLostCabOrders(lost, orderActionChan, worldview)
 					}
 
 				case elevUpdate := <-elevStateChan:
