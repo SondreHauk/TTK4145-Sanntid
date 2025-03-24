@@ -37,39 +37,6 @@ func kill(StopButtonCh <-chan bool) {
 	os.Exit(1)
 }
 
-// func worldviewRouter(worldviewRXChan <-chan Worldview,
-// 	/*worldviewToPrimaryChan chan<- Worldview,*/
-// 	worldviewToBackupChan chan<- Worldview,
-// 	worldviewToElevatorChan chan<- Worldview) {
-// 	for wv := range worldviewRXChan {
-// 		worldviewToBackupChan <- wv
-// 		/*worldviewToPrimaryChan <- wv*/
-// 		worldviewToElevatorChan <- wv
-// 	}
-// }
-
-// func worldviewRouter(worldviewRXChan <-chan Worldview,
-// 	/*worldviewToPrimaryChan chan<- Worldview,*/
-// 	worldviewToBackupChan chan<- Worldview,
-// 	worldviewToElevatorChan chan<- Worldview) {
-
-// 	for wv := range worldviewRXChan {
-// 		select {
-// 		case worldviewToBackupChan <- wv:
-// 			fmt.Println("Sent to backup")
-// 		default:
-// 			fmt.Println("Warning: Dropped worldviewToBackup due to full channel")
-// 		}
-
-// 		select {
-// 		case worldviewToElevatorChan <- wv:
-// 			// fmt.Println("Sent to elev")
-// 		default:
-// 			fmt.Println("Warning: Dropped worldviewToElevator due to full channel")
-// 		}
-// 	}
-// }
-
 func main() {
 
 	var port string
@@ -88,10 +55,8 @@ func main() {
 	worldviewTXChan := make(chan Worldview, 10)
 	worldviewRXChan := make(chan Worldview, 10)
 	becomePrimaryChan := make(chan Worldview, 1)
-	//becomePrimaryDupeChan := make(chan Worldview, 1)
 
 	// worldviewToPrimaryChan := make(chan Worldview, 10)
-	// worldviewToBackupChan := make(chan Worldview, 10)
 	worldviewToElevatorChan := make(chan Worldview, 10)
 
 	atFloorChan := make(chan int, 1)
@@ -99,9 +64,9 @@ func main() {
 	obstructionChan := make(chan bool, 1)
 	stopChan := make(chan bool, 1)
 
-	requestTXChan := make(chan HallMatrix, 10)
-	requestRXChan := make(chan HallMatrix, 10)
-	accReqChan := make(chan HallMatrix, 10)
+	requestsTXChan := make(chan Requests, 10)
+	requestsRXChan := make(chan Requests, 10)
+	accReqChan := make(chan OrderMatrix, 10)
 	orderChan := make(chan Order, 10)
 
 	//Initializations
@@ -111,7 +76,7 @@ func main() {
 	inits.ElevatorInit(&elev, id)
 
 	// Goroutines Local elevator
-	go requests.MakeRequest(buttonChan, requestTXChan, orderChan, accReqChan, id)
+	go requests.SendRequest(buttonChan, requestsTXChan, accReqChan, id)
 	go elevio.PollButtons(buttonChan)
 	go elevio.PollFloorSensor(atFloorChan)
 	go elevio.PollObstructionSwitch(obstructionChan)
@@ -120,24 +85,18 @@ func main() {
 		accReqChan, obstructionChan, worldviewToElevatorChan, id)
 
 	// Goroutines communication
-	go bcast.Transmitter(PORT_BCAST, elevatorTXChan, requestTXChan)
-	go bcast.Receiver(PORT_BCAST, elevatorRXChan, requestRXChan)
+	go bcast.Transmitter(PORT_BCAST, elevatorTXChan, requestsTXChan)
+	go bcast.Receiver(PORT_BCAST, elevatorRXChan, requestsRXChan)
 	go peers.Transmitter(PORT_PEERS, id, transmitEnableChan)
 	go peers.Receiver(PORT_PEERS, peerUpdateChan)
 
 	go bcast.Transmitter(PORT_WORLDVIEW, worldviewTXChan)
 	go bcast.Receiver(PORT_WORLDVIEW, worldviewRXChan)
 
-	// go worldviewRouter(worldviewRXChan, /*worldviewToPrimaryChan,*/ worldviewToBackupChan, worldviewToElevatorChan)
-	
-	//TODO: DRAIN CHANNELS GOING TO PRIMARY
-	
-	//go primary.DrainChans(becomePrimaryChan, becomePrimaryDupeChan, peerUpdateChan, elevatorRXChan, requestRXChan)
-
 	// Fault tolerance protocol
 	go backup.Run(worldviewRXChan, worldviewToElevatorChan, becomePrimaryChan, id)
 	go primary.Run(peerUpdateChan, elevatorRXChan, becomePrimaryChan, 
-		worldviewTXChan, /*worldviewToPrimaryChan,*/ requestRXChan, id)
+		worldviewTXChan, /*worldviewToPrimaryChan,*/ requestsRXChan, id)
 
 	// Kills terminal if interrupted
 	go kill(stopChan)

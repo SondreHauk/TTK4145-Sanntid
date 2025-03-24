@@ -10,8 +10,6 @@ import (
 	. "source/config"
 	"source/localElevator/fsm"
 	"source/localElevator/requests"
-	//"source/primary"
-	//"source/network/peers"
 	"time"
 )
 

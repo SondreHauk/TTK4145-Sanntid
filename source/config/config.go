@@ -45,6 +45,7 @@ const (
 	PORT_WORLDVIEW  = 20040
 )
 
+type OrderMatrix [NUM_FLOORS][NUM_BUTTONS]bool
 type HallMatrix [NUM_FLOORS][NUM_BUTTONS-1]bool
 
 type ElevatorState int
@@ -55,9 +56,14 @@ type Elevator struct {
 	Direction     int
 	PrevDirection int
 	State         ElevatorState
-	Orders        [NUM_FLOORS][NUM_BUTTONS]bool
-	Requests  	  HallMatrix
+	Orders        OrderMatrix
+	Requests  	  OrderMatrix
  	Obstructed 	  bool
+}
+
+type Requests struct {
+	Id 		 string
+	Requests OrderMatrix
 }
 
 type Order struct {

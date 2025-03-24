@@ -3,6 +3,7 @@ package primary
 import (
 	"fmt"
 	. "source/config"
+	"source/localElevator/elevio"
 	"source/primary/sync"
 	"time"
 )
@@ -13,7 +14,7 @@ func Run(
 	becomePrimaryChan <-chan Worldview,
 	worldviewTXChan chan<- Worldview,
 	/*worldviewRXChan <-chan Worldview,*/
-	requestFromElevChan <-chan HallMatrix,
+	requestsRXChan <-chan Requests,
 	myId string) {
 
 	// Syncronization channels
@@ -39,7 +40,7 @@ func Run(
 		select {
 		case <-elevStateChan:
 			// Drain channel
-		case <-requestFromElevChan:
+		case <-requestsRXChan:
 			// Drain channel
 		case wv := <-becomePrimaryChan:
 			fmt.Println("Taking over as Primary")
@@ -54,6 +55,17 @@ func Run(
 				select {
 				case worldview.PeerInfo = <-peerUpdateChan:
 					printPeers(worldview.PeerInfo)
+
+					new := worldview.PeerInfo.New
+					lostOrders := worldview.FleetSnapshot[new].Orders
+					for floor, orders := range lostOrders {
+						for order, active := range orders {
+							if order == int(elevio.BT_Cab) && active {
+								sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(new, floor, int(elevio.BT_Cab)))
+							}
+						}
+					}
+
 					lost := worldview.PeerInfo.Lost
 					if len(lost) != 0 {
 						ReassignHallOrders(worldview, fleetActionChan, 
@@ -67,21 +79,10 @@ func Run(
 					updateHallLights(worldview, hallLights, fleetActionChan, lightsActionChan)
 					elevUpdateObsChan <- elevUpdate
           
-			case requests := <-requestFromElevChan:
+			case requests := <-requestsRXChan:
 				// fmt.Printf("Request received from: %s\n ", request.Id)
-				worldview.FleetSnapshot = sync.FleetRead(fleetActionChan) // Should this be done each time and not once?
-				// TODO: extract requests into order format and run the following for each order:
-
-				assignRequests(requests, worldview, orderActionChan)
-				// for floor, request := range requests {
-				// 	for btn, active := range request {
-				// 		if active {
-				// 			order := OrderConstructor("arbitrary", floor, btn) // Id or not?
-				// 			AssignedId := assigner.ChooseElevator(worldview.FleetSnapshot, worldview.PeerInfo.Peers, order)
-				// 			sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(AssignedId, order.Floor, order.Button))
-				// 		}
-				// 	}
-				// }
+				worldview.FleetSnapshot = sync.FleetRead(fleetActionChan)
+				assignRequests(requests, wv, orderActionChan)
 
 				case <-heartbeatTimer.C:
 					worldview.FleetSnapshot = sync.FleetRead(fleetActionChan)

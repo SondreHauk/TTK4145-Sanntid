@@ -1,0 +1,9 @@
+All requests are sendt to primay.
+Request are formatted as {id, OrderMatrix}
+
+The primary assigns cab requests to the elevator who sendt it (check id)
+The primary assigns hall request to the elevator most fit
+
+The elevator receives the assigned orders and sets lights accordingly.
+
+When an elevator is lost, all hall orders are reassigned, while the cab calls are kept.

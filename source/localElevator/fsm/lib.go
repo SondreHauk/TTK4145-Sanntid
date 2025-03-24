@@ -90,17 +90,17 @@ func checkForNewOrders(
 	wv Worldview,
 	myId string, 
 	orderChan chan <- Order, 
-	accReqChan chan <- HallMatrix,
+	accReqChan chan <- OrderMatrix,
 	acceptedorders [NUM_FLOORS][NUM_BUTTONS]bool) {
 	
-	// send acc hall orders to request module 
-	accHallOrders := HallMatrix{}
+	// send acc orders to request module 
+	accOrdersMatrix := OrderMatrix{}
 	for _, accOrders := range wv.UnacceptedOrdersSnapshot{
 			for _, ord := range accOrders{
-				accHallOrders[ord.Floor][ord.Button] = true
+				accOrdersMatrix[ord.Floor][ord.Button] = true
 			}
 		}
-	accReqChan <- accHallOrders
+	accReqChan <- accOrdersMatrix
 
 	// send assigned order to elevator
 	orders, exists := wv.UnacceptedOrdersSnapshot[myId]

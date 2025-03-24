@@ -12,7 +12,7 @@ func Run(
 	elevChan chan <-Elevator, 
 	atFloorChan <-chan int, 
 	orderChan chan Order,
-	accReqChan chan <- HallMatrix,
+	accReqChan chan <- OrderMatrix,
 	obstructionChan <-chan bool,
 	worldviewToElevatorChan <-chan Worldview,
 	myId string) {

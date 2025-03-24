@@ -9,13 +9,17 @@ import(
 	"fmt"
 )
 
-func assignRequests(requests HallMatrix, wv Worldview, orderActionChan chan OrderAccess){
-	for floor, request := range requests {
-		for btn, active := range request {
+func assignRequests(requests Requests, wv Worldview, orderActionChan chan OrderAccess){
+	for floor, request := range requests.Requests {
+		for req, active := range request {
 			if active {
-				order := OrderConstructor("arbitrary", floor, btn) // Id or not?
-				AssignedId := assigner.ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, order)
-				sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(AssignedId, order.Floor, order.Button))
+				if req == int(elevio.BT_Cab) {
+					sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(requests.Id, floor, req))
+				} else {
+					order := OrderConstructor(requests.Id, floor, req)
+					AssignedId := assigner.ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, order)
+					sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(AssignedId, order.Floor, order.Button))
+				}
 			}
 		}
 	}
