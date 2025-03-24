@@ -4,6 +4,7 @@ import (
 	"os/exec"
 	"os"
 	"log"
+	"strings"
 	. "source/config"
 	"source/localElevator/elevio"
 	"source/localElevator/requests"
@@ -134,7 +135,8 @@ func spawnProcess() error{
 	if err != nil {
 		return err
 	}
-	cmd:=exec.Command(path, os.Args[1:]...)
+	args := strings.Join(os.Args[1:]," ")
+	cmd:=exec.Command("gnome-terminal", "--", "bash", "-c", path+" "+args+"; exec bash")
 	if err := cmd.Start(); err != nil {
 		return err
 	}
@@ -145,7 +147,7 @@ func restartUponMotorStop(){
 	if err:=spawnProcess(); err != nil {
 		log.Printf("Failed to restart process: %v", err)
 	}
-	log.Println("Motor stop detected. Ladiees and gentlemen START YOUR ENGINES.")
+	log.Println("Motor stop detected. Restart")
 	os.Exit(1)
 }
 
