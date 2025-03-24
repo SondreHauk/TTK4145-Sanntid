@@ -51,3 +51,8 @@
 	
 // 	 fmt.Println("Best elevator: ",assigner.ChooseElevator(el,activeIds,Order{0,1}))
 // }
+
+func testSplitBrain(id string, elev Elevator, becomePrimaryChan chan Worldview){
+    time.Sleep(5*time.Second)
+	becomePrimaryChan <- WorldviewConstructor(id, PeerUpdate{Peers:[]string{id},New: "",Lost: []string{}}, map[string]Elevator{id: elev})
+}

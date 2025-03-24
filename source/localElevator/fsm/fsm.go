@@ -28,10 +28,9 @@ func Run(
 	doorTimer.Stop()
 	obstructionTimer := time.NewTimer(T_REASSIGN_LOCAL)
 	obstructionTimer.Stop()
-	/* motorstopTimer := time.NewTimer(T_REASSIGN_LOCAL)
+	motorstopTimer := time.NewTimer(2*T_TRAVEL)
 	motorstopTimer.Stop()
-	go motorstopPoll() */
-
+	
 	for {
 		select {
 		case wv = <- worldviewToElevatorChan:
@@ -46,6 +45,8 @@ func Run(
 				case IDLE:
 					elev.Direction = ChooseDirection(*elev)
 					elevio.SetMotorDirection(elevio.MotorDirection(elev.Direction))
+					resetTimer(motorstopTimer, 2*T_TRAVEL)
+
 					if elev.Direction == STOP {
 						elevio.SetDoorOpenLamp(true)
 						doorTimer.Reset(T_DOOR_OPEN)
@@ -82,8 +83,10 @@ func Run(
 			}
 
 		case elev.Floor = <-atFloorChan:
+			resetTimer(motorstopTimer, 2*T_TRAVEL)
 			elevio.SetFloorIndicator(elev.Floor)
 			if ShouldStop(*elev) {
+				motorstopTimer.Stop()
 				elevio.SetMotorDirection(elevio.MD_Stop)
 				requests.ClearOrder(elev, elev.Floor)
 				elev.Direction = STOP
@@ -100,6 +103,7 @@ func Run(
 				elev.State = IDLE
 			} else {
 				elevio.SetMotorDirection(elevio.MotorDirection(elev.Direction))
+				resetTimer(motorstopTimer, 2*T_TRAVEL)
 				elev.State = MOVING
 			}
 			elevChan <- *elev
@@ -132,8 +136,9 @@ func Run(
 		case <-heartbeatTimer.C:
 			elevChan <- *elev
 			heartbeatTimer.Reset(T_HEARTBEAT)
+		
+		case <-motorstopTimer.C:
+			restartUponMotorStop()
 		}
-
-		time.Sleep(T_SLEEP)
 	}
 }

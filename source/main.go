@@ -37,39 +37,6 @@ func kill(StopButtonCh <-chan bool) {
 	os.Exit(1)
 }
 
-// func worldviewRouter(worldviewRXChan <-chan Worldview,
-// 	/*worldviewToPrimaryChan chan<- Worldview,*/
-// 	worldviewToBackupChan chan<- Worldview,
-// 	worldviewToElevatorChan chan<- Worldview) {
-// 	for wv := range worldviewRXChan {
-// 		worldviewToBackupChan <- wv
-// 		/*worldviewToPrimaryChan <- wv*/
-// 		worldviewToElevatorChan <- wv
-// 	}
-// }
-
-// func worldviewRouter(worldviewRXChan <-chan Worldview,
-// 	/*worldviewToPrimaryChan chan<- Worldview,*/
-// 	worldviewToBackupChan chan<- Worldview,
-// 	worldviewToElevatorChan chan<- Worldview) {
-
-// 	for wv := range worldviewRXChan {
-// 		select {
-// 		case worldviewToBackupChan <- wv:
-// 			fmt.Println("Sent to backup")
-// 		default:
-// 			fmt.Println("Warning: Dropped worldviewToBackup due to full channel")
-// 		}
-
-// 		select {
-// 		case worldviewToElevatorChan <- wv:
-// 			// fmt.Println("Sent to elev")
-// 		default:
-// 			fmt.Println("Warning: Dropped worldviewToElevator due to full channel")
-// 		}
-// 	}
-// }
-
 func main() {
 
 	var port string
@@ -88,10 +55,8 @@ func main() {
 	worldviewTXChan := make(chan Worldview, 10)
 	worldviewRXChan := make(chan Worldview, 10)
 	becomePrimaryChan := make(chan Worldview, 1)
-	//becomePrimaryDupeChan := make(chan Worldview, 1)
 
-	// worldviewToPrimaryChan := make(chan Worldview, 10)
-	// worldviewToBackupChan := make(chan Worldview, 10)
+	worldviewToPrimaryChan := make(chan Worldview, 10)
 	worldviewToElevatorChan := make(chan Worldview, 10)
 
 	atFloorChan := make(chan int, 1)
@@ -128,16 +93,10 @@ func main() {
 	go bcast.Transmitter(PORT_WORLDVIEW, worldviewTXChan)
 	go bcast.Receiver(PORT_WORLDVIEW, worldviewRXChan)
 
-	// go worldviewRouter(worldviewRXChan, /*worldviewToPrimaryChan,*/ worldviewToBackupChan, worldviewToElevatorChan)
-	
-	//TODO: DRAIN CHANNELS GOING TO PRIMARY
-	
-	//go primary.DrainChans(becomePrimaryChan, becomePrimaryDupeChan, peerUpdateChan, elevatorRXChan, requestRXChan)
-
 	// Fault tolerance protocol
-	go backup.Run(worldviewRXChan, worldviewToElevatorChan, becomePrimaryChan, id)
+	go backup.Run(worldviewRXChan, worldviewToElevatorChan, becomePrimaryChan, worldviewToPrimaryChan, id)
 	go primary.Run(peerUpdateChan, elevatorRXChan, becomePrimaryChan, 
-		worldviewTXChan, /*worldviewToPrimaryChan,*/ requestRXChan, id)
+		worldviewTXChan, worldviewToPrimaryChan, requestRXChan, id)
 
 	// Kills terminal if interrupted
 	go kill(stopChan)
