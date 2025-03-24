@@ -1,6 +1,7 @@
 package fsm
 
 import (
+	// "fmt"
 	. "source/config"
 	"source/localElevator/elevio"
 	"source/localElevator/requests"

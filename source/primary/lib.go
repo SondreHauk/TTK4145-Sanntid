@@ -93,7 +93,7 @@ func rememberLostCabOrders(
 	for _, id := range lostElevators {
 		for floor, orders := range worldview.FleetSnapshot[id].Orders {
 			for btn, active := range orders {
-				if active {
+				if active && btn == int(elevio.BT_Cab) {
 					sync.AddUnacceptedOrder(orderActionChan,
 						OrderConstructor(id, floor, btn))
 				}
