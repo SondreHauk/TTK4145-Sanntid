@@ -1,7 +1,6 @@
 package requests
 
 import (
-	"fmt"
 	. "source/config"
 	"source/localElevator/elevio"
 	"time"
@@ -31,12 +30,12 @@ func OrdersBelow(elev Elevator) bool {
 
 func ClearOrder(elev *Elevator, floor int) {
 	switch elev.Direction {
-		case UP: // Clear hall up
+		case UP:
 			elev.Orders[floor][elevio.BT_HallUp] = false
 			if !OrdersAbove(*elev) {
 				elev.Orders[floor][elevio.BT_HallDown] = false
 			}
-		case DOWN: // Clear hall down
+		case DOWN:
 			elev.Orders[floor][elevio.BT_HallDown] = false
 			if !OrdersBelow(*elev) {
 				elev.Orders[floor][elevio.BT_HallUp] = false
@@ -52,37 +51,53 @@ func ClearAll(elev *Elevator) {
 	}
 }
 
-func MakeRequest(btnEvent <-chan elevio.ButtonEvent, 
-	requestToPrimary chan <-Order, 
+func MakeRequest(
+	reqEventChan <-chan elevio.ButtonEvent, 
+	requestToPrimaryChan chan <- HallMatrix, 
 	orderChan chan <- Order,
+	accReqChan <- chan HallMatrix,
 	id string) {
+
+	hallRequests := HallMatrix{}
+	heartBeat := time.NewTicker(T_HEARTBEAT)
+	defer heartBeat.Stop()
+
 	for{
 		select {
-			case btn := <-btnEvent:
-				request := Order{Id: id, Floor: btn.Floor, Button: int(btn.Button)}
-				if btn.Button == elevio.BT_Cab{
-					orderChan <- request // Assign directly to elev
-					elevio.SetButtonLamp(elevio.ButtonType(btn.Button), btn.Floor, true)
-				} else {
-					requestToPrimary<- request
+		case accReq := <- accReqChan:
+			for floor, orders := range accReq{
+				for btn := range orders{
+					if accReq[floor][btn] {
+						hallRequests[floor][btn] = false
+					}
 				}
+			}
+
+		case req := <- reqEventChan:
+			if req.Button == elevio.BT_Cab{
+				orderChan <- OrderConstructor(id, req.Floor, int(req.Button)) // Assign directly to elev
+				elevio.SetButtonLamp(elevio.ButtonType(req.Button), req.Floor, true)
+			} else {
+				hallRequests[req.Floor][req.Button] = true
+			 	requestToPrimaryChan <- hallRequests
+			}
+
+		case <- heartBeat.C:
+			if checkForActiveRequests(hallRequests) {
+				requestToPrimaryChan <- hallRequests
+			}
 		}
-		time.Sleep(T_SLEEP) //Necessary?
+		time.Sleep(T_SLEEP)
 	}
 }
 
-//Make modular with for loop up to NUM_ELEV
-func PrintRequests(elev Elevator){
-	fmt.Printf("Floor 4: %t %t %t\n",elev.Orders[3][0],elev.Orders[3][1],elev.Orders[3][2])
-	fmt.Printf("Floor 3: %t %t %t\n",elev.Orders[2][0],elev.Orders[2][1],elev.Orders[2][2])
-	fmt.Printf("Floor 2: %t %t %t\n",elev.Orders[1][0],elev.Orders[1][1],elev.Orders[1][2])
-	fmt.Printf("Floor 1: %t %t %t\n\n",elev.Orders[0][0],elev.Orders[0][1],elev.Orders[0][2])
-}
-
-func PrintState(elev Elevator){
-	switch elev.State{
-		case IDLE: fmt.Printf("State: IDLE\n")
-		case MOVING: fmt.Printf("State: MOVING\n")
-		case DOOR_OPEN: fmt.Printf("State: DOOR_OPEN\n")
+func checkForActiveRequests(requests HallMatrix) bool {
+	for _, req := range requests{
+		for _, active := range req {
+			if active {
+				return true
+			}
+		}
 	}
+	return false
 }

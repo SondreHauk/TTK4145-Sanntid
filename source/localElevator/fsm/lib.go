@@ -86,8 +86,23 @@ func TimeUntilPickup(elev Elevator, NewOrder Order) time.Duration{
 	}
 }
 
-// if any assigned unaccepted order. Send order on Orderchan
-func checkForNewOrders(wv Worldview, myId string, orderChan chan <- Order, acceptedorders [NUM_FLOORS][NUM_BUTTONS]bool) {
+func checkForNewOrders(
+	wv Worldview,
+	myId string, 
+	orderChan chan <- Order, 
+	accReqChan chan <- HallMatrix,
+	acceptedorders [NUM_FLOORS][NUM_BUTTONS]bool) {
+	
+	// send acc hall orders to request module 
+	accHallOrders := HallMatrix{}
+	for _, accOrders := range wv.UnacceptedOrdersSnapshot{
+			for _, ord := range accOrders{
+				accHallOrders[ord.Floor][ord.Button] = true
+			}
+		}
+	accReqChan <- accHallOrders
+
+	// send assigned order to elevator
 	orders, exists := wv.UnacceptedOrdersSnapshot[myId]
 	if exists {
 		for _, order := range orders{
@@ -98,7 +113,7 @@ func checkForNewOrders(wv Worldview, myId string, orderChan chan <- Order, accep
 	}
 }
 
-func checkForNewLights(wv Worldview, currenthallLights HallLights, hallLightsChan chan HallLights) {
+func checkForNewLights(wv Worldview, currenthallLights HallMatrix, hallLightsChan chan HallMatrix) {
 	// if any update in hall lights. Send new lights on HallLightsChan
 	for i := range currenthallLights {
 		for j := range currenthallLights[i] {
@@ -110,3 +125,19 @@ func checkForNewLights(wv Worldview, currenthallLights HallLights, hallLightsCha
 		}
 	}
 }
+
+// //Make modular with for loop up to NUM_ELEV
+// func PrintRequests(elev Elevator){
+// 	fmt.Printf("Floor 4: %t %t %t\n",elev.Orders[3][0],elev.Orders[3][1],elev.Orders[3][2])
+// 	fmt.Printf("Floor 3: %t %t %t\n",elev.Orders[2][0],elev.Orders[2][1],elev.Orders[2][2])
+// 	fmt.Printf("Floor 2: %t %t %t\n",elev.Orders[1][0],elev.Orders[1][1],elev.Orders[1][2])
+// 	fmt.Printf("Floor 1: %t %t %t\n\n",elev.Orders[0][0],elev.Orders[0][1],elev.Orders[0][2])
+// }
+
+// func PrintState(elev Elevator){
+// 	switch elev.State{
+// 		case IDLE: fmt.Printf("State: IDLE\n")
+// 		case MOVING: fmt.Printf("State: MOVING\n")
+// 		case DOOR_OPEN: fmt.Printf("State: DOOR_OPEN\n")
+// 	}
+// }

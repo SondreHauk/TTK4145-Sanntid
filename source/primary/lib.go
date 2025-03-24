@@ -9,6 +9,18 @@ import(
 	"fmt"
 )
 
+func assignRequests(requests HallMatrix, wv Worldview, orderActionChan chan OrderAccess){
+	for floor, request := range requests {
+		for btn, active := range request {
+			if active {
+				order := OrderConstructor("arbitrary", floor, btn) // Id or not?
+				AssignedId := assigner.ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, order)
+				sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(AssignedId, order.Floor, order.Button))
+			}
+		}
+	}
+}
+
 func checkforAcceptedOrders(orderActionChan chan OrderAccess, elevUpdate Elevator, unacceptedOrders []Order){
 	for floor, buttons := range elevUpdate.Orders {
 		for btn, orderAccepted := range buttons {
@@ -25,7 +37,7 @@ func checkforAcceptedOrders(orderActionChan chan OrderAccess, elevUpdate Elevato
 	}
 }
 
-func updateHallLights(wv Worldview, hallLights HallLights, mapActionChan chan FleetAccess, lightsActionChan chan LightsAccess) {
+func updateHallLights(wv Worldview, hallLights HallMatrix, mapActionChan chan FleetAccess, lightsActionChan chan LightsAccess) {
 	wv = WorldviewConstructor(wv.PrimaryId, wv.PeerInfo, sync.FleetRead(mapActionChan))
 	for _, id := range wv.PeerInfo.Peers {
 		orderMatrix := wv.FleetSnapshot[id].Orders
@@ -87,7 +99,6 @@ func obstructionHandler(
 	worldviewObsChan chan Worldview, 
 	mapActionChan chan FleetAccess,
 	ordersActionChan chan OrderAccess,
-	/*orderToElevChan chan<- Order,*/
 	){
 	obstructedElevators := make([]string, NUM_ELEVATORS)
 	obstructionTimers := make(map[string]*time.Timer)
@@ -104,7 +115,7 @@ func obstructionHandler(
 				if !timerExists{
 					timer := time.AfterFunc(T_REASSIGN_PRIMARY, func() {
 					reassignmentDetails := Reassignment{Cause: Obstructed, ObsId: obstructedElevators[len(obstructedElevators)-1]}
-					ReassignHallOrders(worldview, mapActionChan, ordersActionChan, reassignmentDetails)})
+					ReassignHallOrders(worldview, mapActionChan,ordersActionChan, reassignmentDetails)}) // DATA RACE
 					obstructionTimers[elevUpdate.Id] = timer
 				}
 			} else {

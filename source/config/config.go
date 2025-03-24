@@ -24,7 +24,7 @@ const (
 	T_REASSIGN_PRIMARY = time.Second*3
 	T_REASSIGN_LOCAL = time.Second*4
 	T_TRAVEL = time.Second*2 	//Approximate time to travel from floor i to floor i+-1
-	T_PRIMARY_TIMEOUT = time.Millisecond*1000
+	T_PRIMARY_TIMEOUT = time.Millisecond*2000
 	T_BLINK = time.Millisecond*100
 )
 
@@ -45,6 +45,8 @@ const (
 	PORT_WORLDVIEW  = 20040
 )
 
+type HallMatrix [NUM_FLOORS][NUM_BUTTONS-1]bool
+
 type ElevatorState int
 
 type Elevator struct {
@@ -54,6 +56,7 @@ type Elevator struct {
 	PrevDirection int
 	State         ElevatorState
 	Orders        [NUM_FLOORS][NUM_BUTTONS]bool
+	Requests  	  HallMatrix
  	Obstructed 	  bool
 }
 
@@ -72,8 +75,6 @@ type PeerUpdate struct {
 	Lost  []string
 }
 
-type HallLights [NUM_FLOORS][NUM_BUTTONS-1]bool
-
 //----------------PRIMARY/BACKUP--------------------
 
 type Worldview struct {
@@ -81,7 +82,7 @@ type Worldview struct {
 	PeerInfo      PeerUpdate
 	FleetSnapshot map[string]Elevator
 	UnacceptedOrdersSnapshot map[string][]Order
-	HallLightsSnapshot HallLights
+	HallLightsSnapshot HallMatrix
 }
 
 func WorldviewConstructor(PrimaryId string, PeerInfo PeerUpdate, 
@@ -110,8 +111,8 @@ type OrderAccess struct {
 
 type LightsAccess struct {
 	Cmd 	 	  string
-	NewHallLights HallLights
-	ReadChan      chan HallLights
+	NewHallLights HallMatrix
+	ReadChan      chan HallMatrix
 }
 
 type Reassignment struct {
