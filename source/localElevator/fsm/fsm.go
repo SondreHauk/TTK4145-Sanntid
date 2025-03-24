@@ -88,7 +88,7 @@ func Run(
 			if ShouldStop(*elev) {
 				motorstopTimer.Stop()
 				elevio.SetMotorDirection(elevio.MD_Stop)
-				requests.ClearOrder(elev, elev.Floor)
+				requests.ClearOrder(elev,elev.Floor)
 				elev.Direction = STOP
 				elevio.SetDoorOpenLamp(true)
 				doorTimer.Reset(T_DOOR_OPEN)
