@@ -3,12 +3,14 @@ package fsm
 import (
 	"os/exec"
 	"os"
+	"runtime"
 	"log"
 	"strings"
 	. "source/config"
 	"source/localElevator/elevio"
 	"source/localElevator/requests"
 	"time"
+	"fmt"
 )
 
 
@@ -135,8 +137,24 @@ func spawnProcess() error{
 	if err != nil {
 		return err
 	}
-	args := strings.Join(os.Args[1:]," ")
-	cmd:=exec.Command("gnome-terminal", "--", "bash", "-c", path+" "+args+"; exec bash")
+	args := strings.Join(os.Args[1:], " ")
+	commandLine := path
+	if args != "" {
+		commandLine += " " + args
+	}
+
+	var cmd *exec.Cmd
+	switch runtime.GOOS{
+	case "linux":
+		cmd = exec.Command("gnome-terminal", "--", "bash", "-c", path+" "+args+"; exec bash")
+	case "darwin":
+		cmd = exec.Command("osascript", "-e", fmt.Sprintf(`tell application "Terminal" to do script "%s"`, commandLine))
+	case "windows":
+		cmd = exec.Command("cmd","/C","start","",commandLine)
+	default:
+		return fmt.Errorf("Unsupported platform: %s. Valid platforms are Linux, Windows or MacOSX", runtime.GOOS)
+	}
+	
 	if err := cmd.Start(); err != nil {
 		return err
 	}
