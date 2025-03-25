@@ -1,7 +1,6 @@
 package fsm
 
 import (
-	// "fmt"
 	. "source/config"
 	"source/localElevator/elevio"
 	"source/localElevator/requests"
@@ -35,14 +34,18 @@ func Run(
 	for {
 		select {
 		case wv = <- worldviewToElevatorChan:
-			// fmt.Println("Worldview received by elevator")
+
 			checkForNewOrders(wv, myId, orderChan, accReqChan, elev.Orders)
 			checkForNewLights(wv, hallLights, hallLightsChan)
+		
 		case NewOrder := <-orderChan:
+			
 			elev.Orders[NewOrder.Floor][NewOrder.Button] = true
+			
 			if NewOrder.Button == int(elevio.BT_Cab){
 				elevio.SetButtonLamp(elevio.BT_Cab, NewOrder.Floor, true)
 			}
+
 			switch elev.State {
 			case IDLE:
 				elev.Direction = ChooseDirection(*elev)
@@ -50,6 +53,7 @@ func Run(
 				resetTimer(motorstopTimer, 2*T_TRAVEL)
 				
 				if elev.Direction == STOP {
+					motorstopTimer.Stop() // LA TIL DENNE!
 					elevio.SetDoorOpenLamp(true)
 					doorTimer.Reset(T_DOOR_OPEN)
 					elevChan <- *elev //AVOID LOOP
@@ -78,7 +82,6 @@ func Run(
 		
 		case hallLights = <- hallLightsChan:
 			setHallLights(hallLights)
-
 
 		case elev.Floor = <-atFloorChan:
 			resetTimer(motorstopTimer, 2*T_TRAVEL)
