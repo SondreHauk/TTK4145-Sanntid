@@ -53,9 +53,6 @@ func UnacceptedOrdersManager(ordersActionChan <-chan OrderAccess) {
 				}
 				action.ReadChan <- deepCopy
 
-			/* case "read all":
-			action.ReadAllChan <- orders */
-
 			case "write":
 				orders[action.Id] = append(orders[action.Id], action.Orders...)
 

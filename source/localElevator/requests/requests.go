@@ -64,14 +64,13 @@ func ClearAll(elev *Elevator) {
 	}
 }
 
-func MakeRequest(
+func SendRequest(
 	reqEventChan <-chan elevio.ButtonEvent, 
-	requestToPrimaryChan chan <- HallMatrix, 
-	orderChan chan <- Order,
-	accReqChan <- chan HallMatrix,
+	requestsTXChan chan <- Requests, 
+	accReqChan <- chan OrderMatrix,
 	id string) {
 
-	hallRequests := HallMatrix{}
+	requests := OrderMatrix{}
 	heartBeat := time.NewTicker(T_HEARTBEAT)
 	defer heartBeat.Stop()
 
@@ -81,30 +80,25 @@ func MakeRequest(
 			for floor, orders := range accReq{
 				for btn := range orders{
 					if accReq[floor][btn] {
-						hallRequests[floor][btn] = false
+						requests[floor][btn] = false
 					}
 				}
 			}
 
 		case req := <- reqEventChan:
-			if req.Button == elevio.BT_Cab{
-				orderChan <- OrderConstructor(id, req.Floor, int(req.Button)) // Assign directly to elev
-				elevio.SetButtonLamp(elevio.ButtonType(req.Button), req.Floor, true)
-			} else {
-				hallRequests[req.Floor][req.Button] = true
-			 	requestToPrimaryChan <- hallRequests
-			}
+			requests[req.Floor][req.Button] = true
+			requestsTXChan <- Requests{Id: id, Requests: requests}
 
 		case <- heartBeat.C:
-			if checkForActiveRequests(hallRequests) {
-				requestToPrimaryChan <- hallRequests
+			if checkForActiveRequests(requests) {
+				requestsTXChan <- Requests{Id: id, Requests: requests}
 			}
 		}
 		time.Sleep(T_SLEEP)
 	}
 }
 
-func checkForActiveRequests(requests HallMatrix) bool {
+func checkForActiveRequests(requests OrderMatrix) bool {
 	for _, req := range requests{
 		for _, active := range req {
 			if active {

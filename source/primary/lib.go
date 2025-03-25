@@ -9,18 +9,6 @@ import(
 	"fmt"
 )
 
-func assignRequests(requests HallMatrix, wv Worldview, orderActionChan chan OrderAccess){
-	for floor, request := range requests {
-		for btn, active := range request {
-			if active {
-				order := OrderConstructor("arbitrary", floor, btn) // Id or not?
-				AssignedId := assigner.ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, order)
-				sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(AssignedId, order.Floor, order.Button))
-			}
-		}
-	}
-}
-
 func checkforAcceptedOrders(orderActionChan chan OrderAccess, elevUpdate Elevator, unacceptedOrders []Order){
 	for floor, buttons := range elevUpdate.Orders {
 		for btn, orderAccepted := range buttons {
@@ -37,22 +25,27 @@ func checkforAcceptedOrders(orderActionChan chan OrderAccess, elevUpdate Elevato
 	}
 }
 
-func updateHallLights(wv Worldview, hallLights HallMatrix, mapActionChan chan FleetAccess, lightsActionChan chan LightsAccess) {
+func updateHallLights(wv Worldview, lights HallMatrix, mapActionChan chan FleetAccess, lightsActionChan chan LightsAccess) {
 	wv = WorldviewConstructor(wv.PrimaryId, wv.PeerInfo, sync.FleetRead(mapActionChan))
 	for _, id := range wv.PeerInfo.Peers {
 		orderMatrix := wv.FleetSnapshot[id].Orders
 		for floor, floorOrders := range orderMatrix {
 			for btn, isOrder := range floorOrders {
 				if isOrder && btn != int(elevio.BT_Cab) {
-					hallLights[floor][btn] = true
+					lights[floor][btn] = true
 				}
 			}
 		}
 	}
-	sync.WriteHallLights(lightsActionChan, hallLights)
+	sync.WriteHallLights(lightsActionChan, lights)
 }
 
-func ReassignHallOrders(wv Worldview, MapActionChan chan FleetAccess, ordersActionChan chan OrderAccess, reassign Reassignment){
+func reassignHallOrders(
+	wv Worldview, 
+	MapActionChan chan FleetAccess, 
+	ordersActionChan chan OrderAccess, 
+	reassign Reassignment){
+
 	wv = WorldviewConstructor(wv.PrimaryId, wv.PeerInfo, sync.FleetRead(MapActionChan))
 	switch reassign.Cause{
 	case Disconnected:
@@ -67,9 +60,7 @@ func ReassignHallOrders(wv Worldview, MapActionChan chan FleetAccess, ordersActi
 						Button: btn,
 					}
 					lostOrder.Id = assigner.ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, lostOrder)
-					// APPEND TO UNACCEPTED ORDERS IN WORLDVIEW
 					sync.AddUnacceptedOrder(ordersActionChan, lostOrder)
-					/*orderToElevChan <- lostOrder*/
 				}
 			}
 		}
@@ -94,6 +85,37 @@ func ReassignHallOrders(wv Worldview, MapActionChan chan FleetAccess, ordersActi
 	}
 }
 
+func rememberLostCabOrders(
+	lostElevators []string, 
+	orderActionChan chan OrderAccess,
+	worldview Worldview){
+
+	for _, id := range lostElevators {
+		for floor, orders := range worldview.FleetSnapshot[id].Orders {
+			for btn, active := range orders {
+				if active && btn == int(elevio.BT_Cab) {
+					sync.AddUnacceptedOrder(orderActionChan,
+						OrderConstructor(id, floor, btn))
+				}
+			}
+		}
+	}
+}
+
+// func storeLostCabOrders(lost []string, lostCabOrders *[]Order, wv Worldview){
+// 	for _, id := range lost {
+// 		lostOrders := wv.FleetSnapshot[id].Orders
+// 		for floor, orders := range lostOrders {
+// 			for ord, active := range orders {
+// 				if active && ord == int(elevio.BT_Cab) {
+// 					cabOrder := OrderConstructor(id, floor, ord)
+// 					*lostCabOrders = append(*lostCabOrders, cabOrder)
+// 				}
+// 			}
+// 		}
+// 	}
+// }
+
 func obstructionHandler(
 	elevUpdateObsChan chan Elevator,
 	worldviewObsChan chan Worldview, 
@@ -115,7 +137,7 @@ func obstructionHandler(
 				if !timerExists{
 					timer := time.AfterFunc(T_REASSIGN_PRIMARY, func() {
 					reassignmentDetails := Reassignment{Cause: Obstructed, ObsId: obstructedElevators[len(obstructedElevators)-1]}
-					ReassignHallOrders(worldview, mapActionChan,ordersActionChan, reassignmentDetails)}) // DATA RACE
+					reassignHallOrders(worldview, mapActionChan,ordersActionChan, reassignmentDetails)}) // DATA RACE
 					obstructionTimers[elevUpdate.Id] = timer
 				}
 			} else {

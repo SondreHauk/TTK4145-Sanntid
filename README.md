@@ -18,20 +18,20 @@ Each elevator must be assigned an unique id at initialization.
 
 # The Button Light Contract
 ## Requests and Orders
-In general, when a button is pressed in any elevator, a corresponding `request` is created. This request is then handled and an `order` is made. Each order is marked with an `id` and the order is accepted only by the elevator with the corresponding `id`.
+When a button is pressed in any elevator, a corresponding `request` is created. This request is then handled by the primary and an `order` is made. Each order is marked with an `id` and the order is accepted only by the elevator with the corresponding `id`.
 
-If the request is of type `cab`, it is assigned directly as an order to the elevator.
-If the request is of type `hall`, it is sent to the primary, who creates an order and assigns it to the most suitable elevator on the network. 
+If the request is of type `cab`, it is assigned to the elevator who sent the cab request.
+If the request is of type `hall`, it is assigned to the most suitable elevator on the network. 
 The resulting request/order flow can be seen in the below diagram.
 
 ### Request/Order Flow
 ```mermaid
 graph LR;
-    ElevatorX -- btnevent (hall) --> MakeRequest;
+    ElevatorX -- btnevent --> MakeRequest;
     MakeRequest -- hall request --> Primary;
     Primary -- hall order --> ElevatorY;
-    ElevatorX -- btnevent (cab) --> MakeRequest;
-    MakeRequest -- cab order --> ElevatorX;
+    MakeRequest -- cab request --> Primary;
+    Primary -- cab order --> ElevatorX;
 ```
 
 ## When is the light set?
@@ -47,9 +47,9 @@ The Order/Light flow is illustrated in the below figure.
 ### Order/Light flow
 ```mermaid
 graph LR;
-    Primary -- 1.order --> Elevator;
-    Elevator -- 2.order matrix --> Primary;
-    Primary -- 3.hall light matrix --> Elevator;
+    Primary -- 1.send order --> Elevator;
+    Primary -- 3.set light --> Elevator;
+    Elevator -- 2.order received --> Primary;
 ```
 
 # Improvements

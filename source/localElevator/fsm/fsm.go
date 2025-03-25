@@ -1,6 +1,7 @@
 package fsm
 
 import (
+	// "fmt"
 	. "source/config"
 	"source/localElevator/elevio"
 	"source/localElevator/requests"
@@ -12,14 +13,14 @@ func Run(
 	elevChan chan <-Elevator, 
 	atFloorChan <-chan int, 
 	orderChan chan Order,
-	accReqChan chan <- HallMatrix,
+	accReqChan chan <- OrderMatrix,
 	obstructionChan <-chan bool,
 	worldviewToElevatorChan <-chan Worldview,
 	myId string) {
 
 	// Define local variables
 	var wv Worldview
-	currentHallLights := HallMatrix{}
+	hallLights := HallMatrix{}
 	hallLightsChan := make(chan HallMatrix, 10)
 
 	// Set timers
@@ -36,51 +37,48 @@ func Run(
 		case wv = <- worldviewToElevatorChan:
 			// fmt.Println("Worldview received by elevator")
 			checkForNewOrders(wv, myId, orderChan, accReqChan, elev.Orders)
-			checkForNewLights(wv, currentHallLights, hallLightsChan)
+			checkForNewLights(wv, hallLights, hallLightsChan)
 		case NewOrder := <-orderChan:
-			// fmt.Println("New order received")
-			if NewOrder.Id == myId{
-				elev.Orders[NewOrder.Floor][NewOrder.Button] = true
-				switch elev.State {
-				case IDLE:
-					elev.Direction = ChooseDirection(*elev)
-					elevio.SetMotorDirection(elevio.MotorDirection(elev.Direction))
-					resetTimer(motorstopTimer, 2*T_TRAVEL)
-
-					if elev.Direction == STOP {
-						elevio.SetDoorOpenLamp(true)
+			elev.Orders[NewOrder.Floor][NewOrder.Button] = true
+			if NewOrder.Button == int(elevio.BT_Cab){
+				elevio.SetButtonLamp(elevio.BT_Cab, NewOrder.Floor, true)
+			}
+			switch elev.State {
+			case IDLE:
+				elev.Direction = ChooseDirection(*elev)
+				elevio.SetMotorDirection(elevio.MotorDirection(elev.Direction))
+				resetTimer(motorstopTimer, 2*T_TRAVEL)
+				
+				if elev.Direction == STOP {
+					elevio.SetDoorOpenLamp(true)
+					doorTimer.Reset(T_DOOR_OPEN)
+					elevChan <- *elev //AVOID LOOP
+					time.Sleep(T_SLEEP)
+					elev.Orders[elev.Floor][NewOrder.Button] = false
+					if(NewOrder.Button == int(elevio.BT_Cab)){
+						elevio.SetButtonLamp(elevio.BT_Cab, NewOrder.Floor, false)
+					}
+					elev.State = DOOR_OPEN
+				} else {
+					elev.State = MOVING
+				}
+			case MOVING: //NOOP
+			case DOOR_OPEN:
+				if elev.Floor == NewOrder.Floor {
+					elevChan <- *elev //AVOID LOOP BY ACKNOWLEDGING ORDER BEFORE CLEARING
+					time.Sleep(T_SLEEP)
+					elev.Orders[elev.Floor][NewOrder.Button] = false
+					elevio.SetButtonLamp(elevio.ButtonType(NewOrder.Button), elev.Floor, false)
+					if !elev.Obstructed{
 						doorTimer.Reset(T_DOOR_OPEN)
-						elevChan <- *elev //AVOID LOOP
-						time.Sleep(T_SLEEP)
-						elev.Orders[elev.Floor][NewOrder.Button] = false
-						if(NewOrder.Button == int(elevio.BT_Cab)){
-							elevio.SetButtonLamp(elevio.BT_Cab, NewOrder.Floor, false)
-						}
-						elev.State = DOOR_OPEN
-					} else {
-						elev.State = MOVING
-					}
-				case MOVING: //NOOP
-				case DOOR_OPEN:
-					if elev.Floor == NewOrder.Floor {
-						elevChan <- *elev //AVOID LOOP BY ACKNOWLEDGING ORDER BEFORE CLEARING
-						time.Sleep(T_SLEEP)
-						elev.Orders[elev.Floor][NewOrder.Button] = false
-						elevio.SetButtonLamp(elevio.ButtonType(NewOrder.Button), elev.Floor, false)
-						if !elev.Obstructed{
-							doorTimer.Reset(T_DOOR_OPEN)
-						}
 					}
 				}
-				elevChan <- *elev
 			}
+			elevChan <- *elev
 		
-		case currentHallLights = <- hallLightsChan:
-			for floor := range currentHallLights {
-				for btn := range currentHallLights[floor] {
-					elevio.SetButtonLamp(elevio.ButtonType(btn), floor, currentHallLights[floor][btn])
-				}
-			}
+		case hallLights = <- hallLightsChan:
+			setHallLights(hallLights)
+
 
 		case elev.Floor = <-atFloorChan:
 			resetTimer(motorstopTimer, 2*T_TRAVEL)

@@ -96,17 +96,17 @@ func checkForNewOrders(
 	wv Worldview,
 	myId string, 
 	orderChan chan <- Order, 
-	accReqChan chan <- HallMatrix,
-	acceptedorders [NUM_FLOORS][NUM_BUTTONS]bool) {
+	accReqChan chan <- OrderMatrix,
+	acceptedorders OrderMatrix) {
 	
-	// send acc hall orders to request module 
-	accHallOrders := HallMatrix{}
+	// send acc orders to request module 
+	accOrdersMatrix := OrderMatrix{}
 	for _, accOrders := range wv.UnacceptedOrdersSnapshot{
 			for _, ord := range accOrders{
-				accHallOrders[ord.Floor][ord.Button] = true
+				accOrdersMatrix[ord.Floor][ord.Button] = true
 			}
 		}
-	accReqChan <- accHallOrders
+	accReqChan <- accOrdersMatrix
 
 	// send assigned order to elevator
 	orders, exists := wv.UnacceptedOrdersSnapshot[myId]
@@ -119,15 +119,23 @@ func checkForNewOrders(
 	}
 }
 
-func checkForNewLights(wv Worldview, currenthallLights HallMatrix, hallLightsChan chan HallMatrix) {
+func checkForNewLights(wv Worldview, lights HallMatrix, lightsChan chan HallMatrix) {
 	// if any update in hall lights. Send new lights on HallLightsChan
-	for i := range currenthallLights {
-		for j := range currenthallLights[i] {
+	for floor, buttons := range lights {
+		for btn := range buttons {
 			// Indexing empty hallightssnapshot error
-			if currenthallLights[i][j] != wv.HallLightsSnapshot[i][j] {
-				hallLightsChan <- wv.HallLightsSnapshot
+			if lights[floor][btn] != wv.HallLightsSnapshot[floor][btn] {
+				lightsChan <- wv.HallLightsSnapshot
 				return
 			}
+		}
+	}
+}
+
+func setHallLights(lights HallMatrix){
+	for floor, btns := range lights {
+		for btn, status := range btns {
+			elevio.SetButtonLamp(elevio.ButtonType(btn), floor, status)
 		}
 	}
 }

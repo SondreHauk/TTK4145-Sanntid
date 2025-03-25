@@ -64,9 +64,9 @@ func main() {
 	obstructionChan := make(chan bool, 1)
 	stopChan := make(chan bool, 1)
 
-	requestTXChan := make(chan HallMatrix, 10)
-	requestRXChan := make(chan HallMatrix, 10)
-	accReqChan := make(chan HallMatrix, 10)
+	requestsTXChan := make(chan Requests, 10)
+	requestsRXChan := make(chan Requests, 10)
+	accReqChan := make(chan OrderMatrix, 10)
 	orderChan := make(chan Order, 10)
 
 	//Initializations
@@ -76,7 +76,7 @@ func main() {
 	inits.ElevatorInit(&elev, id)
 
 	// Goroutines Local elevator
-	go requests.MakeRequest(buttonChan, requestTXChan, orderChan, accReqChan, id)
+	go requests.SendRequest(buttonChan, requestsTXChan, accReqChan, id)
 	go elevio.PollButtons(buttonChan)
 	go elevio.PollFloorSensor(atFloorChan)
 	go elevio.PollObstructionSwitch(obstructionChan)
@@ -85,8 +85,8 @@ func main() {
 		accReqChan, obstructionChan, worldviewToElevatorChan, id)
 
 	// Goroutines communication
-	go bcast.Transmitter(PORT_BCAST, elevatorTXChan, requestTXChan)
-	go bcast.Receiver(PORT_BCAST, elevatorRXChan, requestRXChan)
+	go bcast.Transmitter(PORT_BCAST, elevatorTXChan, requestsTXChan)
+	go bcast.Receiver(PORT_BCAST, elevatorRXChan, requestsRXChan)
 	go peers.Transmitter(PORT_PEERS, id, transmitEnableChan)
 	go peers.Receiver(PORT_PEERS, peerUpdateChan)
 
@@ -96,7 +96,7 @@ func main() {
 	// Fault tolerance protocol
 	go backup.Run(worldviewRXChan, worldviewToElevatorChan, becomePrimaryChan, worldviewToPrimaryChan, id)
 	go primary.Run(peerUpdateChan, elevatorRXChan, becomePrimaryChan, 
-		worldviewTXChan, worldviewToPrimaryChan, requestRXChan, id)
+		worldviewTXChan, worldviewToPrimaryChan, requestsRXChan, id)
 
 	// Kills terminal if interrupted
 	go kill(stopChan)

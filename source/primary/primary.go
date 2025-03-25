@@ -3,6 +3,7 @@ package primary
 import (
 	"fmt"
 	. "source/config"
+	"source/primary/assigner"
 	"source/primary/sync"
 	"time"
 )
@@ -13,7 +14,7 @@ func Run(
 	becomePrimaryChan <-chan Worldview,
 	worldviewTXChan chan<- Worldview,
 	worldviewRXChan <-chan Worldview,
-	requestFromElevChan <-chan HallMatrix,
+	requestsRXChan <-chan Requests,
 	myId string) {
 
 	// Syncronization channels
@@ -29,6 +30,7 @@ func Run(
 	worldview.FleetSnapshot = make(map[string]Elevator)
 	worldview.UnacceptedOrdersSnapshot = make(map[string][]Order)
 	hallLights := HallMatrix{}
+	// var lostCabOrders []Order
 
 	// Owns and handles access to maps
 	go sync.FleetAccessManager(fleetActionChan)
@@ -41,15 +43,16 @@ func Run(
 		// Draining of channels prior to primary activation
 		case <-worldviewRXChan:
 		case <-elevStateChan:
-		case <-requestFromElevChan:
-		// Primary activation
+			// Drain channel
+		case <-requestsRXChan:
+			// Drain channel
 		case wv := <-becomePrimaryChan:
 			fmt.Println("Taking over as Primary")
 			worldview = wv
 			sync.FullFleetWrite(worldview.FleetSnapshot, fleetActionChan)
 			sync.WriteHallLights(lightsActionChan, wv.HallLightsSnapshot)
 			heartbeatTimer := time.NewTicker(T_HEARTBEAT)
-			defer heartbeatTimer.Stop()
+			// defer heartbeatTimer.Stop()
 
 			primaryLoop:
 			for {
@@ -58,8 +61,9 @@ func Run(
 					printPeers(worldview.PeerInfo)
 					lost := worldview.PeerInfo.Lost
 					if len(lost) != 0 {
-						ReassignHallOrders(worldview, fleetActionChan, 
+						reassignHallOrders(worldview, fleetActionChan, 
 							orderActionChan, Reassignment{Cause: Disconnected})
+						rememberLostCabOrders(lost, orderActionChan, worldview)
 					}
 
 				case elevUpdate := <-elevStateChan:
@@ -69,9 +73,9 @@ func Run(
 					updateHallLights(worldview, hallLights, fleetActionChan, lightsActionChan)
 					elevUpdateObsChan <- elevUpdate
           
-				case requests := <-requestFromElevChan:
+				case requests := <-requestsRXChan:
 					worldview.FleetSnapshot = sync.FleetRead(fleetActionChan)
-					assignRequests(requests, worldview, orderActionChan)
+					assigner.AssignRequests(requests, worldview, orderActionChan)
 
 				case <-heartbeatTimer.C:
 					worldview.FleetSnapshot = sync.FleetRead(fleetActionChan)
