@@ -37,7 +37,7 @@ func Run(
 			if shouldTakeOver(latestWV, myId){
 				latestWV.PrimaryId = myId
 				becomePrimaryChan <- latestWV
-				fmt.Println("Primary timeout - Taking over")
+				fmt.Println("Primary timeout - start takeover")
 			} else {
 				latestWV.PeerInfo.Peers = latestWV.PeerInfo.Peers[1:]
 			}

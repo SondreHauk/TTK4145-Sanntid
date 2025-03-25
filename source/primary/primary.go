@@ -55,11 +55,13 @@ func Run(
 			sync.AllElevatorsWrite(worldview.FleetSnapshot, fleetActionChan)
 			sync.WriteHallLights(lightsActionChan, wv.HallLightsSnapshot)
 			heartbeatTimer := time.NewTicker(T_HEARTBEAT)
-			// defer heartbeatTimer.Stop() // IMPLICATIONS?
+			defer heartbeatTimer.Stop()
 
 			primaryLoop:
 			for {
 				select {
+				case <- becomePrimaryChan: //drain
+
 				case worldview.PeerInfo = <-peerUpdateChan:
 					printPeers(worldview.PeerInfo)
 					lost := worldview.PeerInfo.Lost
