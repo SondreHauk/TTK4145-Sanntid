@@ -27,6 +27,7 @@ func Run(
 
 	// Shared variables
 	var worldview Worldview
+	var latestPeerUpdate PeerUpdate
 	worldview.FleetSnapshot = make(map[string]Elevator)
 	worldview.UnacceptedOrdersSnapshot = make(map[string][]Order)
 	hallLights := HallMatrix{}
@@ -44,10 +45,13 @@ func Run(
 		case <-worldviewRXChan:
 		case <-elevStateChan:
 		case <-requestsRXChan:
-
+		case latestPeerUpdate = <-peerUpdateChan:
+		// Primary activation
 		case wv := <-becomePrimaryChan:
 			fmt.Println("Taking over as Primary")
 			worldview = wv
+			worldview.PeerInfo = latestPeerUpdate
+			printPeers(worldview.PeerInfo)
 			sync.AllElevatorsWrite(worldview.FleetSnapshot, fleetActionChan)
 			sync.WriteHallLights(lightsActionChan, wv.HallLightsSnapshot)
 			heartbeatTimer := time.NewTicker(T_HEARTBEAT)
