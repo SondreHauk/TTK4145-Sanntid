@@ -13,17 +13,17 @@ const (
 const (
 	NUM_FLOORS    = 4
 	NUM_BUTTONS   = 3
-	NUM_ELEVATORS = 1 // TODO: User input?
+	NUM_ELEVATORS = 3
 	NUM_HALL_BTNS = 2
 )
 
 const (
-	T_HEARTBEAT = time.Millisecond*100 //Must be much faster than .5 s
+	T_HEARTBEAT = time.Millisecond*100
 	T_SLEEP = time.Millisecond*20
 	T_DOOR_OPEN = time.Second*3
 	T_REASSIGN_PRIMARY = time.Second*3
 	T_REASSIGN_LOCAL = time.Second*4
-	T_TRAVEL = time.Second*2 	//Approximate time to travel from floor i to floor i+-1
+	T_TRAVEL = time.Second*2 	// traveltime between floors
 	T_PRIMARY_TIMEOUT = time.Millisecond*2000
 	T_BLINK = time.Millisecond*100
 )
@@ -81,8 +81,6 @@ type PeerUpdate struct {
 	Lost  []string
 }
 
-//----------------PRIMARY/BACKUP--------------------
-
 type Worldview struct {
 	PrimaryId     string
 	PeerInfo      PeerUpdate
@@ -99,7 +97,7 @@ func WorldviewConstructor(PrimaryId string, PeerInfo PeerUpdate, FleetSnapshot m
 		}
 }
 
-type FleetAccess struct {
+type ElevatorsAccess struct {
 	Cmd     string
 	Id      string
 	Elev    Elevator
@@ -126,5 +124,3 @@ type Reassignment struct {
 	Cause int
 	ObsId string
 }
-
-//--------------------------------------------

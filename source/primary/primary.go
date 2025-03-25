@@ -18,24 +18,24 @@ func Run(
 	myId string) {
 
 	// Syncronization channels
-	fleetActionChan := make(chan FleetAccess, 10)
+	fleetActionChan := make(chan ElevatorsAccess, 10)
 	orderActionChan := make(chan OrderAccess, 10)
 	lightsActionChan := make(chan LightsAccess, 10)
 
 	elevUpdateObsChan := make(chan Elevator, NUM_ELEVATORS)
 	worldviewObsChan := make(chan Worldview, 10)
 
-	// Local variables
+	// Shared variables
 	var worldview Worldview
 	worldview.FleetSnapshot = make(map[string]Elevator)
 	worldview.UnacceptedOrdersSnapshot = make(map[string][]Order)
 	hallLights := HallMatrix{}
-	// var lostCabOrders []Order
 
-	// Owns and handles access to maps
-	go sync.FleetAccessManager(fleetActionChan)
+	// Owns and handles access shared variables
+	go sync.ElevatorsAccessManager(fleetActionChan)
 	go sync.UnacceptedOrdersManager(orderActionChan)
 	go sync.HallLightsManager(lightsActionChan)
+
 	go obstructionHandler(elevUpdateObsChan, worldviewObsChan, fleetActionChan, orderActionChan)
 	
 	for{
@@ -43,16 +43,15 @@ func Run(
 		// Draining of channels prior to primary activation
 		case <-worldviewRXChan:
 		case <-elevStateChan:
-			// Drain channel
 		case <-requestsRXChan:
-			// Drain channel
+
 		case wv := <-becomePrimaryChan:
 			fmt.Println("Taking over as Primary")
 			worldview = wv
-			sync.FullFleetWrite(worldview.FleetSnapshot, fleetActionChan)
+			sync.AllElevatorsWrite(worldview.FleetSnapshot, fleetActionChan)
 			sync.WriteHallLights(lightsActionChan, wv.HallLightsSnapshot)
 			heartbeatTimer := time.NewTicker(T_HEARTBEAT)
-			// defer heartbeatTimer.Stop()
+			defer heartbeatTimer.Stop() // IMPLICATIONS?
 
 			primaryLoop:
 			for {
@@ -67,18 +66,18 @@ func Run(
 					}
 
 				case elevUpdate := <-elevStateChan:
-					sync.SingleFleetWrite(elevUpdate.Id, elevUpdate, fleetActionChan)
+					sync.SingleElevatorWrite(elevUpdate.Id, elevUpdate, fleetActionChan)
 					unacceptedOrders := sync.GetUnacceptedOrders(orderActionChan)[elevUpdate.Id]
 					checkforAcceptedOrders(orderActionChan, elevUpdate, unacceptedOrders)
 					updateHallLights(worldview, hallLights, fleetActionChan, lightsActionChan)
 					elevUpdateObsChan <- elevUpdate
           
 				case requests := <-requestsRXChan:
-					worldview.FleetSnapshot = sync.FleetRead(fleetActionChan)
+					worldview.FleetSnapshot = sync.ElevatorsRead(fleetActionChan)
 					assigner.AssignRequests(requests, worldview, orderActionChan)
 
 				case <-heartbeatTimer.C:
-					worldview.FleetSnapshot = sync.FleetRead(fleetActionChan)
+					worldview.FleetSnapshot = sync.ElevatorsRead(fleetActionChan)
 					worldview.UnacceptedOrdersSnapshot = sync.GetUnacceptedOrders(orderActionChan)
 					worldview.HallLightsSnapshot = sync.ReadHallLights(lightsActionChan)
 					worldviewTXChan <- worldview

@@ -100,7 +100,7 @@ func checkForNewOrders(
 	accReqChan chan <- OrderMatrix,
 	acceptedorders OrderMatrix) {
 	
-	// send acc orders to request module 
+	// send all assigned orders to request module 
 	accOrdersMatrix := OrderMatrix{}
 	for _, accOrders := range wv.UnacceptedOrdersSnapshot{
 			for _, ord := range accOrders{
@@ -109,7 +109,7 @@ func checkForNewOrders(
 		}
 	accReqChan <- accOrdersMatrix
 
-	// send assigned order to elevator
+	// send ID assigned order to elevator
 	orders, exists := wv.UnacceptedOrdersSnapshot[myId]
 	if exists {
 		for _, order := range orders{
@@ -121,10 +121,8 @@ func checkForNewOrders(
 }
 
 func checkForNewLights(wv Worldview, lights HallMatrix, lightsChan chan HallMatrix) {
-	// if any update in hall lights. Send new lights on HallLightsChan
 	for floor, buttons := range lights {
 		for btn := range buttons {
-			// Indexing empty hallightssnapshot error
 			if lights[floor][btn] != wv.HallLightsSnapshot[floor][btn] {
 				lightsChan <- wv.HallLightsSnapshot
 				return
@@ -187,18 +185,3 @@ func resetTimer(timer *time.Timer, duration time.Duration) {
 	}
 	timer.Reset(duration)
 }
-// //Make modular with for loop up to NUM_ELEV
-// func PrintRequests(elev Elevator){
-// 	fmt.Printf("Floor 4: %t %t %t\n",elev.Orders[3][0],elev.Orders[3][1],elev.Orders[3][2])
-// 	fmt.Printf("Floor 3: %t %t %t\n",elev.Orders[2][0],elev.Orders[2][1],elev.Orders[2][2])
-// 	fmt.Printf("Floor 2: %t %t %t\n",elev.Orders[1][0],elev.Orders[1][1],elev.Orders[1][2])
-// 	fmt.Printf("Floor 1: %t %t %t\n\n",elev.Orders[0][0],elev.Orders[0][1],elev.Orders[0][2])
-// }
-
-// func PrintState(elev Elevator){
-// 	switch elev.State{
-// 		case IDLE: fmt.Printf("State: IDLE\n")
-// 		case MOVING: fmt.Printf("State: MOVING\n")
-// 		case DOOR_OPEN: fmt.Printf("State: DOOR_OPEN\n")
-// 	}
-// }

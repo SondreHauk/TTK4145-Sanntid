@@ -14,18 +14,15 @@ func Run(
 	myId string) {
 
 	fmt.Println("Enter Backup mode - listening for primary")
-	//Init an empty worldview
+	
 	var latestWV Worldview
-	// hallLights := HallLights{}
 	latestWV.PrimaryId = myId
 	latestWV.FleetSnapshot = make(map[string]Elevator)
 	latestWV.UnacceptedOrdersSnapshot = make(map[string][]Order)
-	// latestWV.HallLightsSnapshot = hallLights
-	//Peers[0] doesnt exist before the first primary does
 
 	select{ //INIT
 	case latestWV = <- worldviewRXChan:
-		// fmt.Printf ("Wordview prio received by primary: %s\n", latestWV.PrimaryId)
+
 	case <-time.After(T_PRIMARY_TIMEOUT):
 		becomePrimaryChan <- latestWV
 	}
@@ -35,8 +32,6 @@ func Run(
 		case latestWV = <-worldviewRXChan:
 			worldViewToElevChan <- latestWV
 			worldviewToPrimaryChan <- latestWV
-			
-			// fmt.Printf("Worldview post received by primary: %s\n", latestWV.PrimaryId)
 		
 		case <-time.After(T_PRIMARY_TIMEOUT):
 			if shouldTakeOver(latestWV, myId){
@@ -51,9 +46,6 @@ func Run(
 }
 
 func shouldTakeOver(backupWorldview Worldview, id string) bool {
-	// if backupWorldview.PrimaryId == id { // avoid taking over if own primary already active
-	// 	return false
-	// }
 	peerIds := backupWorldview.PeerInfo.Peers
 	if len(peerIds) == 0 {
 		return true
