@@ -58,6 +58,7 @@ func ChooseDirection(elev Elevator) int {
 }
 
 //Simulates elevator execution and returns approx time until pickup at NewOrder.Floor
+// WHY IN FSM MODULE?
 func TimeUntilPickup(elev Elevator, NewOrder Order) time.Duration{
 	duration := time.Duration(0)
 	elev.Orders[NewOrder.Floor][NewOrder.Button]=true
