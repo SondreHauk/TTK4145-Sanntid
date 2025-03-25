@@ -160,7 +160,7 @@ func spawnProcess() error{
 	case "windows":
 		cmd = exec.Command("cmd","/C","start","",commandLine)
 	default:
-		return fmt.Errorf("Unsupported platform: %s. Valid platforms are Linux, Windows or MacOSX", runtime.GOOS)
+		return fmt.Errorf("unsupported platform: %s. Valid platforms are Linux, Windows or MacOSX", runtime.GOOS)
 	}
 	
 	if err := cmd.Start(); err != nil {
