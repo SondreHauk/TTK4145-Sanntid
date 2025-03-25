@@ -55,7 +55,7 @@ func Run(
 			sync.AllElevatorsWrite(worldview.FleetSnapshot, fleetActionChan)
 			sync.WriteHallLights(lightsActionChan, wv.HallLightsSnapshot)
 			heartbeatTimer := time.NewTicker(T_HEARTBEAT)
-			defer heartbeatTimer.Stop() // IMPLICATIONS?
+			// defer heartbeatTimer.Stop() // IMPLICATIONS?
 
 			primaryLoop:
 			for {
