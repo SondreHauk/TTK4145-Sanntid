@@ -96,7 +96,7 @@ func main() {
 	// Fault tolerance protocol
 	go backup.Run(worldviewRXChan, worldviewToElevatorChan, becomePrimaryChan, worldviewToPrimaryChan, id)
 	go primary.Run(peerUpdateChan, elevatorRXChan, becomePrimaryChan, 
-		worldviewTXChan, worldviewToPrimaryChan, requestRXChan, id)
+		worldviewTXChan, worldviewToPrimaryChan, requestsRXChan, id)
 
 	// Kills terminal if interrupted
 	go kill(stopChan)

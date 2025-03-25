@@ -14,7 +14,7 @@ func Run(
 	becomePrimaryChan <-chan Worldview,
 	worldviewTXChan chan<- Worldview,
 	worldviewRXChan <-chan Worldview,
-	requestsRXChan <-chan HallMatrix,
+	requestsRXChan <-chan Requests,
 	myId string) {
 
 	// Syncronization channels
