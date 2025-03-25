@@ -9,11 +9,14 @@
 *.dylib
 *.
 
-# Elevator exec:
+# Linus execs:
 elevatorExecutable
+SimLinux
 
 # Test binary, built with `go test -c`
 *.test
+
+simulator.con
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
