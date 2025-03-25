@@ -27,6 +27,7 @@ func Run(
 
 	// Local variables
 	var worldview Worldview
+	var latestPeerUpdate PeerUpdate
 	worldview.FleetSnapshot = make(map[string]Elevator)
 	worldview.UnacceptedOrdersSnapshot = make(map[string][]Order)
 	hallLights := HallMatrix{}
@@ -43,12 +44,14 @@ func Run(
 		// Draining of channels prior to primary activation
 		case <-worldviewRXChan:
 		case <-elevStateChan:
-			// Drain channel
 		case <-requestsRXChan:
-			// Drain channel
+		case latestPeerUpdate = <-peerUpdateChan:
+		// Primary activation
 		case wv := <-becomePrimaryChan:
 			fmt.Println("Taking over as Primary")
 			worldview = wv
+			worldview.PeerInfo = latestPeerUpdate
+			printPeers(worldview.PeerInfo)
 			sync.FullFleetWrite(worldview.FleetSnapshot, fleetActionChan)
 			sync.WriteHallLights(lightsActionChan, wv.HallLightsSnapshot)
 			heartbeatTimer := time.NewTicker(T_HEARTBEAT)
