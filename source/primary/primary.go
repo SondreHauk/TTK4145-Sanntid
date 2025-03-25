@@ -3,9 +3,6 @@ package primary
 import (
 	"fmt"
 	. "source/config"
-	// "source/localElevator/elevio"
-
-	// "source/localElevator/elevio"
 	"source/primary/assigner"
 	"source/primary/sync"
 	"time"
@@ -16,8 +13,8 @@ func Run(
 	elevStateChan <-chan Elevator,
 	becomePrimaryChan <-chan Worldview,
 	worldviewTXChan chan<- Worldview,
-	/*worldviewRXChan <-chan Worldview,*/
-	requestsRXChan <-chan Requests,
+	worldviewRXChan <-chan Worldview,
+	requestsRXChan <-chan HallMatrix,
 	myId string) {
 
 	// Syncronization channels
@@ -40,8 +37,11 @@ func Run(
 	go sync.UnacceptedOrdersManager(orderActionChan)
 	go sync.HallLightsManager(lightsActionChan)
 	go obstructionHandler(elevUpdateObsChan, worldviewObsChan, fleetActionChan, orderActionChan)
+	
 	for{
 		select {
+		// Draining of channels prior to primary activation
+		case <-worldviewRXChan:
 		case <-elevStateChan:
 			// Drain channel
 		case <-requestsRXChan:
@@ -54,7 +54,7 @@ func Run(
 			heartbeatTimer := time.NewTicker(T_HEARTBEAT)
 			// defer heartbeatTimer.Stop()
 
-			//primaryLoop:
+			primaryLoop:
 			for {
 				select {
 				case worldview.PeerInfo = <-peerUpdateChan:
@@ -81,19 +81,17 @@ func Run(
 					worldview.FleetSnapshot = sync.FleetRead(fleetActionChan)
 					worldview.UnacceptedOrdersSnapshot = sync.GetUnacceptedOrders(orderActionChan)
 					worldview.HallLightsSnapshot = sync.ReadHallLights(lightsActionChan)
-					// PrintWorldView(worldview)
 					worldviewTXChan <- worldview
 					worldviewObsChan <- worldview
 
-					/* case receivedWV := <-worldviewRXChan:
-					receivedId := receivedWV.PrimaryId
-					fmt.Print(receivedId)
-					if receivedId < myId {
-						fmt.Printf("Primary: %s, taking over\n", receivedId)
-						break primaryLoop */
-					//defere break om mulig?
+				case receivedWV := <-worldviewRXChan:
+					if receivedWV.PrimaryId < myId {
+						fmt.Printf("Primary: %s, taking over\n", receivedWV.PrimaryId)
+						fmt.Println("Enter Backup mode - listening for primary")
+						break primaryLoop
+					}
 				}
-			}
+			}	
 		}
 	}
 }

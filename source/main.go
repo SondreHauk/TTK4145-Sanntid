@@ -56,7 +56,7 @@ func main() {
 	worldviewRXChan := make(chan Worldview, 10)
 	becomePrimaryChan := make(chan Worldview, 1)
 
-	// worldviewToPrimaryChan := make(chan Worldview, 10)
+	worldviewToPrimaryChan := make(chan Worldview, 10)
 	worldviewToElevatorChan := make(chan Worldview, 10)
 
 	atFloorChan := make(chan int, 1)
@@ -94,9 +94,9 @@ func main() {
 	go bcast.Receiver(PORT_WORLDVIEW, worldviewRXChan)
 
 	// Fault tolerance protocol
-	go backup.Run(worldviewRXChan, worldviewToElevatorChan, becomePrimaryChan, id)
+	go backup.Run(worldviewRXChan, worldviewToElevatorChan, becomePrimaryChan, worldviewToPrimaryChan, id)
 	go primary.Run(peerUpdateChan, elevatorRXChan, becomePrimaryChan, 
-		worldviewTXChan, /*worldviewToPrimaryChan,*/ requestsRXChan, id)
+		worldviewTXChan, worldviewToPrimaryChan, requestRXChan, id)
 
 	// Kills terminal if interrupted
 	go kill(stopChan)

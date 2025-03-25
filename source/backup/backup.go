@@ -7,9 +7,10 @@ import (
 )
 
 func Run(
-	worldViewToBackupChan <-chan Worldview,
+	worldviewRXChan <-chan Worldview,
 	worldViewToElevChan chan <- Worldview,
 	becomePrimaryChan chan<- Worldview,
+	worldviewToPrimaryChan chan Worldview,
 	myId string) {
 
 	fmt.Println("Enter Backup mode - listening for primary")
@@ -23,7 +24,7 @@ func Run(
 	//Peers[0] doesnt exist before the first primary does
 
 	select{ //INIT
-	case latestWV = <- worldViewToBackupChan:
+	case latestWV = <- worldviewRXChan:
 		// fmt.Printf ("Wordview prio received by primary: %s\n", latestWV.PrimaryId)
 	case <-time.After(T_PRIMARY_TIMEOUT):
 		becomePrimaryChan <- latestWV
@@ -31,8 +32,9 @@ func Run(
 
 	for {
 		select {
-		case latestWV = <-worldViewToBackupChan:
+		case latestWV = <-worldviewRXChan:
 			worldViewToElevChan <- latestWV
+			worldviewToPrimaryChan <- latestWV
 			
 			// fmt.Printf("Worldview post received by primary: %s\n", latestWV.PrimaryId)
 		

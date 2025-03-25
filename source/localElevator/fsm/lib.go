@@ -1,10 +1,16 @@
 package fsm
 
 import (
+	"os/exec"
+	"os"
+	"runtime"
+	"log"
+	"strings"
 	. "source/config"
 	"source/localElevator/elevio"
 	"source/localElevator/requests"
 	"time"
+	"fmt"
 )
 
 
@@ -134,6 +140,52 @@ func setHallLights(lights HallMatrix){
 	}
 }
 
+func spawnProcess() error{
+	path, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	args := strings.Join(os.Args[1:], " ")
+	commandLine := path
+	if args != "" {
+		commandLine += " " + args
+	}
+
+	var cmd *exec.Cmd
+	switch runtime.GOOS{
+	case "linux":
+		cmd = exec.Command("gnome-terminal", "--", "bash", "-c", path+" "+args+"; exec bash")
+	case "darwin":
+		cmd = exec.Command("osascript", "-e", fmt.Sprintf(`tell application "Terminal" to do script "%s"`, commandLine))
+	case "windows":
+		cmd = exec.Command("cmd","/C","start","",commandLine)
+	default:
+		return fmt.Errorf("Unsupported platform: %s. Valid platforms are Linux, Windows or MacOSX", runtime.GOOS)
+	}
+	
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func restartUponMotorStop(){
+	if err:=spawnProcess(); err != nil {
+		log.Printf("Failed to restart process: %v", err)
+	}
+	log.Println("Motor stop detected. Restart")
+	os.Exit(1)
+}
+
+func resetTimer(timer *time.Timer, duration time.Duration) {
+	if !timer.Stop() {
+		select {
+		case <-timer.C:
+		default:
+		}
+	}
+	timer.Reset(duration)
+}
 // //Make modular with for loop up to NUM_ELEV
 // func PrintRequests(elev Elevator){
 // 	fmt.Printf("Floor 4: %t %t %t\n",elev.Orders[3][0],elev.Orders[3][1],elev.Orders[3][2])

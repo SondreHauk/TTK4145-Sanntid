@@ -168,7 +168,7 @@ func printPeers(p PeerUpdate) {
 	fmt.Printf("  Lost:     %q\n", p.Lost)
 }
 
-func PrintWorldView(wv Worldview) {
+func PrintWorldview(wv Worldview) {
 	fmt.Println("--- Worldview Snapshot ---")
 	fmt.Println("PrimaryId:", wv.PrimaryId)
 	fmt.Println("Peers:", wv.PeerInfo.Peers)
