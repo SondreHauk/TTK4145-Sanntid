@@ -35,22 +35,18 @@ func ClearOrder(elev *Elevator, floor int) {
 			elev.Orders[floor][elevio.BT_HallUp] = false
 		} else if OrdersBelow(*elev){
 			elev.Orders[floor][elevio.BT_HallDown] = false
-			// fmt.Println("Switching direction")
 		} else {
 			elev.Orders[floor][elevio.BT_HallUp] = false
 			elev.Orders[floor][elevio.BT_HallDown] = false
-			// fmt.Println("No more orders")
 		}
 	case DOWN:
 		if OrdersBelow(*elev){
 			elev.Orders[floor][elevio.BT_HallDown] = false
 		} else if OrdersAbove(*elev) {
 			elev.Orders[floor][elevio.BT_HallUp] = false
-			// fmt.Println("Switching direction")
 		} else {
 			elev.Orders[floor][elevio.BT_HallDown] = false
 			elev.Orders[floor][elevio.BT_HallUp] = false
-			// fmt.Println("No more orders")
 		}
 	}
 	elev.Orders[floor][elevio.BT_Cab] = false

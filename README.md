@@ -60,7 +60,7 @@ As per now, when an elevator is obstructed, the primary reassigns its hall order
 As per now, the application uses three ports in stead of two. This is due to a (up until this point not understood) bug where the transmission of worldviews would halt. A bit clumsy, this was fixed (on the surface at least) by broadcasting the worldview on a separate port. The improvement includes fixing this bug, utilizing the router function of the `Transmitter()` and `Receiver()` function from the peers and bcast modules and reduce the number of ports used.
 
 ## Reduse the transmission of unecessary overhead  
-As the worldview struct grew larger, the transmitter `bufSize` was increased to `2048` bytes instead of the initial `1024` bytes. This increase is probably not necessary. In stead the size of the worldview could be more dynamic, redusing unecessary overhead e.g. like an empty 4 x 4 matrix containing no orders.
+As the worldview struct grew larger, the transmitter `bufSize` was increased to `4096` bytes instead of the initial `1024` bytes. This increase is probably not necessary. In stead the size of the worldview could be more dynamic, redusing unecessary overhead e.g. like an empty 4 x 4 matrix containing no orders.
 
 # Miscellaneous
 ## Variable naming convention

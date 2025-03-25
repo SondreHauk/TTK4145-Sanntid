@@ -4,8 +4,8 @@ import (
 	. "source/config"
 )
 
-func FleetAccessManager(mapActionChan <-chan FleetAccess) {
-	fleet := make(map[string]Elevator) // Real fleet map. All others are snapshots of this
+func ElevatorsAccessManager(mapActionChan <-chan ElevatorsAccess) {
+	fleet := make(map[string]Elevator)
 	for {
 		select {
 		case newAction := <-mapActionChan:
@@ -25,23 +25,23 @@ func FleetAccessManager(mapActionChan <-chan FleetAccess) {
 	}
 }
 
-func SingleFleetWrite(id string, elev Elevator, mapActionChan chan FleetAccess) {
-	mapActionChan <- FleetAccess{Cmd: "write one", Id: id, Elev: elev}
+func SingleElevatorWrite(id string, elev Elevator, mapActionChan chan ElevatorsAccess) {
+	mapActionChan <- ElevatorsAccess{Cmd: "write one", Id: id, Elev: elev}
 }
 
-func FullFleetWrite(elevMap map[string]Elevator, mapActionChan chan FleetAccess) {
-	mapActionChan <- FleetAccess{Cmd: "write all", ElevMap: elevMap}
+func AllElevatorsWrite(elevMap map[string]Elevator, mapActionChan chan ElevatorsAccess) {
+	mapActionChan <- ElevatorsAccess{Cmd: "write all", ElevMap: elevMap}
 }
 
-func FleetRead(mapActionChan chan FleetAccess) map[string]Elevator {
+func ElevatorsRead(mapActionChan chan ElevatorsAccess) map[string]Elevator {
 	readChan := make(chan map[string]Elevator, 1)
 	defer close(readChan)
-	mapActionChan <- FleetAccess{Cmd: "read", ReadChan: readChan}
+	mapActionChan <- ElevatorsAccess{Cmd: "read", ReadChan: readChan}
 	return <-readChan
 }
 
 func UnacceptedOrdersManager(ordersActionChan <-chan OrderAccess) {
-	orders := make(map[string][]Order) //The true map of unaccpeted orders
+	orders := make(map[string][]Order)
 	for {
 		select {
 		case action := <-ordersActionChan:
@@ -81,7 +81,7 @@ func AddUnacceptedOrder(ordersActionChan chan<- OrderAccess, order Order) {
 	ordersActionChan <- OrderAccess{
 		Cmd:    "write",
 		Id:     order.Id,
-		Orders: []Order{order}, // Send a single order as a slice
+		Orders: []Order{order},
 	}
 }
 
