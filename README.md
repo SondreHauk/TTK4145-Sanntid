@@ -51,6 +51,20 @@ graph LR;
     Primary -- 3.set light --> Elevator;
     Elevator -- 2.order received --> Primary;
 ```
+# Fault tolerance protocol
+## Primary Backup
+As mentioned, all nodes on the network are backups, *only one is primary*. The backup shadows the communication from the primary to the elevators. This is implemented quite simply by passing all the information from the primary to the elevator via the backup:
+
+```mermaid
+graph LR;
+    Primary -- execute --> Backup;
+    Backup -- execute --> Elevator;
+    Elevator -- request --> Primary;
+```
+This way, we can be sure that all the information that reaches an elevator is backed up by its respective backup. 
+
+## Primary Takeover
+The Primary receives `elevator states` and broadcasts `worldviews`...
 
 # Improvements
 ## Improve obstruction robustness
