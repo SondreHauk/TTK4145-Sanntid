@@ -78,10 +78,12 @@ func UnacceptedOrdersManager(ordersActionChan <-chan OrderAccess) {
 }
 
 func AddUnacceptedOrder(ordersActionChan chan<- OrderAccess, order Order) {
-	ordersActionChan <- OrderAccess{
-		Cmd:    "write",
-		Id:     order.Id,
-		Orders: []Order{order},
+	if order.Id != "" {
+		ordersActionChan <- OrderAccess{
+			Cmd:    "write",
+			Id:     order.Id,
+			Orders: []Order{order},
+		}
 	}
 }
 

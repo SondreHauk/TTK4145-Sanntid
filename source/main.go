@@ -90,9 +90,6 @@ func main() {
 	go peers.Transmitter(PORT_PEERS, id, transmitEnableChan)
 	go peers.Receiver(PORT_PEERS, peerUpdateChan)
 
-	// go bcast.Transmitter(PORT_WORLDVIEW, worldviewTXChan)
-	// go bcast.Receiver(PORT_WORLDVIEW, worldviewRXChan)
-
 	// Fault tolerance protocol
 	go backup.Run(worldviewRXChan, worldviewToElevatorChan, becomePrimaryChan, worldviewToPrimaryChan, id)
 	go primary.Run(peerUpdateChan, elevatorRXChan, becomePrimaryChan, 
