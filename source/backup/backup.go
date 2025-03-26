@@ -7,39 +7,38 @@ import (
 )
 
 func Run(
-	worldviewRXChan <-chan Worldview,
-	worldViewToElevChan chan<- Worldview,
-	becomePrimaryChan chan<- Worldview,
-	worldviewToPrimaryChan chan Worldview,
+	wvRXChan <-chan Worldview,
+	wvToElevChan chan<- Worldview,
+	wvToPrimaryChan chan Worldview,
+	enablePrimaryChan chan<- Worldview,
 	myId string) {
 
 	fmt.Println("Enter Backup mode - listening for primary")
 
-	var latestWV Worldview
-	latestWV.PrimaryId = myId
-	latestWV.FleetSnapshot = make(map[string]Elevator)
-	latestWV.UnacceptedOrdersSnapshot = make(map[string][]Order)
+	var latestWv Worldview
+	latestWv.PrimaryId = myId
+	latestWv.FleetSnapshot = make(map[string]Elevator)
+	latestWv.UnacceptedOrdersSnapshot = make(map[string][]Order)
 
-	select { //INIT
-	case latestWV = <-worldviewRXChan:
-
+	select {
+	case latestWv = <-wvRXChan:
 	case <-time.After(T_PRIMARY_TIMEOUT):
-		becomePrimaryChan <- latestWV
+		enablePrimaryChan <- latestWv
 	}
 
 	for {
 		select {
-		case latestWV = <-worldviewRXChan:
-			worldViewToElevChan <- latestWV
-			worldviewToPrimaryChan <- latestWV
+		case latestWv = <-wvRXChan:
+			wvToElevChan <- latestWv
+			wvToPrimaryChan <- latestWv
 
 		case <-time.After(T_PRIMARY_TIMEOUT):
-			if shouldTakeOver(latestWV, myId) {
-				latestWV.PrimaryId = myId
-				becomePrimaryChan <- latestWV
+			if shouldTakeOver(latestWv, myId) {
+				latestWv.PrimaryId = myId
+				enablePrimaryChan <- latestWv
 				fmt.Println("Primary timeout - start takeover")
 			} else {
-				latestWV.PeerInfo.Peers = latestWV.PeerInfo.Peers[1:]
+				latestWv.PeerInfo.Peers = latestWv.PeerInfo.Peers[1:]
 			}
 		}
 	}
