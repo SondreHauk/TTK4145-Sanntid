@@ -1,36 +1,35 @@
 package fsm
 
 import (
-	"os/exec"
-	"os"
-	"runtime"
+	"fmt"
 	"log"
-	"strings"
+	"os"
+	"os/exec"
+	"runtime"
 	. "source/config"
 	"source/localElevator/elevio"
 	"source/localElevator/requests"
+	"strings"
 	"time"
-	"fmt"
 )
-
 
 func shouldStop(elev Elevator) bool {
 	switch elev.Direction {
 	case UP:
-		if elev.Floor==NUM_FLOORS-1{
+		if elev.Floor == NUM_FLOORS-1 {
 			return true
-		}else{
-			return elev.Orders[elev.Floor][elevio.BT_HallUp] || 
-			elev.Orders[elev.Floor][elevio.BT_Cab] || 
-			!requests.OrdersAbove(elev)
+		} else {
+			return elev.Orders[elev.Floor][elevio.BT_HallUp] ||
+				elev.Orders[elev.Floor][elevio.BT_Cab] ||
+				!requests.OrdersAbove(elev)
 		}
 	case DOWN:
-		if elev.Floor==0{
+		if elev.Floor == 0 {
 			return true
-		}else{
-			return elev.Orders[elev.Floor][elevio.BT_HallDown] || 
-			elev.Orders[elev.Floor][elevio.BT_Cab] || 
-			!requests.OrdersBelow(elev)
+		} else {
+			return elev.Orders[elev.Floor][elevio.BT_HallDown] ||
+				elev.Orders[elev.Floor][elevio.BT_Cab] ||
+				!requests.OrdersBelow(elev)
 		}
 	case STOP:
 		return true
@@ -40,7 +39,7 @@ func shouldStop(elev Elevator) bool {
 
 func chooseDirection(elev Elevator) int {
 	// In case of orders above and below; choose last moving direction
-	if elev.PrevDirection == UP{
+	if elev.PrevDirection == UP {
 		if requests.OrdersAbove(elev) {
 			return UP
 		} else if requests.OrdersBelow(elev) {
@@ -58,14 +57,14 @@ func chooseDirection(elev Elevator) int {
 }
 
 // Is only used by primary/assigner but uses fsm helper functions
-func TimeUntilPickup(elev Elevator, NewOrder Order) time.Duration{
+func TimeUntilPickup(elev Elevator, NewOrder Order) time.Duration {
 	duration := time.Duration(0)
-	elev.Orders[NewOrder.Floor][NewOrder.Button]=true
+	elev.Orders[NewOrder.Floor][NewOrder.Button] = true
 	// Determines initial state
 	switch elev.State {
 	case IDLE:
 		elev.Direction = chooseDirection(elev)
-		if elev.Direction == STOP && elev.Floor == NewOrder.Floor{
+		if elev.Direction == STOP && elev.Floor == NewOrder.Floor {
 			return duration
 		}
 	case MOVING:
@@ -76,12 +75,12 @@ func TimeUntilPickup(elev Elevator, NewOrder Order) time.Duration{
 	}
 
 	for {
-		if ShouldStop(elev) {
-			if elev.Floor == NewOrder.Floor{
+		if shouldStop(elev) {
+			if elev.Floor == NewOrder.Floor {
 				return duration
-			}else{
-				for btn:=0; btn<NUM_BUTTONS; btn++{
-					elev.Orders[elev.Floor][btn]=false
+			} else {
+				for btn := 0; btn < NUM_BUTTONS; btn++ {
+					elev.Orders[elev.Floor][btn] = false
 				}
 				duration += T_DOOR_OPEN
 				elev.Direction = chooseDirection(elev)
@@ -94,26 +93,26 @@ func TimeUntilPickup(elev Elevator, NewOrder Order) time.Duration{
 
 func checkForNewOrders(
 	wv Worldview,
-	myId string, 
-	orderChan chan <- Order, 
-	acceptedRequestsChan chan <- OrderMatrix,
+	myId string,
+	orderChan chan<- Order,
+	acceptedRequestsChan chan<- OrderMatrix,
 	acceptedOrders OrderMatrix) {
-	
-	// send all assigned orders to request module 
-	accOrdersMatrix := OrderMatrix{}
-	for _, accOrders := range wv.UnacceptedOrdersSnapshot{
-			for _, ord := range accOrders{
-				accOrdersMatrix[ord.Floor][ord.Button] = true
-			}
+
+	// send all assigned orders to request module
+	accOrdersMatrix := OrderMatrixConstructor()
+	for _, accOrders := range wv.UnacceptedOrdersSnapshot {
+		for _, ord := range accOrders {
+			accOrdersMatrix[ord.Floor][ord.Button] = true
 		}
+	}
 	acceptedRequestsChan <- accOrdersMatrix
 
 	// send ID assigned order to elevator
 	orders, exists := wv.UnacceptedOrdersSnapshot[myId]
 	if exists {
-		for _, order := range orders{
+		for _, order := range orders {
 			if !acceptedOrders[order.Floor][order.Button] {
-			orderChan <- order
+				orderChan <- order
 			}
 		}
 	}
@@ -130,7 +129,7 @@ func checkForNewLights(wv Worldview, lights HallMatrix, lightsChan chan HallMatr
 	}
 }
 
-func setHallLights(lights HallMatrix){
+func setHallLights(lights HallMatrix) {
 	for floor, btns := range lights {
 		for btn, status := range btns {
 			elevio.SetButtonLamp(elevio.ButtonType(btn), floor, status)
@@ -138,7 +137,7 @@ func setHallLights(lights HallMatrix){
 	}
 }
 
-func spawnProcess() error{
+func spawnProcess() error {
 	path, err := os.Executable()
 	if err != nil {
 		return err
@@ -150,25 +149,25 @@ func spawnProcess() error{
 	}
 
 	var cmd *exec.Cmd
-	switch runtime.GOOS{
+	switch runtime.GOOS {
 	case "linux":
 		cmd = exec.Command("gnome-terminal", "--", "bash", "-c", path+" "+args+"; exec bash")
 	case "darwin":
 		cmd = exec.Command("osascript", "-e", fmt.Sprintf(`tell application "Terminal" to do script "%s"`, commandLine))
 	case "windows":
-		cmd = exec.Command("cmd","/C","start","",commandLine)
+		cmd = exec.Command("cmd", "/C", "start", "", commandLine)
 	default:
 		return fmt.Errorf("unsupported platform: %s. Valid platforms are Linux, Windows or MacOSX", runtime.GOOS)
 	}
-	
+
 	if err := cmd.Start(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func motorStopProtocol(){
-	if err:=spawnProcess(); err != nil {
+func motorStopProtocol() {
+	if err := spawnProcess(); err != nil {
 		log.Printf("Failed to restart process: %v", err)
 	}
 	log.Println("Motor stop detected. Restart")

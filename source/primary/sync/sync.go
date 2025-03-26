@@ -105,7 +105,7 @@ func RemoveUnacceptedOrder(ordersActionChan chan<- OrderAccess, order Order) {
 }
 
 func HallLightsManager(lightsActionChan <-chan LightsAccess) {
-	hallLights := HallMatrix{}
+	hallLights := HallMatrixConstructor()
 	for {
 		select {
 		case action := <-lightsActionChan:

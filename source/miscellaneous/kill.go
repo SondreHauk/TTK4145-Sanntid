@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func kill(StopButtonCh <-chan bool) {
+func Kill(StopButtonCh <-chan bool) {
 	KeyboardInterruptCh := make(chan os.Signal, 1)
 	signal.Notify(KeyboardInterruptCh, os.Interrupt)
 	select {

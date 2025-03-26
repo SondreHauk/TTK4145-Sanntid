@@ -10,7 +10,7 @@ const (
 	DOOR_OPEN
 )
 
-var NUM_FLOORS int = DEFAULT_NUM_FLOORS
+var NUM_FLOORS int
 
 const (
 	NUM_BUTTONS        = 3
@@ -45,11 +45,27 @@ const (
 	PORT_BCAST          = 20019
 	PORT_PEERS          = 20020
 	PORT_WORLDVIEW      = 20040
-	DEFAULT_ELEVIO_PORT = 15657
+	DEFAULT_ELEVIO_PORT = "15657"
 )
 
-type OrderMatrix [NUM_FLOORS][NUM_BUTTONS]bool
-type HallMatrix [NUM_FLOORS][NUM_BUTTONS - 1]bool
+// Technically Dynamic. Cannot pre-allocate due to compile-time limitations of Golang
+type OrderMatrix [][]bool //Always [NUM_FLOORS][NUM_BUTTONS]
+type HallMatrix [][]bool  //Always [NUM_FLOORS][NUM_BUTTONS-1]
+
+func OrderMatrixConstructor() OrderMatrix {
+	output := make(OrderMatrix, NUM_FLOORS)
+	for i := range output {
+		output[i] = make([]bool, NUM_BUTTONS)
+	}
+	return output
+}
+func HallMatrixConstructor() HallMatrix {
+	output := make(HallMatrix, NUM_FLOORS)
+	for i := range output {
+		output[i] = make([]bool, NUM_BUTTONS-1)
+	}
+	return output
+}
 
 type ElevatorState int
 

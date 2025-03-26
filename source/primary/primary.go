@@ -30,7 +30,7 @@ func Run(
 	var latestPeerUpdate PeerUpdate
 	worldview.FleetSnapshot = make(map[string]Elevator)
 	worldview.UnacceptedOrdersSnapshot = make(map[string][]Order)
-	hallLights := HallMatrix{}
+	hallLights := HallMatrixConstructor()
 
 	// Owns and handles access shared variables
 	go sync.ElevatorsAccessManager(elevatorsActionChan)
@@ -38,8 +38,8 @@ func Run(
 	go sync.HallLightsManager(lightsActionChan)
 
 	go obstructionHandler(elevUpdateObsChan, worldviewObsChan, elevatorsActionChan, orderActionChan)
-	
-	for{
+
+	for {
 		select {
 		// Draining of channels prior to primary activation
 		case <-worldviewRXChan:
@@ -57,17 +57,17 @@ func Run(
 			heartbeatTimer := time.NewTicker(T_HEARTBEAT)
 			defer heartbeatTimer.Stop()
 
-			primaryLoop:
+		primaryLoop:
 			for {
 				select {
-				case <- becomePrimaryChan: //drain
+				case <-becomePrimaryChan: //drain
 
 				case worldview.PeerInfo = <-peerUpdateChan:
 					printPeers(worldview.PeerInfo)
 					lost := worldview.PeerInfo.Lost
 					if len(lost) != 0 {
 						fmt.Println("Reassign and remember")
-						reassignHallOrders(worldview, elevatorsActionChan, 
+						reassignHallOrders(worldview, elevatorsActionChan,
 							orderActionChan, Reassignment{Cause: Disconnected})
 						rememberLostCabOrders(lost, orderActionChan, worldview)
 					}
@@ -78,7 +78,7 @@ func Run(
 					checkforAcceptedOrders(orderActionChan, elevUpdate, unacceptedOrders)
 					updateHallLights(worldview, hallLights, elevatorsActionChan, lightsActionChan)
 					elevUpdateObsChan <- elevUpdate
-          
+
 				case requests := <-requestsRXChan:
 					worldview.FleetSnapshot = sync.ElevatorsRead(elevatorsActionChan)
 					worldview.UnacceptedOrdersSnapshot = sync.GetUnacceptedOrders(orderActionChan)
@@ -99,7 +99,7 @@ func Run(
 						break primaryLoop
 					}
 				}
-			}	
+			}
 		}
 	}
 }

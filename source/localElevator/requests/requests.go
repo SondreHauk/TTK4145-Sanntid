@@ -59,7 +59,7 @@ func SendRequest(
 	accReqChan <-chan OrderMatrix,
 	id string) {
 
-	requests := OrderMatrix{}
+	requests := OrderMatrixConstructor()
 	heartBeat := time.NewTicker(T_HEARTBEAT)
 	defer heartBeat.Stop()
 

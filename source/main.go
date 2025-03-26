@@ -4,11 +4,8 @@ import (
 	"flag"
 	"source/backup"
 	. "source/config"
-	"source/localElevator/elevio"
 	"source/localElevator/fsm"
-	"source/miscellaneous/inits"
-	"source/miscellaneous/misc"
-	"source/localElevator/requests"
+	misc "source/miscellaneous"
 	"source/network/bcast"
 	"source/network/peers"
 	"source/primary"
@@ -16,12 +13,11 @@ import (
 
 func main() {
 	// Command line flags
-	var port int
+	var port string
 	var id string
-	var numFloors int
-	flag.IntVar(&port, "port", DEFAULT_ELEVIO_PORT, "Elevator port number")
-	flag.StringVar(&id, "id", "", "Elevator id")
-	flag.IntVar(&numFloors, "floors", DEFAULT_NUM_FLOORS, "Number of floors if simulating")
+	flag.StringVar(&port, "port", DEFAULT_ELEVIO_PORT, "Elevator port number")
+	flag.StringVar(&id, "id", "1", "Elevator id")
+	flag.IntVar(&NUM_FLOORS, "floors", DEFAULT_NUM_FLOORS, "Number of floors if simulating")
 	flag.Parse()
 
 	// Transmission/Receival channels
@@ -32,7 +28,7 @@ func main() {
 	wvRXChan := make(chan Worldview, 10)
 	requestsTXChan := make(chan Requests, 10)
 	requestsRXChan := make(chan Requests, 10)
-	
+
 	// Local elevator channels
 	stopChan := make(chan bool, 1)
 	wvToElevChan := make(chan Worldview, 10)
@@ -49,15 +45,15 @@ func main() {
 	go peers.Receiver(PORT_PEERS, peerUpdateChan)
 
 	// Local elevator protocol
-	go fsm.Run(elevTXChan, requestsTXChan, wvToElevChan, stopChan, id, port, numFloors)
+	go fsm.Run(elevTXChan, requestsTXChan, wvToElevChan, stopChan, id, port)
 
 	// Fault tolerance protocol
-	go backup.Run(wvRXChan, wvToElevChan, enablePrimaryChan, 
+	go backup.Run(wvRXChan, wvToElevChan, enablePrimaryChan,
 		wvToPrimaryChan, id)
-	go primary.Run(peerUpdateChan, elevRXChan, enablePrimaryChan, 
+	go primary.Run(peerUpdateChan, elevRXChan, enablePrimaryChan,
 		wvTXChan, wvToPrimaryChan, requestsRXChan, id)
 
 	// Terminates execution
-	go misc.kill(stopChan)
+	go misc.Kill(stopChan)
 	select {}
 }

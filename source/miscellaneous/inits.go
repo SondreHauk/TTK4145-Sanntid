@@ -5,22 +5,27 @@ import (
 	"source/localElevator/elevio"
 )
 
-func ElevatorInit(elev Elevator, id string) {
+func ElevatorInit(id string) Elevator {
 	currentFloor := elevio.GetFloor()
 	if currentFloor == -1 {
 		ch := make(chan int)
 		go elevio.PollFloorSensor(ch)
 		elevio.SetMotorDirection(elevio.MD_Down)
-		currentFloor = <-ch
+		currentFloor = <-ch //Blocks
+		elevio.SetFloorIndicator(currentFloor)
 		elevio.SetMotorDirection(elevio.MD_Stop)
 	}
-	elev.Id = id
-	elev.PrevDirection = DOWN
-	elev.Direction = int(elevio.MD_Stop)
-	elev.State = IDLE
-	elev.Floor = currentFloor
-	elev.Obstructed = false
-	elevio.SetFloorIndicator(elev.Floor)
+	elev := Elevator{
+		Id:            id,
+		Floor:         currentFloor,
+		Direction:     int(elevio.MD_Stop),
+		PrevDirection: DOWN,
+		State:         IDLE,
+		Orders:        OrderMatrixConstructor(),
+		Requests:      OrderMatrixConstructor(),
+		Obstructed:    false,
+	}
+	return elev
 }
 
 func LightsInit() {
