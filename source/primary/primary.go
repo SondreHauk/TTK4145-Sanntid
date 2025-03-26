@@ -18,7 +18,7 @@ func Run(
 	myId string) {
 
 	// Syncronization channels
-	fleetActionChan := make(chan ElevatorsAccess, 10)
+	elevatorsActionChan := make(chan ElevatorsAccess, 10)
 	orderActionChan := make(chan OrderAccess, 10)
 	lightsActionChan := make(chan LightsAccess, 10)
 
@@ -33,11 +33,11 @@ func Run(
 	hallLights := HallMatrix{}
 
 	// Owns and handles access shared variables
-	go sync.ElevatorsAccessManager(fleetActionChan)
+	go sync.ElevatorsAccessManager(elevatorsActionChan)
 	go sync.UnacceptedOrdersManager(orderActionChan)
 	go sync.HallLightsManager(lightsActionChan)
 
-	go obstructionHandler(elevUpdateObsChan, worldviewObsChan, fleetActionChan, orderActionChan)
+	go obstructionHandler(elevUpdateObsChan, worldviewObsChan, elevatorsActionChan, orderActionChan)
 	
 	for{
 		select {
@@ -52,7 +52,7 @@ func Run(
 			worldview = wv
 			worldview.PeerInfo = latestPeerUpdate
 			printPeers(worldview.PeerInfo)
-			sync.AllElevatorsWrite(worldview.FleetSnapshot, fleetActionChan)
+			sync.AllElevatorsWrite(worldview.FleetSnapshot, elevatorsActionChan)
 			sync.WriteHallLights(lightsActionChan, wv.HallLightsSnapshot)
 			heartbeatTimer := time.NewTicker(T_HEARTBEAT)
 			defer heartbeatTimer.Stop()
@@ -66,28 +66,30 @@ func Run(
 					printPeers(worldview.PeerInfo)
 					lost := worldview.PeerInfo.Lost
 					if len(lost) != 0 {
-						reassignHallOrders(worldview, fleetActionChan, 
+						reassignHallOrders(worldview, elevatorsActionChan, 
 							orderActionChan, Reassignment{Cause: Disconnected})
 						rememberLostCabOrders(lost, orderActionChan, worldview)
 					}
 
 				case elevUpdate := <-elevStateChan:
-					sync.SingleElevatorWrite(elevUpdate.Id, elevUpdate, fleetActionChan)
+					sync.SingleElevatorWrite(elevUpdate.Id, elevUpdate, elevatorsActionChan)
 					unacceptedOrders := sync.GetUnacceptedOrders(orderActionChan)[elevUpdate.Id]
 					checkforAcceptedOrders(orderActionChan, elevUpdate, unacceptedOrders)
-					updateHallLights(worldview, hallLights, fleetActionChan, lightsActionChan)
+					updateHallLights(worldview, hallLights, elevatorsActionChan, lightsActionChan)
 					elevUpdateObsChan <- elevUpdate
           
 				case requests := <-requestsRXChan:
-					worldview.FleetSnapshot = sync.ElevatorsRead(fleetActionChan)
+					worldview.FleetSnapshot = sync.ElevatorsRead(elevatorsActionChan)
+					worldview.UnacceptedOrdersSnapshot = sync.GetUnacceptedOrders(orderActionChan)
 					assigner.AssignRequests(requests, worldview, orderActionChan)
 
 				case <-heartbeatTimer.C:
-					worldview.FleetSnapshot = sync.ElevatorsRead(fleetActionChan)
+					worldview.FleetSnapshot = sync.ElevatorsRead(elevatorsActionChan)
 					worldview.UnacceptedOrdersSnapshot = sync.GetUnacceptedOrders(orderActionChan)
 					worldview.HallLightsSnapshot = sync.ReadHallLights(lightsActionChan)
 					worldviewTXChan <- worldview
 					worldviewObsChan <- worldview
+					PrintWorldview(worldview)
 
 				case receivedWV := <-worldviewRXChan:
 					if receivedWV.PrimaryId < myId {
