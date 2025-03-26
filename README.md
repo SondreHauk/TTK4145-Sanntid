@@ -57,14 +57,20 @@ As mentioned, all nodes on the network are backups, *only one is primary*. The b
 
 ```mermaid
 graph LR;
-    Primary -- execute --> Backup;
-    Backup -- execute --> Elevator;
-    Elevator -- request --> Primary;
+    Primary -- worldview --> Backup;
+    Backup -- worldview --> Elevator;
+    Elevator -- elevState / request --> Primary;
 ```
 This way, we can be sure that all the information that reaches an elevator is backed up by its respective backup. 
 
+## Message types
+The Primary receives `elevator state` and `request` and broadcasts `worldviews`.
+### Elevator state
+### Request
+### Worldview
+
 ## Primary Takeover
-The Primary receives `elevator states` and broadcasts `worldviews`...
+When a backup discovers a primary timeout ...
 
 # Improvements
 ## Improve obstruction robustness

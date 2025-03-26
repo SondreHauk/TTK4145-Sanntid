@@ -66,11 +66,7 @@ func reassignHallOrders(
 		for floor, floorOrders := range(orderMatrix){
 			for btn, isOrder := range(floorOrders){
 				if isOrder && btn != int(elevio.BT_Cab){
-					lostOrder:=Order{
-						Id: reassign.ObsId,
-						Floor: floor,
-						Button: btn,
-						}
+					lostOrder:= OrderConstructor(reassign.ObsId, floor, btn)
 					lostOrder.Id = assigner.ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, lostOrder)
 					sync.AddUnacceptedOrder(ordersActionChan, lostOrder)
 				}	
