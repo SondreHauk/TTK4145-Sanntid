@@ -1,4 +1,4 @@
-package inits
+package initsLocal
 
 import (
 	. "source/config"

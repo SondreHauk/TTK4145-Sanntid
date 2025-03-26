@@ -21,11 +21,11 @@ const (
 	T_HEARTBEAT = time.Millisecond*100
 	T_SLEEP = time.Millisecond*20
 	T_DOOR_OPEN = time.Second*3
-	T_REASSIGN_PRIMARY = time.Second*3
-	T_REASSIGN_LOCAL = time.Second*4
-	T_TRAVEL = time.Second*2 	// traveltime between floors
+	T_REASSIGN_PRIMARY = time.Second*3 // Time before primary clears reassigned orders
+	T_REASSIGN_LOCAL = time.Second*4 // Time before elev clears reassigned orders
+	T_TRAVEL = time.Second*2 // Approx time spent travelling between adjacent floors
+	T_MOTOR_STOP = 2*T_TRAVEL // Threshold for trigerring motor stop protocol while travelling
 	T_PRIMARY_TIMEOUT = time.Millisecond*2000
-	T_BLINK = time.Millisecond*100
 )
 
 const (
@@ -43,6 +43,7 @@ const (
 	PORT_BCAST      = 20019
 	PORT_PEERS      = 20020
 	PORT_WORLDVIEW  = 20040
+	DEFAULT_ELEVIO_PORT = 15657
 )
 
 type OrderMatrix [NUM_FLOORS][NUM_BUTTONS]bool

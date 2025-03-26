@@ -14,7 +14,7 @@ import (
 )
 
 
-func ShouldStop(elev Elevator) bool {
+func shouldStop(elev Elevator) bool {
 	switch elev.Direction {
 	case UP:
 		if elev.Floor==NUM_FLOORS-1{
@@ -38,7 +38,7 @@ func ShouldStop(elev Elevator) bool {
 	return false
 }
 
-func ChooseDirection(elev Elevator) int {
+func chooseDirection(elev Elevator) int {
 	// In case of orders above and below; choose last moving direction
 	if elev.PrevDirection == UP{
 		if requests.OrdersAbove(elev) {
@@ -57,15 +57,14 @@ func ChooseDirection(elev Elevator) int {
 
 }
 
-//Simulates elevator execution and returns approx time until pickup at NewOrder.Floor
-// WHY IN FSM MODULE?
+// Is only used by primary/assigner but uses fsm helper functions
 func TimeUntilPickup(elev Elevator, NewOrder Order) time.Duration{
 	duration := time.Duration(0)
 	elev.Orders[NewOrder.Floor][NewOrder.Button]=true
 	// Determines initial state
 	switch elev.State {
 	case IDLE:
-		elev.Direction = ChooseDirection(elev)
+		elev.Direction = chooseDirection(elev)
 		if elev.Direction == STOP && elev.Floor == NewOrder.Floor{
 			return duration
 		}
@@ -85,7 +84,7 @@ func TimeUntilPickup(elev Elevator, NewOrder Order) time.Duration{
 					elev.Orders[elev.Floor][btn]=false
 				}
 				duration += T_DOOR_OPEN
-				elev.Direction = ChooseDirection(elev)
+				elev.Direction = chooseDirection(elev)
 			}
 		}
 		elev.Floor += int(elev.Direction)
@@ -97,8 +96,8 @@ func checkForNewOrders(
 	wv Worldview,
 	myId string, 
 	orderChan chan <- Order, 
-	accReqChan chan <- OrderMatrix,
-	acceptedorders OrderMatrix) {
+	acceptedRequestsChan chan <- OrderMatrix,
+	acceptedOrders OrderMatrix) {
 	
 	// send all assigned orders to request module 
 	accOrdersMatrix := OrderMatrix{}
@@ -107,13 +106,13 @@ func checkForNewOrders(
 				accOrdersMatrix[ord.Floor][ord.Button] = true
 			}
 		}
-	accReqChan <- accOrdersMatrix
+	acceptedRequestsChan <- accOrdersMatrix
 
 	// send ID assigned order to elevator
 	orders, exists := wv.UnacceptedOrdersSnapshot[myId]
 	if exists {
 		for _, order := range orders{
-			if !acceptedorders[order.Floor][order.Button] {
+			if !acceptedOrders[order.Floor][order.Button] {
 			orderChan <- order
 			}
 		}
@@ -168,7 +167,7 @@ func spawnProcess() error{
 	return nil
 }
 
-func restartUponMotorStop(){
+func motorStopProtocol(){
 	if err:=spawnProcess(); err != nil {
 		log.Printf("Failed to restart process: %v", err)
 	}

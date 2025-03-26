@@ -15,11 +15,8 @@ This module implements the **FSM** for controlling a local elevator in a distrib
 ### `ShouldStop(elev Elevator) bool`
 Determines whether the elevator should stop at the current floor based on pending orders and movement direction.  
 
-### `ChooseDirection(elev Elevator) int`
+### `chooseDirection(elev Elevator) int`
 Decides the next direction of movement based on the elevator's previous direction and pending orders.  
-
-### `TimeUntilPickup(elev Elevator, NewOrder Order) time.Duration`
-Simulates the elevator’s journey and returns the estimated time required to reach a requested floor.  
 
 ### `Run(elev *Elevator, ...)`
 Main FSM loop that:  
