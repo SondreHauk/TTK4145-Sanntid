@@ -34,6 +34,7 @@ func Transmitter(port int, chans ...interface{}) {
 			TypeId: typeNames[chosen],
 			JSON:   jsonstr,
 		})
+		if len(ttj) > 2000 {fmt.Printf("WV size: %d\n", len(ttj))}
 		if len(ttj) > bufSize {
 		    panic(fmt.Sprintf(
 		        "Tried to send a message longer than the buffer size (length: %d, buffer size: %d)\n\t'%s'\n"+

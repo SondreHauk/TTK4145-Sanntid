@@ -9,19 +9,32 @@ import (
 )
 
 func AssignRequests(requests Requests, wv Worldview, orderActionChan chan OrderAccess){
+	unaccOrders := wv.UnacceptedOrdersSnapshot
 	for floor, request := range requests.Requests {
 		for req, active := range request {
 			if active {
 				order := OrderConstructor(requests.Id, floor, req)
-				if order.Button == int(elevio.BT_Cab) {
-					sync.AddUnacceptedOrder(orderActionChan, order)
-				} else {
-					AssignedId := ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, order)
-					sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(AssignedId, order.Floor, order.Button))
+				orders := unaccOrders[order.Id]
+				if !containsOrder(orders, order) {
+					if order.Button == int(elevio.BT_Cab) {
+						sync.AddUnacceptedOrder(orderActionChan, order)
+					} else {
+						AssignedId := ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, order)
+						sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(AssignedId, order.Floor, order.Button))
+					}
 				}
 			}
 		}
 	}
+}
+
+func containsOrder(orders []Order, order Order) bool {
+    for _, ord := range orders {
+        if ord == order {
+            return true // Found the value
+        }
+    }
+    return false // Value not found
 }
 
 func ChooseElevator(elevators map[string]Elevator, activeIds []string, NewOrder Order)string{
