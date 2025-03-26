@@ -19,7 +19,7 @@ func checkforAcceptedOrders(orderActionChan chan OrderAccess, elevUpdate Elevato
 							Order{Id: elevUpdate.Id, Floor: floor, Button: btn})
 						break
 					}
-				} 
+				}
 			}
 		}
 	}

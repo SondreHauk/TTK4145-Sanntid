@@ -185,3 +185,11 @@ func resetTimer(timer *time.Timer, duration time.Duration) {
 	}
 	timer.Reset(duration)
 }
+
+// Send accepted order to Primary ten times to avoid loop
+func ackOrder(elev *Elevator, elevChan chan <-Elevator){
+	for range 10 {
+		elevChan <- *elev
+	}
+	time.Sleep(T_SLEEP)
+}

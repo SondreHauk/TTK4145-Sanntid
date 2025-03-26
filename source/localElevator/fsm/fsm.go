@@ -56,8 +56,7 @@ func Run(
 					motorstopTimer.Stop()
 					elevio.SetDoorOpenLamp(true)
 					doorTimer.Reset(T_DOOR_OPEN)
-					elevChan <- *elev //AVOID LOOP
-					time.Sleep(T_SLEEP)
+					ackOrder(elev, elevChan)
 					elev.Orders[elev.Floor][NewOrder.Button] = false
 					if(NewOrder.Button == int(elevio.BT_Cab)){
 						elevio.SetButtonLamp(elevio.BT_Cab, NewOrder.Floor, false)
@@ -69,8 +68,7 @@ func Run(
 			case MOVING: //NOOP
 			case DOOR_OPEN:
 				if elev.Floor == NewOrder.Floor {
-					elevChan <- *elev //AVOID LOOP BY ACKING ORDER BEFORE CLEARING
-					time.Sleep(T_SLEEP)
+					ackOrder(elev, elevChan)
 					elev.Orders[elev.Floor][NewOrder.Button] = false
 					elevio.SetButtonLamp(elevio.ButtonType(NewOrder.Button), elev.Floor, false)
 					if !elev.Obstructed{

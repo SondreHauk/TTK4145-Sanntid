@@ -9,18 +9,19 @@ import (
 )
 
 func AssignRequests(requests Requests, wv Worldview, orderActionChan chan OrderAccess){
-	unaccOrders := wv.UnacceptedOrdersSnapshot
 	for floor, request := range requests.Requests {
 		for req, active := range request {
 			if active {
 				order := OrderConstructor(requests.Id, floor, req)
-				orders := unaccOrders[order.Id]
-				if !containsOrder(orders, order) {
-					if order.Button == int(elevio.BT_Cab) {
+				if order.Button == int(elevio.BT_Cab){
+					if !containsOrder(orderActionChan, order){
 						sync.AddUnacceptedOrder(orderActionChan, order)
-					} else {
-						AssignedId := ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, order)
-						sync.AddUnacceptedOrder(orderActionChan, OrderConstructor(AssignedId, order.Floor, order.Button))
+					}
+				} else {
+					assignedId := ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, order)
+					order = OrderConstructor(assignedId, order.Floor, order.Button)
+					if !containsOrder(orderActionChan, order) {
+						sync.AddUnacceptedOrder(orderActionChan, order)
 					}
 				}
 			}
@@ -28,13 +29,14 @@ func AssignRequests(requests Requests, wv Worldview, orderActionChan chan OrderA
 	}
 }
 
-func containsOrder(orders []Order, order Order) bool {
+func containsOrder(orderActionChan chan OrderAccess, order Order) bool {
+	orders := sync.GetUnacceptedOrders(orderActionChan)[order.Id]
     for _, ord := range orders {
         if ord == order {
-            return true // Found the value
+            return true // Found the order
         }
     }
-    return false // Value not found
+    return false // Order not found
 }
 
 func ChooseElevator(elevators map[string]Elevator, activeIds []string, NewOrder Order)string{
