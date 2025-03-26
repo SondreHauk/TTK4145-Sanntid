@@ -18,13 +18,13 @@ const (
 )
 
 const (
-	T_HEARTBEAT = time.Millisecond*100
+	T_HEARTBEAT = time.Millisecond*50
 	T_SLEEP = time.Millisecond*20
 	T_DOOR_OPEN = time.Second*3
 	T_REASSIGN_PRIMARY = time.Second*3
 	T_REASSIGN_LOCAL = time.Second*4
 	T_TRAVEL = time.Second*2 	// traveltime between floors
-	T_PRIMARY_TIMEOUT = time.Millisecond*2000
+	T_PRIMARY_TIMEOUT = time.Millisecond*1000
 	T_BLINK = time.Millisecond*100
 )
 
@@ -42,7 +42,6 @@ const(
 const (
 	PORT_BCAST      = 20019
 	PORT_PEERS      = 20020
-	PORT_WORLDVIEW  = 20040
 )
 
 type OrderMatrix [NUM_FLOORS][NUM_BUTTONS]bool

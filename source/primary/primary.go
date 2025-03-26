@@ -66,7 +66,7 @@ func Run(
 					printPeers(worldview.PeerInfo)
 					lost := worldview.PeerInfo.Lost
 					if len(lost) != 0 {
-						fmt.Println("Reassign and remember")
+						fmt.Println("Reassign and remember orders")
 						reassignHallOrders(worldview, elevatorsActionChan, 
 							orderActionChan, Reassignment{Cause: Disconnected})
 						rememberLostCabOrders(lost, orderActionChan, worldview)
@@ -90,7 +90,7 @@ func Run(
 					worldview.HallLightsSnapshot = sync.ReadHallLights(lightsActionChan)
 					worldviewTXChan <- worldview
 					worldviewObsChan <- worldview
-					// PrintWorldview(worldview)
+					PrintWorldview(worldview)
 
 				case receivedWV := <-worldviewRXChan:
 					if receivedWV.PrimaryId < myId {
