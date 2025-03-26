@@ -1,11 +1,10 @@
 package misc
 
-import(
-	"os/signal"
-	"os"
-	"source/localElevator/elevio"
+import (
 	"fmt"
-	. "source/config"
+	"os"
+	"os/signal"
+	"source/localElevator/elevio"
 	"time"
 )
 
@@ -18,9 +17,9 @@ func kill(StopButtonCh <-chan bool) {
 	case <-StopButtonCh:
 		for i := 0; i < 5; i++ {
 			elevio.SetStopLamp(true)
-			time.Sleep(time.Millisecond*50)
+			time.Sleep(time.Millisecond * 50)
 			elevio.SetStopLamp(false)
-			time.Sleep(time.Millisecond*50)
+			time.Sleep(time.Millisecond * 50)
 		}
 	}
 	elevio.SetMotorDirection(elevio.MD_Stop)

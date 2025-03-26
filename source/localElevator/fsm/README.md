@@ -18,7 +18,7 @@ Determines whether the elevator should stop at the current floor based on pendin
 ### `chooseDirection(elev Elevator) int`
 Decides the next direction of movement based on the elevator's previous direction and pending orders.  
 
-### `Run(elev *Elevator, ...)`
+### `Run(elev Elevator, ...)`
 Main FSM loop that:  
 - Processes incoming orders and determines movement.  
 - Opens/closes doors based on conditions.  

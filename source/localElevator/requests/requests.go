@@ -28,21 +28,21 @@ func OrdersBelow(elev Elevator) bool {
 	return false
 }
 
-func ClearOrder(elev *Elevator, floor int) {
+func ClearOrder(elev Elevator, floor int) {
 	switch elev.Direction {
 	case UP:
-		if OrdersAbove(*elev){
+		if OrdersAbove(elev) {
 			elev.Orders[floor][elevio.BT_HallUp] = false
-		} else if OrdersBelow(*elev){
+		} else if OrdersBelow(elev) {
 			elev.Orders[floor][elevio.BT_HallDown] = false
 		} else {
 			elev.Orders[floor][elevio.BT_HallUp] = false
 			elev.Orders[floor][elevio.BT_HallDown] = false
 		}
 	case DOWN:
-		if OrdersBelow(*elev){
+		if OrdersBelow(elev) {
 			elev.Orders[floor][elevio.BT_HallDown] = false
-		} else if OrdersAbove(*elev) {
+		} else if OrdersAbove(elev) {
 			elev.Orders[floor][elevio.BT_HallUp] = false
 		} else {
 			elev.Orders[floor][elevio.BT_HallDown] = false
@@ -51,40 +51,34 @@ func ClearOrder(elev *Elevator, floor int) {
 	}
 	elev.Orders[floor][elevio.BT_Cab] = false
 	elevio.SetButtonLamp(elevio.BT_Cab, floor, false)
-}	
-
-func ClearAll(elev *Elevator) {
-	for fl := 0; fl < NUM_FLOORS; fl++ {
-		ClearOrder(elev, fl)
-	}
 }
 
 func SendRequest(
-	reqEventChan <-chan elevio.ButtonEvent, 
-	requestsTXChan chan <- Requests, 
-	accReqChan <- chan OrderMatrix,
+	reqEventChan <-chan elevio.ButtonEvent,
+	requestsTXChan chan<- Requests,
+	accReqChan <-chan OrderMatrix,
 	id string) {
 
 	requests := OrderMatrix{}
 	heartBeat := time.NewTicker(T_HEARTBEAT)
 	defer heartBeat.Stop()
 
-	for{
+	for {
 		select {
-		case accReq := <- accReqChan:
-			for floor, orders := range accReq{
-				for btn := range orders{
+		case accReq := <-accReqChan:
+			for floor, orders := range accReq {
+				for btn := range orders {
 					if accReq[floor][btn] {
 						requests[floor][btn] = false
 					}
 				}
 			}
 
-		case req := <- reqEventChan:
+		case req := <-reqEventChan:
 			requests[req.Floor][req.Button] = true
 			requestsTXChan <- Requests{Id: id, Requests: requests}
 
-		case <- heartBeat.C:
+		case <-heartBeat.C:
 			if checkForActiveRequests(requests) {
 				requestsTXChan <- Requests{Id: id, Requests: requests}
 			}
@@ -94,7 +88,7 @@ func SendRequest(
 }
 
 func checkForActiveRequests(requests OrderMatrix) bool {
-	for _, req := range requests{
+	for _, req := range requests {
 		for _, active := range req {
 			if active {
 				return true
