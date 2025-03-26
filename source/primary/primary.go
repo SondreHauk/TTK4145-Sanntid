@@ -67,7 +67,7 @@ func Run(
 					lost := worldview.PeerInfo.Lost
 					if len(lost) != 0 {
 						fmt.Println("Reassign and remember")
-						reassignHallOrders(worldview, fleetActionChan, 
+						reassignHallOrders(worldview, elevatorsActionChan, 
 							orderActionChan, Reassignment{Cause: Disconnected})
 						rememberLostCabOrders(lost, orderActionChan, worldview)
 					}
