@@ -85,13 +85,13 @@ func main() {
 		accReqChan, obstructionChan, worldviewToElevatorChan, id)
 
 	// Goroutines communication
-	go bcast.Transmitter(PORT_BCAST, elevatorTXChan, requestsTXChan)
-	go bcast.Receiver(PORT_BCAST, elevatorRXChan, requestsRXChan)
+	go bcast.Transmitter(PORT_BCAST, elevatorTXChan, requestsTXChan, worldviewTXChan)
+	go bcast.Receiver(PORT_BCAST, elevatorRXChan, requestsRXChan, worldviewRXChan)
 	go peers.Transmitter(PORT_PEERS, id, transmitEnableChan)
 	go peers.Receiver(PORT_PEERS, peerUpdateChan)
 
-	go bcast.Transmitter(PORT_WORLDVIEW, worldviewTXChan)
-	go bcast.Receiver(PORT_WORLDVIEW, worldviewRXChan)
+	// go bcast.Transmitter(PORT_WORLDVIEW, worldviewTXChan)
+	// go bcast.Receiver(PORT_WORLDVIEW, worldviewRXChan)
 
 	// Fault tolerance protocol
 	go backup.Run(worldviewRXChan, worldviewToElevatorChan, becomePrimaryChan, worldviewToPrimaryChan, id)

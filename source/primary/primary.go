@@ -89,7 +89,7 @@ func Run(
 					worldview.HallLightsSnapshot = sync.ReadHallLights(lightsActionChan)
 					worldviewTXChan <- worldview
 					worldviewObsChan <- worldview
-					PrintWorldview(worldview)
+					// PrintWorldview(worldview)
 
 				case receivedWV := <-worldviewRXChan:
 					if receivedWV.PrimaryId < myId {
