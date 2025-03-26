@@ -76,7 +76,7 @@ func main() {
 	inits.ElevatorInit(&elev, id)
 
 	// Goroutines Local elevator
-	go requests.SendRequest(buttonChan, requestsTXChan, accReqChan, id)
+	go requests.SendRequest(buttonChan, requestsTXChan, accReqChan, orderChan, id)
 	go elevio.PollButtons(buttonChan)
 	go elevio.PollFloorSensor(atFloorChan)
 	go elevio.PollObstructionSwitch(obstructionChan)
