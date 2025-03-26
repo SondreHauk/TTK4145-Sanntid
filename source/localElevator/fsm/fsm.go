@@ -23,7 +23,7 @@ func Run(
 	hallLights := HallMatrixConstructor()
 
 	// Initializations
-	elevio.Init("192.168.64.3:"+port, NUM_FLOORS)
+	elevio.Init("localport:"+port, NUM_FLOORS)
 	elev := misc.ElevatorInit(myId)
 	misc.LightsInit()
 	heartbeatTimer := time.NewTimer(T_HEARTBEAT)
