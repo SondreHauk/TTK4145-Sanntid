@@ -45,7 +45,7 @@ func Run(
 		case <-worldviewRXChan:
 		case <-elevStateChan:
 		case <-requestsRXChan:
-		case latestPeerUpdate = <-peerUpdateChan:
+		// case latestPeerUpdate = <-peerUpdateChan:
 		// Primary activation
 		case wv := <-becomePrimaryChan:
 			fmt.Println("Taking over as Primary")
@@ -66,7 +66,8 @@ func Run(
 					printPeers(worldview.PeerInfo)
 					lost := worldview.PeerInfo.Lost
 					if len(lost) != 0 {
-						reassignHallOrders(worldview, elevatorsActionChan, 
+						fmt.Println("Reassign and remember")
+						reassignHallOrders(worldview, fleetActionChan, 
 							orderActionChan, Reassignment{Cause: Disconnected})
 						rememberLostCabOrders(lost, orderActionChan, worldview)
 					}
