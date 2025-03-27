@@ -41,7 +41,7 @@ func Run(
 		case <-wvRXChan:
 		case <-elevRXChan:
 		case <-requestsRXChan:
-		case latestPeerUpdate = <-peerUpdateChan:
+		// case latestPeerUpdate = <-peerUpdateChan:
 
 		// Primary activation
 		case wv = <-enablePrimaryChan:
