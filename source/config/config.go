@@ -44,7 +44,6 @@ const (
 const (
 	PORT_BCAST          = 20019
 	PORT_PEERS          = 20020
-	PORT_WORLDVIEW      = 20040
 	DEFAULT_ELEVIO_PORT = "15657"
 )
 
