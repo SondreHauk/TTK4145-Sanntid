@@ -4,127 +4,168 @@ import (
 	. "source/config"
 	"source/localElevator/elevio"
 	"source/localElevator/requests"
+	misc "source/miscellaneous"
 	"time"
 )
 
 func Run(
-	elev *Elevator, 
-	elevChan chan <-Elevator, 
-	atFloorChan <-chan int, 
-	orderChan chan Order,
-	accReqChan chan <- OrderMatrix,
-	obstructionChan <-chan bool,
+	elevTXChan chan<- Elevator,
+	requestsTXChan chan Requests,
 	worldviewToElevatorChan <-chan Worldview,
-	myId string) {
-
-	// Define local variables
+	stopChan chan bool,
+	myId string,
+	port string,
+) {
+	// Local variables
 	var wv Worldview
-	hallLights := HallMatrix{}
-	hallLightsChan := make(chan HallMatrix, 10)
+	var NewOrder Order
+	var obsEvent bool
+	hallLights := HallMatrixConstructor()
 
-	// Set timers
+	// Initializations
+	elevio.Init("localhost:" + port, NUM_FLOORS)
+	elev := misc.ElevatorInit(myId)
+	misc.LightsInit()
 	heartbeatTimer := time.NewTimer(T_HEARTBEAT)
 	doorTimer := time.NewTimer(T_DOOR_OPEN)
 	doorTimer.Stop()
 	obstructionTimer := time.NewTimer(T_REASSIGN_LOCAL)
 	obstructionTimer.Stop()
-	motorstopTimer := time.NewTimer(2*T_TRAVEL)
+	motorstopTimer := time.NewTimer(T_MOTOR_STOP)
 	motorstopTimer.Stop()
-	
+
+	// Local channels
+	atFloorChan := make(chan int, 1)
+	buttonChan := make(chan elevio.ButtonEvent, 10)
+	obstructionChan := make(chan bool, 1)
+	acceptedRequestsChan := make(chan OrderMatrix, 10)
+	hallLightsChan := make(chan HallMatrix, 10)
+	orderChan := make(chan Order, 10)
+
+	// Local goroutines
+	go elevio.PollButtons(buttonChan)
+	go elevio.PollFloorSensor(atFloorChan)
+	go elevio.PollObstructionSwitch(obstructionChan)
+	go elevio.PollStopButton(stopChan)
+	go requests.SendRequest(
+		buttonChan,
+		requestsTXChan,
+		acceptedRequestsChan,
+		myId,
+	)
+
 	for {
 		select {
-		case wv = <- worldviewToElevatorChan:
+		case wv = <-worldviewToElevatorChan:
+			checkForNewOrders(
+				wv,
+				myId,
+				orderChan,
+				acceptedRequestsChan,
+				elev.Orders,
+			)
+			checkForNewLights(
+				wv,
+				hallLights,
+				hallLightsChan,
+			)
 
-			checkForNewOrders(wv, myId, orderChan, accReqChan, elev.Orders)
-			checkForNewLights(wv, hallLights, hallLightsChan)
-		
-		case NewOrder := <-orderChan:
-			
+		case NewOrder = <-orderChan:
 			elev.Orders[NewOrder.Floor][NewOrder.Button] = true
-			
-			if NewOrder.Button == int(elevio.BT_Cab){
-				elevio.SetButtonLamp(elevio.BT_Cab, NewOrder.Floor, true)
+			if NewOrder.Button == int(elevio.BT_Cab) {
+				elevio.SetButtonLamp(
+					elevio.BT_Cab,
+					NewOrder.Floor,
+					true,
+				)
 			}
-
 			switch elev.State {
 			case IDLE:
-				elev.Direction = ChooseDirection(*elev)
+				elev.Direction = chooseDirection(elev)
 				elevio.SetMotorDirection(elevio.MotorDirection(elev.Direction))
-				resetTimer(motorstopTimer, 2*T_TRAVEL)
-				
+				resetTimer(motorstopTimer, T_MOTOR_STOP)
 				if elev.Direction == STOP {
 					motorstopTimer.Stop()
 					elevio.SetDoorOpenLamp(true)
-					doorTimer.Reset(T_DOOR_OPEN)
-					ackOrder(elev, elevChan)
+					resetTimer(doorTimer, T_DOOR_OPEN)
+          ackOrder(elev, elevTXChan) //Acknowledge order before clearing					
 					elev.Orders[elev.Floor][NewOrder.Button] = false
-					if(NewOrder.Button == int(elevio.BT_Cab)){
-						elevio.SetButtonLamp(elevio.BT_Cab, NewOrder.Floor, false)
+					if NewOrder.Button == int(elevio.BT_Cab) {
+						elevio.SetButtonLamp(
+							elevio.BT_Cab,
+							NewOrder.Floor,
+							false,
+						)
 					}
 					elev.State = DOOR_OPEN
 				} else {
 					elev.State = MOVING
 				}
+
 			case MOVING: //NOOP
+
 			case DOOR_OPEN:
 				if elev.Floor == NewOrder.Floor {
-					ackOrder(elev, elevChan)
+					ackOrder(elev, elevChan) //Acknowledge order before clearing			
 					elev.Orders[elev.Floor][NewOrder.Button] = false
-					elevio.SetButtonLamp(elevio.ButtonType(NewOrder.Button), elev.Floor, false)
-					if !elev.Obstructed{
-						doorTimer.Reset(T_DOOR_OPEN)
+					elevio.SetButtonLamp(
+						elevio.ButtonType(NewOrder.Button),
+						elev.Floor,
+						false,
+					)
+					if !elev.Obstructed {
+						resetTimer(doorTimer, T_DOOR_OPEN)
 					}
 				}
 			}
-			elevChan <- *elev
-		
-		case hallLights = <- hallLightsChan:
+			elevTXChan <- elev
+
+		case hallLights = <-hallLightsChan:
 			setHallLights(hallLights)
 
 		case elev.Floor = <-atFloorChan:
-			resetTimer(motorstopTimer, 2*T_TRAVEL)
+			resetTimer(motorstopTimer, T_MOTOR_STOP)
 			elevio.SetFloorIndicator(elev.Floor)
-			if ShouldStop(*elev) {
+			if shouldStop(elev) {
 				motorstopTimer.Stop()
 				elevio.SetMotorDirection(elevio.MD_Stop)
-				requests.ClearOrder(elev,elev.Floor)
+				requests.ClearOrder(elev, elev.Floor)
 				elev.Direction = STOP
 				elevio.SetDoorOpenLamp(true)
-				doorTimer.Reset(T_DOOR_OPEN)
+				resetTimer(doorTimer, T_DOOR_OPEN)
 				elev.State = DOOR_OPEN
 			}
-			elevChan <- *elev
+			elevTXChan <- elev
 
 		case <-doorTimer.C:
 			elevio.SetDoorOpenLamp(false)
-			elev.Direction = ChooseDirection(*elev)
+			elev.Direction = chooseDirection(elev)
 			if elev.Direction == STOP {
 				elev.State = IDLE
 			} else {
 				elevio.SetMotorDirection(elevio.MotorDirection(elev.Direction))
-				resetTimer(motorstopTimer, 2*T_TRAVEL)
+				resetTimer(motorstopTimer, T_MOTOR_STOP)
 				elev.State = MOVING
 			}
-			elevChan <- *elev
-		
-		case ObsEvent:= <-obstructionChan:
-			if elev.State==DOOR_OPEN{
-				switch ObsEvent{
-					case true:
-						elev.Obstructed = true
-						doorTimer.Stop()
-						obstructionTimer.Reset(T_REASSIGN_LOCAL)
-					case false:
-						elev.Obstructed = false
-						doorTimer.Reset(T_DOOR_OPEN)
+			elevTXChan <- elev
+
+		case obsEvent = <-obstructionChan:
+			if elev.State == DOOR_OPEN {
+				switch obsEvent {
+				case true:
+					elev.Obstructed = true
+					doorTimer.Stop()
+					resetTimer(obstructionTimer, T_REASSIGN_LOCAL)
+				case false:
+					elev.Obstructed = false
+					resetTimer(doorTimer, T_DOOR_OPEN)
 				}
 			}
-			elevChan <- *elev
-		
-		case <- obstructionTimer.C:
-			//Delete active hall orders
-			for floor, floorOrders := range(elev.Orders){
-				for btn, orderActive := range(floorOrders){
+			elevTXChan <- elev
+
+		case <-obstructionTimer.C:
+			for floor, floorOrders := range elev.Orders {
+				for btn, orderActive := range floorOrders {
 					if orderActive && btn != int(elevio.BT_Cab) {
 						elev.Orders[floor][btn] = false
 					}
@@ -133,11 +174,11 @@ func Run(
 			obstructionTimer.Stop()
 
 		case <-heartbeatTimer.C:
-			elevChan <- *elev
-			heartbeatTimer.Reset(T_HEARTBEAT)
-		
+			elevTXChan <- elev
+			resetTimer(heartbeatTimer, T_HEARTBEAT)
+
 		case <-motorstopTimer.C:
-			restartUponMotorStop()
+			motorStopProtocol()
 		}
 	}
 }
