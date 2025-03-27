@@ -1,11 +1,13 @@
 package bcast
 
 import (
-	"source/network/conn"
 	"encoding/json"
 	"fmt"
 	"net"
 	"reflect"
+	"source/network/conn"
+	"sync"
+	"time"
 )
 
 // Increased to 4096. Initially 1024
@@ -17,6 +19,7 @@ func Transmitter(port int, chans ...interface{}) {
 	checkArgs(chans...)
 	typeNames := make([]string, len(chans))
 	selectCases := make([]reflect.SelectCase, len(typeNames))
+	
 	for i, ch := range chans {
 		selectCases[i] = reflect.SelectCase{
 			Dir:  reflect.SelectRecv,
@@ -26,11 +29,17 @@ func Transmitter(port int, chans ...interface{}) {
 	}
 
 	conn := conn.DialBroadcastUDP(port)
-	addr, _ := net.ResolveUDPAddr("udp4", fmt.Sprintf("255.255.255.255:%d", port))
+	netAddr, _ := net.ResolveUDPAddr("udp4", fmt.Sprintf("255.255.255.255:%d", port))
+	localAddr,_ := net.ResolveUDPAddr("udp4", fmt.Sprintf("127.0.0.1:%d", port))
+
 	for {
 		chosen, value, _ := reflect.Select(selectCases)
 		jsonstr, _ := json.Marshal(value.Interface())
+
+		msgID := fmt.Sprintf("%d", time.Now().UnixNano()) // generate unique ID
+
 		ttj, _ := json.Marshal(typeTaggedJSON{
+			ID: msgID,
 			TypeId: typeNames[chosen],
 			JSON:   jsonstr,
 		})
@@ -41,10 +50,32 @@ func Transmitter(port int, chans ...interface{}) {
 		        "Either send smaller packets, or go to network/bcast/bcast.go and increase the buffer size",
 		        len(ttj), bufSize, string(ttj)))
 		}
-		conn.WriteTo(ttj, addr)
+		conn.WriteTo(ttj, netAddr)
+		conn.WriteTo(ttj, localAddr)
     		
 	}
 }
+
+//Functionality for deduplication of messages
+
+var (
+	messageCache = make(map[string]time.Time)
+	cacheMutex = sync.Mutex{}
+)
+
+func cleanUpCache() {
+	for {
+		time.Sleep(5 * time.Second) // Clean cache every 5 seconds
+		cacheMutex.Lock()
+		for id, timestamp := range messageCache {
+			if time.Since(timestamp) > 5 *time.Second {
+				delete(messageCache, id) // Remove messages older than 5 sec
+			}
+		}
+		cacheMutex.Unlock()
+	}
+}
+
 
 // Matches type-tagged JSON received on `port` to element types of `chans`, then
 // sends the decoded value on the corresponding channel
@@ -57,14 +88,33 @@ func Receiver(port int, chans ...interface{}) {
 
 	var buf [bufSize]byte
 	conn := conn.DialBroadcastUDP(port)
+
+	go cleanUpCache()
+
 	for {
+		conn.SetReadDeadline(time.Now().Add(2 * time.Second)) // Prevent blocking
 		n, _, e := conn.ReadFrom(buf[0:])
-		if e != nil {
+		if netErr, ok := e.(net.Error); ok && netErr.Timeout() {
+			continue // Just a timeout, retry
+		}
+
+		if e != nil{
 			fmt.Printf("bcast.Receiver(%d, ...):ReadFrom() failed: \"%+v\"\n", port, e)
+			time.Sleep(time.Second)
+			continue
 		}
 
 		var ttj typeTaggedJSON
 		json.Unmarshal(buf[0:n], &ttj)
+
+		cacheMutex.Lock()
+        if _, exists := messageCache[ttj.ID]; exists {
+            cacheMutex.Unlock()
+            continue // Duplicate message, ignore it
+        }
+        messageCache[ttj.ID] = time.Now() // Store message ID
+        cacheMutex.Unlock()
+
 		ch, ok := chansMap[ttj.TypeId]
 		if !ok {
 			continue
@@ -80,6 +130,7 @@ func Receiver(port int, chans ...interface{}) {
 }
 
 type typeTaggedJSON struct {
+	ID 	   string 	// Unique ID for deduplication
 	TypeId string
 	JSON   []byte
 }

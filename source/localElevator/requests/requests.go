@@ -85,9 +85,9 @@ func SendRequest(
 			requests[req.Floor][req.Button] = true
 			requestsTXChan <- Requests{Id: id, Requests: requests}
 			
-			if req.Button == elevio.BT_Cab {
-				orderChan <- OrderConstructor(id, req.Floor, int(req.Button)) // Lets the elev operate when disconnected 
-			}
+			// if req.Button == elevio.BT_Cab {
+			//	orderChan <- OrderConstructor(id, req.Floor, int(req.Button)) // Lets the elev operate when disconnected 
+			//}
 
 		case <- heartBeat.C:
 			if checkForActiveRequests(requests) {
