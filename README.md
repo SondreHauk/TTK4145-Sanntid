@@ -23,7 +23,7 @@ Each elevator must be assigned an unique id at initialization.
 ## Requests and Orders
 When a button is pressed in any elevator, a corresponding `request` is created. This request is then handled by the primary and an `order` is made. Each order is marked with an `id` and the order is accepted only by the elevator with the corresponding `id`.
 
-If the request is of type `cab`, it is assigned to the elevator who sent the cab request.
+If the request is of type `cab`, it is assigned to the elevator who sent the cab request. Note that the cab order is assigned twise; both locally and by the primary. This is to ensure that the elevator can serve cab calls when it loses contact with the primary.
 If the request is of type `hall`, it is assigned to the most suitable elevator on the network. 
 The resulting request/order flow can be seen in the below diagram.
 
@@ -34,6 +34,7 @@ graph LR;
     MakeRequest -- hall request --> Primary;
     Primary -- hall order --> ElevatorY;
     MakeRequest -- cab request --> Primary;
+    MakeRequest -- cab order --> ElevatorX;
     Primary -- cab order --> ElevatorX;
 ```
 
