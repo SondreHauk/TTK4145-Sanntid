@@ -63,7 +63,7 @@ func Run(
 					printPeers(wv.PeerInfo)
 					lost := wv.PeerInfo.Lost
 					if len(lost) != 0 {
-						fmt.Println("Reassign and remember")
+						fmt.Println("Reassign and remember orders")
 						reassignHallOrders(
 							wv,
 							elevsAccessChan,

@@ -48,13 +48,13 @@ func AssignRequests(
 	}
 }
 
-func containsOrder(orders []Order, order Order) bool {
-	for _, ord := range orders {
-		if ord == order {
-			return true // Found the value
+func containsOrder(orderSlice []Order, order Order) bool {
+	for _, orderIterate := range orderSlice {
+		if orderIterate == order {
+			return true // Found the order
 		}
 	}
-	return false // Value not found
+	return false // Order not found
 }
 
 func ChooseElevator(

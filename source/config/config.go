@@ -20,14 +20,14 @@ const (
 )
 
 const (
-	T_HEARTBEAT        = time.Millisecond * 100
+	T_HEARTBEAT        = time.Millisecond * 50
 	T_SLEEP            = time.Millisecond * 20
 	T_DOOR_OPEN        = time.Second * 3
 	T_REASSIGN_PRIMARY = time.Second * 3 // Time before primary clears reassigned orders
 	T_REASSIGN_LOCAL   = time.Second * 4 // Time before elev clears reassigned orders
 	T_TRAVEL           = time.Second * 2 // Approx time spent travelling between adjacent floors
 	T_MOTOR_STOP       = 2 * T_TRAVEL    // Threshold for trigerring motor stop protocol while travelling
-	T_PRIMARY_TIMEOUT  = time.Millisecond * 2000
+	T_PRIMARY_TIMEOUT  = time.Millisecond * 1000
 )
 
 const (

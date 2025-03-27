@@ -88,8 +88,7 @@ func Run(
 					motorstopTimer.Stop()
 					elevio.SetDoorOpenLamp(true)
 					resetTimer(doorTimer, T_DOOR_OPEN)
-					elevTXChan <- elev
-					time.Sleep(T_SLEEP) //LET PRIMARY CATCH UP BEFORE CLEARING
+          ackOrder(elev, elevTXChan) //Acknowledge order before clearing					
 					elev.Orders[elev.Floor][NewOrder.Button] = false
 					if NewOrder.Button == int(elevio.BT_Cab) {
 						elevio.SetButtonLamp(
@@ -107,8 +106,7 @@ func Run(
 
 			case DOOR_OPEN:
 				if elev.Floor == NewOrder.Floor {
-					elevTXChan <- elev
-					time.Sleep(T_SLEEP) //LET PRIMARY CATCH UP BEFORE CLEARING
+					ackOrder(elev, elevChan) //Acknowledge order before clearing			
 					elev.Orders[elev.Floor][NewOrder.Button] = false
 					elevio.SetButtonLamp(
 						elevio.ButtonType(NewOrder.Button),
