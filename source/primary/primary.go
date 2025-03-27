@@ -27,7 +27,7 @@ func Run(
 	// Shared variables
 	var wv Worldview
 	var latestPeerUpdate PeerUpdate
-	hallLights := HallMatrixConstructor()
+/* 	hallLights := HallMatrixConstructor() */
 
 	// Owns and handles access shared variables
 	go sync.ElevatorsAccessManager(elevsAccessChan)
@@ -92,7 +92,7 @@ func Run(
 					)
 					updateHallLights(
 						wv,
-						hallLights,
+						/* hallLights, */
 						elevsAccessChan,
 						lightsActionChan,
 					)

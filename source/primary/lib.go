@@ -35,10 +35,11 @@ func checkforAcceptedOrders(
 
 func updateHallLights(
 	wv Worldview,
-	lights HallMatrix,
+	/* lights HallMatrix, */
 	mapActionChan chan ElevatorsAccess,
 	lightsActionChan chan LightsAccess,
 ) {
+	lights := HallMatrixConstructor()
 	wv.FleetSnapshot = sync.ElevatorsRead(mapActionChan)
 	for _, id := range wv.PeerInfo.Peers {
 		orderMatrix := wv.FleetSnapshot[id].Orders

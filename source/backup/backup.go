@@ -9,9 +9,10 @@ import (
 func Run(
 	wvRXChan <-chan Worldview,
 	wvToElevChan chan<- Worldview,
-	wvToPrimaryChan chan Worldview,
 	enablePrimaryChan chan<- Worldview,
-	myId string) {
+	wvToPrimaryChan chan Worldview,
+	myId string,
+) {
 
 	fmt.Println("Enter Backup mode - listening for primary")
 

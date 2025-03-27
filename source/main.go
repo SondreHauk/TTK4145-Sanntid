@@ -48,10 +48,22 @@ func main() {
 	go fsm.Run(elevTXChan, requestsTXChan, wvToElevChan, stopChan, id, port)
 
 	// Fault tolerance protocol
-	go backup.Run(wvRXChan, wvToElevChan, enablePrimaryChan,
-		wvToPrimaryChan, id)
-	go primary.Run(peerUpdateChan, elevRXChan, enablePrimaryChan,
-		wvTXChan, wvToPrimaryChan, requestsRXChan, id)
+	go backup.Run(
+		wvRXChan,
+		wvToElevChan,
+		enablePrimaryChan,
+		wvToPrimaryChan,
+		id,
+	)
+	go primary.Run(
+		peerUpdateChan,
+		elevRXChan,
+		enablePrimaryChan,
+		wvTXChan,
+		wvToPrimaryChan,
+		requestsRXChan,
+		id,
+	)
 
 	// Terminates execution
 	go misc.Kill(stopChan)
