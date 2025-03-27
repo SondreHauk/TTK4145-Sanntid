@@ -100,6 +100,14 @@ type PeerUpdate struct {
 	Lost  []string
 }
 
+func PeerUpdateConstructor() PeerUpdate{
+	return PeerUpdate{
+		Peers: []string{},
+		New: "",
+		Lost: []string{},
+	}
+}
+
 type Worldview struct {
 	PrimaryId                string
 	PeerInfo                 PeerUpdate
@@ -108,10 +116,10 @@ type Worldview struct {
 	HallLightsSnapshot       HallMatrix
 }
 
-func WorldviewConstructor(primaryId string, peerUpdate PeerUpdate) Worldview {
+func WorldviewConstructor(primaryId string) Worldview {
 	return Worldview{
 		PrimaryId:                primaryId,
-		PeerInfo:                 peerUpdate,
+		PeerInfo:                 PeerUpdateConstructor(),
 		FleetSnapshot:            make(map[string]Elevator),
 		UnacceptedOrdersSnapshot: make(map[string][]Order),
 		HallLightsSnapshot:       HallMatrixConstructor(),
