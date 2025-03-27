@@ -45,7 +45,7 @@ func Run(
 		case <-worldviewRXChan:
 		case <-elevStateChan:
 		case <-requestsRXChan:
-		// case latestPeerUpdate = <-peerUpdateChan:
+		case latestPeerUpdate = <-peerUpdateChan:
 		// Primary activation
 		case wv := <-becomePrimaryChan:
 			fmt.Println("Taking over as Primary")
