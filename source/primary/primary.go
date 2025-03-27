@@ -10,96 +10,113 @@ import (
 
 func Run(
 	peerUpdateChan <-chan PeerUpdate,
-	elevStateChan <-chan Elevator,
-	becomePrimaryChan <-chan Worldview,
-	worldviewTXChan chan<- Worldview,
-	worldviewRXChan <-chan Worldview,
+	elevRXChan <-chan Elevator,
+	enablePrimaryChan <-chan Worldview,
+	wvTXChan chan<- Worldview,
+	wvRXChan <-chan Worldview,
 	requestsRXChan <-chan Requests,
-	myId string) {
-
+	myId string,
+) {
 	// Syncronization channels
-	elevatorsActionChan := make(chan ElevatorsAccess, 10)
+	elevsAccessChan := make(chan ElevatorsAccess, 10)
 	orderActionChan := make(chan OrderAccess, 10)
 	lightsActionChan := make(chan LightsAccess, 10)
-
 	elevUpdateObsChan := make(chan Elevator, NUM_ELEVATORS)
-	worldviewObsChan := make(chan Worldview, 10)
+	wvObsChan := make(chan Worldview, 10)
 
-	// Shared variables
-	var worldview Worldview
+	// Local variables
+	var wv Worldview
 	var latestPeerUpdate PeerUpdate
-	worldview.FleetSnapshot = make(map[string]Elevator)
-	worldview.UnacceptedOrdersSnapshot = make(map[string][]Order)
-	hallLights := HallMatrix{}
 
-	// Owns and handles access shared variables
-	go sync.ElevatorsAccessManager(elevatorsActionChan)
+	// Owns and handles access to shared data structures
+	go sync.ElevatorsAccessManager(elevsAccessChan)
 	go sync.UnacceptedOrdersManager(orderActionChan)
 	go sync.HallLightsManager(lightsActionChan)
 
-	go obstructionHandler(elevUpdateObsChan, worldviewObsChan, elevatorsActionChan, orderActionChan)
-	
-	for{
+	go obstructionHandler(elevUpdateObsChan, wvObsChan, elevsAccessChan, orderActionChan)
+
+	for {
 		select {
 		// Draining of channels prior to primary activation
-		case <-worldviewRXChan:
-		case <-elevStateChan:
+		case <-wvRXChan:
+		case <-elevRXChan:
 		case <-requestsRXChan:
 		case latestPeerUpdate = <-peerUpdateChan:
+
 		// Primary activation
-		case wv := <-becomePrimaryChan:
+		case wv = <-enablePrimaryChan:
 			fmt.Println("Taking over as Primary")
-			worldview = wv
-			worldview.PeerInfo = latestPeerUpdate
-			printPeers(worldview.PeerInfo)
-			sync.AllElevatorsWrite(worldview.FleetSnapshot, elevatorsActionChan)
+			wv.PeerInfo = latestPeerUpdate
+			printPeers(wv.PeerInfo)
+			sync.AllElevatorsWrite(wv.FleetSnapshot, elevsAccessChan)
 			sync.WriteHallLights(lightsActionChan, wv.HallLightsSnapshot)
 			heartbeatTimer := time.NewTicker(T_HEARTBEAT)
 			defer heartbeatTimer.Stop()
 
-			primaryLoop:
+		primaryLoop:
 			for {
 				select {
-				case <- becomePrimaryChan: //drain
+				// Drain in case of enable -> disable -> enable
+				case <-enablePrimaryChan:
 
-				case worldview.PeerInfo = <-peerUpdateChan:
-					printPeers(worldview.PeerInfo)
-					lost := worldview.PeerInfo.Lost
+				case wv.PeerInfo = <-peerUpdateChan:
+					printPeers(wv.PeerInfo)
+					lost := wv.PeerInfo.Lost
 					if len(lost) != 0 {
 						fmt.Println("Reassign and remember orders")
-						reassignHallOrders(worldview, elevatorsActionChan, 
-							orderActionChan, Reassignment{Cause: Disconnected})
-						rememberLostCabOrders(lost, orderActionChan, worldview)
+						reassignHallOrders(
+							wv,
+							elevsAccessChan,
+							orderActionChan,
+							Reassignment{Cause: Disconnected},
+						)
+						rememberLostCabOrders(
+							lost,
+							orderActionChan,
+							wv,
+							elevsAccessChan,
+						)
 					}
 
-				case elevUpdate := <-elevStateChan:
-					sync.SingleElevatorWrite(elevUpdate.Id, elevUpdate, elevatorsActionChan)
+				case elevUpdate := <-elevRXChan:
+					sync.SingleElevatorWrite(
+						elevUpdate.Id,
+						elevUpdate,
+						elevsAccessChan,
+					)
 					unacceptedOrders := sync.GetUnacceptedOrders(orderActionChan)[elevUpdate.Id]
-					checkforAcceptedOrders(orderActionChan, elevUpdate, unacceptedOrders)
-					updateHallLights(worldview, hallLights, elevatorsActionChan, lightsActionChan)
+					checkforAcceptedOrders(
+						orderActionChan,
+						elevUpdate,
+						unacceptedOrders,
+					)
+					updateHallLights(
+						wv,
+						elevsAccessChan,
+						lightsActionChan,
+					)
 					elevUpdateObsChan <- elevUpdate
-          
+
 				case requests := <-requestsRXChan:
-					worldview.FleetSnapshot = sync.ElevatorsRead(elevatorsActionChan)
-					worldview.UnacceptedOrdersSnapshot = sync.GetUnacceptedOrders(orderActionChan)
-					assigner.AssignRequests(requests, worldview, orderActionChan)
+					wv.FleetSnapshot = sync.ElevatorsRead(elevsAccessChan)
+					wv.UnacceptedOrdersSnapshot = sync.GetUnacceptedOrders(orderActionChan)
+					assigner.AssignRequests(requests, wv, orderActionChan)
 
 				case <-heartbeatTimer.C:
-					worldview.FleetSnapshot = sync.ElevatorsRead(elevatorsActionChan)
-					worldview.UnacceptedOrdersSnapshot = sync.GetUnacceptedOrders(orderActionChan)
-					worldview.HallLightsSnapshot = sync.ReadHallLights(lightsActionChan)
-					worldviewTXChan <- worldview
-					worldviewObsChan <- worldview
-					// PrintWorldview(worldview)
+					wv.FleetSnapshot = sync.ElevatorsRead(elevsAccessChan)
+					wv.UnacceptedOrdersSnapshot = sync.GetUnacceptedOrders(orderActionChan)
+					wv.HallLightsSnapshot = sync.ReadHallLights(lightsActionChan)
+					wvTXChan <- wv
+					wvObsChan <- wv
 
-				case receivedWV := <-worldviewRXChan:
+				case receivedWV := <-wvRXChan:
 					if receivedWV.PrimaryId < myId {
 						fmt.Printf("Primary: %s, taking over\n", receivedWV.PrimaryId)
 						fmt.Println("Enter Backup mode - listening for primary")
 						break primaryLoop
 					}
 				}
-			}	
+			}
 		}
 	}
 }

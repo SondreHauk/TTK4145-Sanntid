@@ -11,6 +11,7 @@
 
 # Linus execs:
 elevatorExecutable
+elevExec
 SimLinux
 
 # Test binary, built with `go test -c`
