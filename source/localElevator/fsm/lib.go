@@ -186,9 +186,9 @@ func resetTimer(timer *time.Timer, duration time.Duration) {
 
 // Send multiple times to avoid hall light blinking. Message will never be truly lost,
 // as primary will just reassign order. This is mostly a quality of life improvement.
-func ackOrder(elev *Elevator, elevChan chan <-Elevator){
+func ackOrder(elev Elevator, elevChan chan <-Elevator){
 	for range 10 {
-		elevChan <- *elev
+		elevChan <- elev
 	}
 	time.Sleep(T_SLEEP)
 }

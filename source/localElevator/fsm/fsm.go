@@ -23,7 +23,7 @@ func Run(
 	hallLights := HallMatrixConstructor()
 
 	// Initializations
-	elevio.Init("localhost:" + port, NUM_FLOORS)
+	elevio.Init("localhost:"+port, NUM_FLOORS)
 	elev := misc.ElevatorInit(myId)
 	misc.LightsInit()
 	heartbeatTimer := time.NewTimer(T_HEARTBEAT)
@@ -88,7 +88,7 @@ func Run(
 					motorstopTimer.Stop()
 					elevio.SetDoorOpenLamp(true)
 					resetTimer(doorTimer, T_DOOR_OPEN)
-          ackOrder(elev, elevTXChan) //Acknowledge order before clearing					
+					ackOrder(elev, elevTXChan) //Acknowledge order before clearing
 					elev.Orders[elev.Floor][NewOrder.Button] = false
 					if NewOrder.Button == int(elevio.BT_Cab) {
 						elevio.SetButtonLamp(
@@ -106,7 +106,7 @@ func Run(
 
 			case DOOR_OPEN:
 				if elev.Floor == NewOrder.Floor {
-					ackOrder(elev, elevChan) //Acknowledge order before clearing			
+					ackOrder(elev, elevTXChan) //Acknowledge order before clearing
 					elev.Orders[elev.Floor][NewOrder.Button] = false
 					elevio.SetButtonLamp(
 						elevio.ButtonType(NewOrder.Button),
