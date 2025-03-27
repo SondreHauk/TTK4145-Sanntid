@@ -50,6 +50,7 @@ func Run(
 		buttonChan,
 		requestsTXChan,
 		acceptedRequestsChan,
+		orderChan,
 		myId,
 	)
 
