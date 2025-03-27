@@ -109,11 +109,13 @@ type Worldview struct {
 	HallLightsSnapshot       HallMatrix
 }
 
-func WorldviewConstructor(PrimaryId string, PeerInfo PeerUpdate, FleetSnapshot map[string]Elevator) Worldview {
+func WorldviewConstructor(primaryId string, peerUpdate PeerUpdate) Worldview {
 	return Worldview{
-		PrimaryId:     PrimaryId,
-		PeerInfo:      PeerInfo,
-		FleetSnapshot: FleetSnapshot,
+		PrimaryId:                primaryId,
+		PeerInfo:                 peerUpdate,
+		FleetSnapshot:            make(map[string]Elevator),
+		UnacceptedOrdersSnapshot: make(map[string][]Order),
+		HallLightsSnapshot:       HallMatrixConstructor(),
 	}
 }
 

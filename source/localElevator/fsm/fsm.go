@@ -14,8 +14,8 @@ func Run(
 	worldviewToElevatorChan <-chan Worldview,
 	stopChan chan bool,
 	myId string,
-	port string) {
-
+	port string,
+) {
 	// Local variables
 	var wv Worldview
 	var NewOrder Order
@@ -47,18 +47,37 @@ func Run(
 	go elevio.PollFloorSensor(atFloorChan)
 	go elevio.PollObstructionSwitch(obstructionChan)
 	go elevio.PollStopButton(stopChan)
-	go requests.SendRequest(buttonChan, requestsTXChan, acceptedRequestsChan, myId)
+	go requests.SendRequest(
+		buttonChan,
+		requestsTXChan,
+		acceptedRequestsChan,
+		myId,
+	)
 
 	for {
 		select {
 		case wv = <-worldviewToElevatorChan:
-			checkForNewOrders(wv, myId, orderChan, acceptedRequestsChan, elev.Orders)
-			checkForNewLights(wv, hallLights, hallLightsChan)
+			checkForNewOrders(
+				wv,
+				myId,
+				orderChan,
+				acceptedRequestsChan,
+				elev.Orders,
+			)
+			checkForNewLights(
+				wv,
+				hallLights,
+				hallLightsChan,
+			)
 
 		case NewOrder = <-orderChan:
 			elev.Orders[NewOrder.Floor][NewOrder.Button] = true
 			if NewOrder.Button == int(elevio.BT_Cab) {
-				elevio.SetButtonLamp(elevio.BT_Cab, NewOrder.Floor, true)
+				elevio.SetButtonLamp(
+					elevio.BT_Cab,
+					NewOrder.Floor,
+					true,
+				)
 			}
 			switch elev.State {
 			case IDLE:
@@ -73,7 +92,11 @@ func Run(
 					time.Sleep(T_SLEEP) //LET PRIMARY CATCH UP BEFORE CLEARING
 					elev.Orders[elev.Floor][NewOrder.Button] = false
 					if NewOrder.Button == int(elevio.BT_Cab) {
-						elevio.SetButtonLamp(elevio.BT_Cab, NewOrder.Floor, false)
+						elevio.SetButtonLamp(
+							elevio.BT_Cab,
+							NewOrder.Floor,
+							false,
+						)
 					}
 					elev.State = DOOR_OPEN
 				} else {
@@ -87,7 +110,11 @@ func Run(
 					elevTXChan <- elev
 					time.Sleep(T_SLEEP) //LET PRIMARY CATCH UP BEFORE CLEARING
 					elev.Orders[elev.Floor][NewOrder.Button] = false
-					elevio.SetButtonLamp(elevio.ButtonType(NewOrder.Button), elev.Floor, false)
+					elevio.SetButtonLamp(
+						elevio.ButtonType(NewOrder.Button),
+						elev.Floor,
+						false,
+					)
 					if !elev.Obstructed {
 						resetTimer(doorTimer, T_DOOR_OPEN)
 					}

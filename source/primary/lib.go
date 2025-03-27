@@ -9,14 +9,22 @@ import (
 	"time"
 )
 
-func checkforAcceptedOrders(orderActionChan chan OrderAccess, elevUpdate Elevator, unacceptedOrders []Order) {
+func checkforAcceptedOrders(
+	orderActionChan chan OrderAccess,
+	elevUpdate Elevator,
+	unacceptedOrders []Order,
+) {
 	for floor, buttons := range elevUpdate.Orders {
-		for btn, orderAccepted := range buttons {
-			if orderAccepted {
-				for _, unaccOrder := range unacceptedOrders {
-					if unaccOrder.Floor == floor && unaccOrder.Button == btn {
-						sync.RemoveUnacceptedOrder(orderActionChan,
-							Order{Id: elevUpdate.Id, Floor: floor, Button: btn})
+		for btn, elevAcceptsOrder := range buttons {
+			if elevAcceptsOrder {
+				for _, unacceptedOrder := range unacceptedOrders {
+					if unacceptedOrder.Floor == floor && unacceptedOrder.Button == btn {
+						acceptedOrder := OrderConstructor(
+							elevUpdate.Id,
+							floor,
+							btn,
+						)
+						sync.AcceptOrder(orderActionChan, acceptedOrder)
 						break
 					}
 				}
@@ -25,8 +33,13 @@ func checkforAcceptedOrders(orderActionChan chan OrderAccess, elevUpdate Elevato
 	}
 }
 
-func updateHallLights(wv Worldview, lights HallMatrix, mapActionChan chan ElevatorsAccess, lightsActionChan chan LightsAccess) {
-	wv = WorldviewConstructor(wv.PrimaryId, wv.PeerInfo, sync.ElevatorsRead(mapActionChan))
+func updateHallLights(
+	wv Worldview,
+	lights HallMatrix,
+	mapActionChan chan ElevatorsAccess,
+	lightsActionChan chan LightsAccess,
+) {
+	wv.FleetSnapshot = sync.ElevatorsRead(mapActionChan)
 	for _, id := range wv.PeerInfo.Peers {
 		orderMatrix := wv.FleetSnapshot[id].Orders
 		for floor, floorOrders := range orderMatrix {
@@ -44,9 +57,9 @@ func reassignHallOrders(
 	wv Worldview,
 	MapActionChan chan ElevatorsAccess,
 	ordersActionChan chan OrderAccess,
-	reassign Reassignment) {
-
-	wv = WorldviewConstructor(wv.PrimaryId, wv.PeerInfo, sync.ElevatorsRead(MapActionChan))
+	reassign Reassignment,
+) {
+	wv.FleetSnapshot = sync.ElevatorsRead(MapActionChan)
 	switch reassign.Cause {
 	case Disconnected:
 		for _, lostId := range wv.PeerInfo.Lost {
@@ -54,8 +67,17 @@ func reassignHallOrders(
 			for floor, floorOrders := range orderMatrix {
 				for btn, isOrder := range floorOrders {
 					if isOrder && btn != int(elevio.BT_Cab) {
-						lostOrder := OrderConstructor(lostId, floor, btn)
-						lostOrder.Id = assigner.ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, lostOrder)
+						lostOrder := OrderConstructor(
+							lostId,
+							floor,
+							btn,
+						)
+						newId := assigner.ChooseElevator(
+							wv.FleetSnapshot,
+							wv.PeerInfo.Peers,
+							lostOrder,
+						)
+						lostOrder.Id = newId
 						sync.AddUnacceptedOrder(ordersActionChan, lostOrder)
 					}
 				}
@@ -66,8 +88,17 @@ func reassignHallOrders(
 		for floor, floorOrders := range orderMatrix {
 			for btn, isOrder := range floorOrders {
 				if isOrder && btn != int(elevio.BT_Cab) {
-					lostOrder := OrderConstructor(reassign.ObsId, floor, btn)
-					lostOrder.Id = assigner.ChooseElevator(wv.FleetSnapshot, wv.PeerInfo.Peers, lostOrder)
+					lostOrder := OrderConstructor(
+						reassign.ObsId,
+						floor,
+						btn,
+					)
+					newId := assigner.ChooseElevator(
+						wv.FleetSnapshot,
+						wv.PeerInfo.Peers,
+						lostOrder,
+					)
+					lostOrder.Id = newId
 					sync.AddUnacceptedOrder(ordersActionChan, lostOrder)
 				}
 			}
@@ -78,10 +109,13 @@ func reassignHallOrders(
 func rememberLostCabOrders(
 	lostElevators []string,
 	orderActionChan chan OrderAccess,
-	worldview Worldview) {
-
+	wv Worldview,
+	MapActionChan chan ElevatorsAccess,
+) {
+	//HAR LAGT TIL SYNCING AV SNAPSHOT. TRUR DET BLIR RIKTIG?
+	wv.FleetSnapshot = sync.ElevatorsRead(MapActionChan)
 	for _, id := range lostElevators {
-		for floor, orders := range worldview.FleetSnapshot[id].Orders {
+		for floor, orders := range wv.FleetSnapshot[id].Orders {
 			for btn, active := range orders {
 				if active && btn == int(elevio.BT_Cab) {
 					sync.AddUnacceptedOrder(orderActionChan,
@@ -94,33 +128,44 @@ func rememberLostCabOrders(
 
 func obstructionHandler(
 	elevUpdateObsChan chan Elevator,
-	worldviewObsChan chan Worldview,
+	wvObsChan chan Worldview,
 	mapActionChan chan ElevatorsAccess,
 	ordersActionChan chan OrderAccess,
 ) {
-	obstructedElevators := make([]string, NUM_ELEVATORS)
+	// HER ER DENNE SATT TIL NUM_ELEVATORS
+	obstructedElevs := make([]string, NUM_ELEVATORS)
 	obstructionTimers := make(map[string]*time.Timer)
-	var worldview Worldview
+	var wv Worldview
 	var elevUpdate Elevator
 	for {
 		select {
-		case worldview = <-worldviewObsChan:
+		case wv = <-wvObsChan:
 		case elevUpdate = <-elevUpdateObsChan:
 			if elevUpdate.Obstructed {
-				obstructedElevators = append(obstructedElevators, elevUpdate.Id)
+				obstructedElevs = append(obstructedElevs, elevUpdate.Id)
 				_, timerExists := obstructionTimers[elevUpdate.Id]
 				if !timerExists {
-					timer := time.AfterFunc(T_REASSIGN_PRIMARY, func() {
-						reassignmentDetails := Reassignment{Cause: Obstructed, ObsId: obstructedElevators[len(obstructedElevators)-1]}
-						reassignHallOrders(worldview, mapActionChan, ordersActionChan, reassignmentDetails)
-					})
+					timer := time.AfterFunc(T_REASSIGN_PRIMARY,
+						func() {
+							reassignHallOrders(
+								wv,
+								mapActionChan,
+								ordersActionChan,
+								Reassignment{
+									Cause: Obstructed,
+									ObsId: obstructedElevs[len(obstructedElevs)-1],
+								},
+							)
+						},
+					)
 					obstructionTimers[elevUpdate.Id] = timer
 				}
 			} else {
-				for i, id := range obstructedElevators {
+				for i, id := range obstructedElevs {
 					if id == elevUpdate.Id {
-						obstructedElevators = append(obstructedElevators[:i], obstructedElevators[i+1:]...)
-						if timer, exists := obstructionTimers[elevUpdate.Id]; exists {
+						obstructedElevs = append(obstructedElevs[:i], obstructedElevs[i+1:]...)
+						timer, timerExists := obstructionTimers[elevUpdate.Id]
+						if timerExists {
 							timer.Stop()
 							delete(obstructionTimers, elevUpdate.Id)
 						}

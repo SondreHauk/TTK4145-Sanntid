@@ -44,8 +44,8 @@ func Run(
 	}
 }
 
-func shouldTakeOver(backupWorldview Worldview, id string) bool {
-	peerIds := backupWorldview.PeerInfo.Peers
+func shouldTakeOver(backupWv Worldview, id string) bool {
+	peerIds := backupWv.PeerInfo.Peers
 	if len(peerIds) == 0 {
 		return true
 	} else {
