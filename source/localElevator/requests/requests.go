@@ -57,7 +57,7 @@ func SendRequest(
 	reqEventChan <-chan elevio.ButtonEvent,
 	requestsTXChan chan<- Requests,
 	accReqChan <-chan OrderMatrix,
-	orderChan chan <- Order,
+	//orderChan chan <- Order,
 	id string,
 ) {
 	requests := OrderMatrixConstructor()
@@ -77,9 +77,9 @@ func SendRequest(
 
 		case req := <-reqEventChan:
 			requests[req.Floor][req.Button] = true
-			if req.Button == elevio.BT_Cab {
-				orderChan <- OrderConstructor(id, req.Floor, int(req.Button)) // Lets the elev operate when disconnected 
-			}
+			// if req.Button == elevio.BT_Cab {
+			// 	orderChan <- OrderConstructor(id, req.Floor, int(req.Button)) // Lets the elev operate when disconnected 
+			// }
 			requestsTXChan <- Requests{Id: id, Requests: requests}
 
 		case <-heartBeat.C:
