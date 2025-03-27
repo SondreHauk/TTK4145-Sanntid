@@ -17,14 +17,11 @@ func Run(
 	fmt.Println("Enter Backup mode - listening for primary")
 
 	var latestWv Worldview
-	latestWv.PrimaryId = myId
-	latestWv.FleetSnapshot = make(map[string]Elevator)
-	latestWv.UnacceptedOrdersSnapshot = make(map[string][]Order)
 
 	select {
 	case latestWv = <-wvRXChan:
 	case <-time.After(T_PRIMARY_TIMEOUT):
-		enablePrimaryChan <- latestWv
+		enablePrimaryChan <- WorldviewConstructor(myId)
 	}
 
 	for {
