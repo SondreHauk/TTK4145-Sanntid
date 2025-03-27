@@ -57,7 +57,7 @@ func SendRequest(
 	reqEventChan <-chan elevio.ButtonEvent,
 	requestsTXChan chan<- Requests,
 	accReqChan <-chan OrderMatrix,
-	id string
+	id string,
 ) {
 	requests := OrderMatrixConstructor()
 	heartBeat := time.NewTicker(T_HEARTBEAT)
