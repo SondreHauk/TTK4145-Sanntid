@@ -19,7 +19,6 @@ func Run(
 	// Local variables
 	var wv Worldview
 	var NewOrder Order
-	var obsEvent bool
 	hallLights := HallMatrixConstructor()
 
 	// Initializations
@@ -138,19 +137,28 @@ func Run(
 			elevTXChan <- elev
 
 		case <-doorTimer.C:
-			elevio.SetDoorOpenLamp(false)
-			elev.Direction = chooseDirection(elev)
-			if elev.Direction == STOP {
-				elev.State = IDLE
+			if !elev.Obstructed{
+				elevio.SetDoorOpenLamp(false)
+				elev.Direction = chooseDirection(elev)
+				if elev.Direction == STOP {
+					elev.State = IDLE
+				} else {
+					elevio.SetMotorDirection(elevio.MotorDirection(elev.Direction))
+					resetTimer(motorstopTimer, T_MOTOR_STOP)
+					elev.State = MOVING
+				}
 			} else {
-				elevio.SetMotorDirection(elevio.MotorDirection(elev.Direction))
-				resetTimer(motorstopTimer, T_MOTOR_STOP)
-				elev.State = MOVING
+				resetTimer(doorTimer, T_DOOR_OPEN)
 			}
 			elevTXChan <- elev
 
-		case obsEvent = <-obstructionChan:
-			if elev.State == DOOR_OPEN {
+		case elev.Obstructed = <-obstructionChan:
+			if !elev.Obstructed{
+				resetTimer(doorTimer,T_DOOR_OPEN)
+			} else {
+				resetTimer(obstructionTimer, T_REASSIGN_LOCAL)
+			}
+			/* if elev.State == DOOR_OPEN {
 				switch obsEvent {
 				case true:
 					elev.Obstructed = true
@@ -160,7 +168,7 @@ func Run(
 					elev.Obstructed = false
 					resetTimer(doorTimer, T_DOOR_OPEN)
 				}
-			}
+			} */
 			elevTXChan <- elev
 
 		case <-obstructionTimer.C:
@@ -171,7 +179,6 @@ func Run(
 					}
 				}
 			}
-			obstructionTimer.Stop()
 
 		case <-heartbeatTimer.C:
 			elevTXChan <- elev
