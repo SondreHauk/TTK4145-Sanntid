@@ -35,7 +35,6 @@ func checkforAcceptedOrders(
 
 func updateHallLights(
 	wv Worldview,
-	/* lights HallMatrix, */
 	mapActionChan chan ElevatorsAccess,
 	lightsActionChan chan LightsAccess,
 ) {
@@ -133,7 +132,7 @@ func obstructionHandler(
 	mapActionChan chan ElevatorsAccess,
 	ordersActionChan chan OrderAccess,
 ) {
-	// HER ER DENNE SATT TIL NUM_ELEVATORS
+	// This slice length can be generalized like NUM_FLOORS
 	obstructedElevs := make([]string, NUM_ELEVATORS)
 	obstructionTimers := make(map[string]*time.Timer)
 	var wv Worldview
@@ -178,6 +177,8 @@ func obstructionHandler(
 	}
 }
 
+// ----- DEBUG FUNCTIONS -----
+
 func printPeers(p PeerUpdate) {
 	fmt.Printf("Peer update:\n")
 	fmt.Printf("  Peers:    %q\n", p.Peers)
@@ -185,33 +186,33 @@ func printPeers(p PeerUpdate) {
 	fmt.Printf("  Lost:     %q\n", p.Lost)
 }
 
-/* func PrintWorldview(wv Worldview) {
+func PrintWorldview(wv Worldview) {
 	fmt.Println("--- Worldview Snapshot ---")
 	fmt.Println("PrimaryId:", wv.PrimaryId)
 	fmt.Println("Peers:", wv.PeerInfo.Peers)
 	fmt.Println("New Peer:", wv.PeerInfo.New)
 	fmt.Println("Lost Peers:", wv.PeerInfo.Lost)
 	fmt.Println("Fleet Snapshot:")
-	 for id, elev := range wv.FleetSnapshot {
-	 	fmt.Printf("  Elevator ID: %s\n", id)
-	 	fmt.Printf("    Floor: %d, Direction: %d, PrevDirection: %d, State: %d\n",
-	 		elev.Floor, elev.Direction, elev.PrevDirection, elev.State)
-	 	fmt.Printf("    Obstructed: %t\n", elev.Obstructed)
-	 	fmt.Println("    Orders:")
-	 	for i := 0; i < NUM_FLOORS; i++ {
-	 		fmt.Printf("      Floor %d: %v\n", i, elev.Orders[i])
-	 	}
-	 }
-	 fmt.Println("Unaccepted Orders Snapshot:")
+	for id, elev := range wv.FleetSnapshot {
+		fmt.Printf("  Elevator ID: %s\n", id)
+		fmt.Printf("    Floor: %d, Direction: %d, PrevDirection: %d, State: %d\n",
+			elev.Floor, elev.Direction, elev.PrevDirection, elev.State)
+		fmt.Printf("    Obstructed: %t\n", elev.Obstructed)
+		fmt.Println("    Orders:")
+		for i := 0; i < NUM_FLOORS; i++ {
+			fmt.Printf("      Floor %d: %v\n", i, elev.Orders[i])
+		}
+	}
+	fmt.Println("Unaccepted Orders Snapshot:")
 	for id, orders := range wv.UnacceptedOrdersSnapshot {
 		fmt.Printf("  Orders for Elevator %s:\n", id)
 		for _, order := range orders {
 			fmt.Printf("    Floor: %d, Button: %d\n", order.Floor, order.Button)
 		}
 	}
-	 fmt.Println("Hall Lights Snapshot:")
-	 for i := 0; i < NUM_FLOORS; i++ {
-	 	fmt.Printf("  Floor %d: %v\n", i, wv.HallLightsSnapshot[i])
-	 }
-	 fmt.Println("-------------------------")
-} */
+	fmt.Println("Hall Lights Snapshot:")
+	for i := 0; i < NUM_FLOORS; i++ {
+		fmt.Printf("  Floor %d: %v\n", i, wv.HallLightsSnapshot[i])
+	}
+	fmt.Println("-------------------------")
+}

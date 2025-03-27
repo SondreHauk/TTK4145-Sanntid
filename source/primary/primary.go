@@ -24,12 +24,11 @@ func Run(
 	elevUpdateObsChan := make(chan Elevator, NUM_ELEVATORS)
 	wvObsChan := make(chan Worldview, 10)
 
-	// Shared variables
+	// Local variables
 	var wv Worldview
 	var latestPeerUpdate PeerUpdate
-/* 	hallLights := HallMatrixConstructor() */
 
-	// Owns and handles access shared variables
+	// Owns and handles access to shared data structures
 	go sync.ElevatorsAccessManager(elevsAccessChan)
 	go sync.UnacceptedOrdersManager(orderActionChan)
 	go sync.HallLightsManager(lightsActionChan)
@@ -57,7 +56,8 @@ func Run(
 		primaryLoop:
 			for {
 				select {
-				case <-enablePrimaryChan: //drain
+				// Drain in case of enable -> disable -> enable
+				case <-enablePrimaryChan:
 
 				case wv.PeerInfo = <-peerUpdateChan:
 					printPeers(wv.PeerInfo)
@@ -92,7 +92,6 @@ func Run(
 					)
 					updateHallLights(
 						wv,
-						/* hallLights, */
 						elevsAccessChan,
 						lightsActionChan,
 					)
@@ -109,7 +108,6 @@ func Run(
 					wv.HallLightsSnapshot = sync.ReadHallLights(lightsActionChan)
 					wvTXChan <- wv
 					wvObsChan <- wv
-					// PrintWorldview(wv)
 
 				case receivedWV := <-wvRXChan:
 					if receivedWV.PrimaryId < myId {
