@@ -38,6 +38,8 @@ graph LR;
     Primary -- cab order --> ElevatorX;
 ```
 
+Note that alle messages are being broadcasted periodically at 20 Hz. See section about packetloss.
+
 ## When is the light set?
 The `cab lights` are handled locally on the elevator. If an elevator recevies a cab order it updates its `order matrix` and sets the corresponding cab light. Likewise, if it completes a cab order, it updates its order matrix and turns off the cab light.
 
@@ -68,7 +70,10 @@ graph LR;
 This way, we can be sure that all the information that reaches an elevator is backed up by its respective backup. 
 
 ## Primary Takeover
-The backup with the lowest id on the network takes over as primary when the initial primary disconnects. Likewise, in the case where multiple primaries are active on the network - i.e. the split brain problem -  the primary with the lowest id stays active, while the others back down. 
+The backup with the lowest id on the network takes over as primary when the initial primary disconnects. Likewise, in the case where multiple primaries are active on the network - i.e. the split brain problem -  the primary with the lowest id stays active, while the others back down.
+
+## Packet loss
+The system tackles `packetloss` by broadcasting all information periodically at `T_HEARTBEAT = 20 Hz`. The three message types are `worldview`, `requests` and `elevstate`. Since these messages are sendt periodically, logic is implemented to update the information contained in these messages.
 
 # Improvements
 ## Improve obstruction robustness
