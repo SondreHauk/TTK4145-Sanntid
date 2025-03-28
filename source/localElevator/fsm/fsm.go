@@ -4,7 +4,7 @@ import (
 	. "source/config"
 	"source/localElevator/elevio"
 	"source/localElevator/requests"
-	misc "source/miscellaneous"
+	"source/localinit"
 	"time"
 )
 
@@ -23,8 +23,8 @@ func Run(
 
 	// Initializations
 	elevio.Init("localhost:"+port, NUM_FLOORS)
-	elev := misc.ElevatorInit(myId)
-	misc.LightsInit()
+	elev := localinit.ElevatorInit(myId)
+	localinit.LightsInit()
 	heartbeatTimer := time.NewTimer(T_HEARTBEAT)
 	doorTimer := time.NewTimer(T_DOOR_OPEN)
 	doorTimer.Stop()
