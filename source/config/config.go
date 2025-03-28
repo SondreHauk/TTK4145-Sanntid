@@ -20,7 +20,7 @@ const (
 )
 
 const (
-	T_HEARTBEAT        = time.Millisecond * 20
+	T_HEARTBEAT        = time.Millisecond * 50
 	T_SLEEP            = time.Millisecond * 20
 	T_DOOR_OPEN        = time.Second * 3
 	T_REASSIGN_PRIMARY = time.Second * 3 // Time before primary clears reassigned orders
