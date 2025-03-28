@@ -1,7 +1,6 @@
 package primary
 
 import (
-	"fmt"
 	. "source/config"
 	"source/primary/assigner"
 	"source/primary/sync"
@@ -41,11 +40,9 @@ func Run(
 		case <-wvRXChan:
 		case <-elevRXChan:
 		case <-requestsRXChan:
-		// case latestPeerUpdate = <-peerUpdateChan:
 
 		// Primary activation
 		case wv = <-enablePrimaryChan:
-			fmt.Println("Taking over as Primary")
 			wv.PeerInfo = latestPeerUpdate
 			printPeers(wv.PeerInfo)
 			sync.AllElevatorsWrite(wv.FleetSnapshot, elevsAccessChan)
@@ -63,7 +60,6 @@ func Run(
 					printPeers(wv.PeerInfo)
 					lost := wv.PeerInfo.Lost
 					if len(lost) != 0 {
-						fmt.Println("Reassign and remember orders")
 						reassignHallOrders(
 							wv,
 							elevsAccessChan,
@@ -110,9 +106,9 @@ func Run(
 					wvObsChan <- wv
 
 				case receivedWV := <-wvRXChan:
+					// Avoid split brain. 
+					// Break if another primary with lower id is online
 					if receivedWV.PrimaryId < myId {
-						fmt.Printf("Primary: %s, taking over\n", receivedWV.PrimaryId)
-						fmt.Println("Enter Backup mode - listening for primary")
 						break primaryLoop
 					}
 				}

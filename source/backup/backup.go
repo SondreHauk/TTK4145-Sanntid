@@ -1,7 +1,6 @@
 package backup
 
 import (
-	"fmt"
 	. "source/config"
 	"time"
 )
@@ -13,8 +12,6 @@ func Run(
 	wvToPrimaryChan chan Worldview,
 	myId string,
 ) {
-
-	fmt.Println("Enter Backup mode - listening for primary")
 
 	var latestWv Worldview
 
@@ -34,7 +31,6 @@ func Run(
 			if shouldTakeOver(latestWv, myId) {
 				latestWv.PrimaryId = myId
 				enablePrimaryChan <- latestWv
-				fmt.Println("Primary timeout - start takeover")
 			} else {
 				latestWv.PeerInfo.Peers = latestWv.PeerInfo.Peers[1:]
 			}

@@ -77,8 +77,10 @@ func SendRequest(
 
 		case req := <-reqEventChan:
 			requests[req.Floor][req.Button] = true
+
+			// Lets the elevator serve cab calls when disconnected 
 			if req.Button == elevio.BT_Cab {
-				orderChan <- OrderConstructor(id, req.Floor, int(req.Button)) // Lets the elev operate when disconnected 
+				orderChan <- OrderConstructor(id, req.Floor, int(req.Button))
 			}
 			requestsTXChan <- Requests{Id: id, Requests: requests}
 

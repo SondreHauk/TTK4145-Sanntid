@@ -159,17 +159,6 @@ func Run(
 			} else {
 				resetTimer(obstructionTimer, T_REASSIGN_LOCAL)
 			}
-			/* if elev.State == DOOR_OPEN {
-				switch obsEvent {
-				case true:
-					elev.Obstructed = true
-					doorTimer.Stop()
-					resetTimer(obstructionTimer, T_REASSIGN_LOCAL)
-				case false:
-					elev.Obstructed = false
-					resetTimer(doorTimer, T_DOOR_OPEN)
-				}
-			} */
 			elevTXChan <- elev
 
 		case <-obstructionTimer.C:
