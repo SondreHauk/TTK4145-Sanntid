@@ -4,11 +4,12 @@ import (
 	. "source/config"
 )
 
-func ElevatorsAccessManager(elevsAccessChan <-chan ElevatorsAccess) {
+// "fleet" is supposed to signify that the primary acts like a maritime general with subordinate ships(elevators)
+func FleetAccessManager(fleetAccessChan <-chan FleetAccess) {
 	fleet := make(map[string]Elevator)
 	for {
 		select {
-		case newAction := <-elevsAccessChan:
+		case newAction := <-fleetAccessChan:
 			switch newAction.Cmd {
 			case "read":
 				deepCopy := make(map[string]Elevator, len(fleet))
@@ -19,31 +20,31 @@ func ElevatorsAccessManager(elevsAccessChan <-chan ElevatorsAccess) {
 			case "write one":
 				fleet[newAction.Id] = newAction.Elev
 			case "write all":
-				fleet = newAction.ElevMap
+				fleet = newAction.FullFleet
 			}
 		}
 	}
 }
 
-func SingleElevatorWrite(
+func SingleElevFleetWrite(
 	id string,
 	elev Elevator,
-	elevsAccessChan chan ElevatorsAccess,
+	fleetAccessChan chan FleetAccess,
 ) {
-	elevsAccessChan <- ElevatorsAccess{Cmd: "write one", Id: id, Elev: elev}
+	fleetAccessChan <- FleetAccess{Cmd: "write one", Id: id, Elev: elev}
 }
 
-func AllElevatorsWrite(
-	elevMap map[string]Elevator,
-	elevsAccessChan chan ElevatorsAccess,
+func FullFleetWrite(
+	fullFleet map[string]Elevator,
+	fleetAccessChan chan FleetAccess,
 ) {
-	elevsAccessChan <- ElevatorsAccess{Cmd: "write all", ElevMap: elevMap}
+	fleetAccessChan <- FleetAccess{Cmd: "write all", FullFleet: fullFleet}
 }
 
-func ElevatorsRead(elevsAccessChan chan ElevatorsAccess) map[string]Elevator {
+func FleetRead(fleetAccessChan chan FleetAccess) map[string]Elevator {
 	readChan := make(chan map[string]Elevator, 1)
 	defer close(readChan)
-	elevsAccessChan <- ElevatorsAccess{Cmd: "read", ReadChan: readChan}
+	fleetAccessChan <- FleetAccess{Cmd: "read", ReadChan: readChan}
 	return <-readChan
 }
 

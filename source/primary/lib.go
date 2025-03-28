@@ -34,11 +34,11 @@ func checkforAcceptedOrders(
 
 func updateHallLights(
 	wv Worldview,
-	mapActionChan chan ElevatorsAccess,
+	mapActionChan chan FleetAccess,
 	lightsActionChan chan LightsAccess,
 ) {
 	lights := HallMatrixConstructor()
-	wv.FleetSnapshot = sync.ElevatorsRead(mapActionChan)
+	wv.FleetSnapshot = sync.FleetRead(mapActionChan)
 	for _, id := range wv.PeerInfo.Peers {
 		orderMatrix := wv.FleetSnapshot[id].Orders
 		for floor, floorOrders := range orderMatrix {
@@ -56,11 +56,11 @@ func updateHallLights(
 // There simply was not time left to prioritize this.
 func reassignHallOrders(
 	wv Worldview,
-	MapActionChan chan ElevatorsAccess,
+	MapActionChan chan FleetAccess,
 	ordersActionChan chan OrderAccess,
 	reassign Reassignment,
 ) {
-	wv.FleetSnapshot = sync.ElevatorsRead(MapActionChan)
+	wv.FleetSnapshot = sync.FleetRead(MapActionChan)
 	switch reassign.Cause {
 	case Disconnected:
 		for _, lostId := range wv.PeerInfo.Lost {
@@ -130,9 +130,9 @@ func rememberLostCabOrders(
 	lostElevators []string,
 	orderActionChan chan OrderAccess,
 	wv Worldview,
-	MapActionChan chan ElevatorsAccess,
+	MapActionChan chan FleetAccess,
 ) {
-	wv.FleetSnapshot = sync.ElevatorsRead(MapActionChan)
+	wv.FleetSnapshot = sync.FleetRead(MapActionChan)
 	for _, id := range lostElevators {
 		for floor, orders := range wv.FleetSnapshot[id].Orders {
 			for btn, active := range orders {
@@ -148,7 +148,7 @@ func rememberLostCabOrders(
 func obstructionHandler(
 	elevUpdateObsChan chan Elevator,
 	wvObsChan chan Worldview,
-	mapActionChan chan ElevatorsAccess,
+	mapActionChan chan FleetAccess,
 	ordersActionChan chan OrderAccess,
 ) {
 	// This slice length can be generalized like NUM_FLOORS
