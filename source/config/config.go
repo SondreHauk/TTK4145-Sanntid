@@ -39,6 +39,7 @@ const (
 const (
 	Obstructed = iota
 	Disconnected
+	MotorStop
 )
 
 const (
@@ -77,6 +78,7 @@ type Elevator struct {
 	Orders        OrderMatrix
 	Requests      OrderMatrix
 	Obstructed    bool
+	MotorStop     bool
 }
 
 type Requests struct {
@@ -100,11 +102,11 @@ type PeerUpdate struct {
 	Lost  []string
 }
 
-func PeerUpdateConstructor() PeerUpdate{
+func PeerUpdateConstructor() PeerUpdate {
 	return PeerUpdate{
 		Peers: []string{},
-		New: "",
-		Lost: []string{},
+		New:   "",
+		Lost:  []string{},
 	}
 }
 
@@ -151,5 +153,5 @@ type LightsAccess struct {
 
 type Reassignment struct {
 	Cause int
-	ObsId string
+	Id    string
 }
