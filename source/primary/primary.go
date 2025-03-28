@@ -41,13 +41,11 @@ func Run(
 		case <-wvRXChan:
 		case <-elevRXChan:
 		case <-requestsRXChan:
-		// case latestPeerUpdate = <-peerUpdateChan:
 
 		// Primary activation
 		case wv = <-enablePrimaryChan:
 			fmt.Println("Taking over as Primary")
 			wv.PeerInfo = latestPeerUpdate
-			printPeers(wv.PeerInfo)
 			sync.AllElevatorsWrite(wv.FleetSnapshot, elevsAccessChan)
 			sync.WriteHallLights(lightsActionChan, wv.HallLightsSnapshot)
 			heartbeatTimer := time.NewTicker(T_HEARTBEAT)
@@ -60,10 +58,8 @@ func Run(
 				case <-enablePrimaryChan:
 
 				case wv.PeerInfo = <-peerUpdateChan:
-					printPeers(wv.PeerInfo)
 					lost := wv.PeerInfo.Lost
 					if len(lost) != 0 {
-						fmt.Println("Reassign and remember orders")
 						reassignHallOrders(
 							wv,
 							elevsAccessChan,
