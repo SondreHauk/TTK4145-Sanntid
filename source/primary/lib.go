@@ -84,12 +84,32 @@ func reassignHallOrders(
 			}
 		}
 	case Obstructed:
-		orderMatrix := wv.FleetSnapshot[reassign.ObsId].Orders
+		orderMatrix := wv.FleetSnapshot[reassign.Id].Orders
 		for floor, floorOrders := range orderMatrix {
 			for btn, isOrder := range floorOrders {
 				if isOrder && btn != int(elevio.BT_Cab) {
 					lostOrder := OrderConstructor(
-						reassign.ObsId,
+						reassign.Id,
+						floor,
+						btn,
+					)
+					newId := assigner.ChooseElevator(
+						wv.FleetSnapshot,
+						wv.PeerInfo.Peers,
+						lostOrder,
+					)
+					lostOrder.Id = newId
+					sync.AddUnacceptedOrder(ordersActionChan, lostOrder)
+				}
+			}
+		}
+	case MotorStop:
+		orderMatrix := wv.FleetSnapshot[reassign.Id].Orders
+		for floor, floorOrders := range orderMatrix {
+			for btn, isOrder := range floorOrders {
+				if isOrder && btn != int(elevio.BT_Cab) {
+					lostOrder := OrderConstructor(
+						reassign.Id,
 						floor,
 						btn,
 					)
@@ -105,7 +125,6 @@ func reassignHallOrders(
 		}
 	}
 }
-
 func rememberLostCabOrders(
 	lostElevators []string,
 	orderActionChan chan OrderAccess,
@@ -141,6 +160,17 @@ func obstructionHandler(
 		select {
 		case wv = <-wvObsChan:
 		case elevUpdate = <-elevUpdateObsChan:
+			if elevUpdate.MotorStop {
+				reassignHallOrders(
+					wv,
+					mapActionChan,
+					ordersActionChan,
+					Reassignment{
+						Cause: MotorStop,
+						Id:    elevUpdate.Id,
+					},
+				)
+			}
 			if elevUpdate.Obstructed {
 				obstructedElevs = append(obstructedElevs, elevUpdate.Id)
 				_, timerExists := obstructionTimers[elevUpdate.Id]
@@ -153,7 +183,7 @@ func obstructionHandler(
 								ordersActionChan,
 								Reassignment{
 									Cause: Obstructed,
-									ObsId: obstructedElevs[len(obstructedElevs)-1],
+									Id:    obstructedElevs[len(obstructedElevs)-1],
 								},
 							)
 						},

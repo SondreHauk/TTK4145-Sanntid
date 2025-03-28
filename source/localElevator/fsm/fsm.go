@@ -1,6 +1,7 @@
 package fsm
 
 import (
+	"fmt"
 	. "source/config"
 	"source/localElevator/elevio"
 	"source/localElevator/requests"
@@ -124,6 +125,10 @@ func Run(
 			setHallLights(hallLights)
 
 		case elev.Floor = <-atFloorChan:
+			if elev.MotorStop {
+				elev.MotorStop = false
+				fmt.Println("Motorstop: ", elev.MotorStop)
+			}
 			resetTimer(motorstopTimer, T_MOTOR_STOP)
 			elevio.SetFloorIndicator(elev.Floor)
 			if shouldStop(elev) {
@@ -138,7 +143,7 @@ func Run(
 			elevTXChan <- elev
 
 		case <-doorTimer.C:
-			if !elev.Obstructed{
+			if !elev.Obstructed {
 				elevio.SetDoorOpenLamp(false)
 				elev.Direction = chooseDirection(elev)
 				if elev.Direction == STOP {
@@ -154,22 +159,11 @@ func Run(
 			elevTXChan <- elev
 
 		case elev.Obstructed = <-obstructionChan:
-			if !elev.Obstructed{
-				resetTimer(doorTimer,T_DOOR_OPEN)
+			if !elev.Obstructed {
+				resetTimer(doorTimer, T_DOOR_OPEN)
 			} else {
 				resetTimer(obstructionTimer, T_REASSIGN_LOCAL)
 			}
-			/* if elev.State == DOOR_OPEN {
-				switch obsEvent {
-				case true:
-					elev.Obstructed = true
-					doorTimer.Stop()
-					resetTimer(obstructionTimer, T_REASSIGN_LOCAL)
-				case false:
-					elev.Obstructed = false
-					resetTimer(doorTimer, T_DOOR_OPEN)
-				}
-			} */
 			elevTXChan <- elev
 
 		case <-obstructionTimer.C:
@@ -186,7 +180,17 @@ func Run(
 			resetTimer(heartbeatTimer, T_HEARTBEAT)
 
 		case <-motorstopTimer.C:
-			motorStopProtocol()
+			elev.MotorStop = true
+			fmt.Println("Motorstop: ", elev.MotorStop)
+			elevTXChan <- elev
+			time.Sleep(2*T_HEARTBEAT)
+			for floor, floorOrders := range elev.Orders {
+				for btn, orderActive := range floorOrders {
+					if orderActive && btn != int(elevio.BT_Cab) {
+						elev.Orders[floor][btn] = false
+					}
+				}
+			}
 		}
 	}
 }

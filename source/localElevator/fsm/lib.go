@@ -1,15 +1,9 @@
 package fsm
 
 import (
-	"fmt"
-	"log"
-	"os"
-	"os/exec"
-	"runtime"
 	. "source/config"
 	"source/localElevator/elevio"
 	"source/localElevator/requests"
-	"strings"
 	"time"
 )
 
@@ -135,43 +129,6 @@ func setHallLights(lights HallMatrix) {
 			elevio.SetButtonLamp(elevio.ButtonType(btn), floor, status)
 		}
 	}
-}
-
-func spawnProcess() error {
-	path, err := os.Executable()
-	if err != nil {
-		return err
-	}
-	args := strings.Join(os.Args[1:], " ")
-	commandLine := path
-	if args != "" {
-		commandLine += " " + args
-	}
-
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "linux":
-		cmd = exec.Command("gnome-terminal", "--", "bash", "-c", path+" "+args+"; exec bash")
-	case "darwin":
-		cmd = exec.Command("osascript", "-e", fmt.Sprintf(`tell application "Terminal" to do script "%s"`, commandLine))
-	case "windows":
-		cmd = exec.Command("cmd", "/C", "start", "", commandLine)
-	default:
-		return fmt.Errorf("unsupported platform: %s. Valid platforms are Linux, Windows or MacOSX", runtime.GOOS)
-	}
-
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func motorStopProtocol() {
-	if err := spawnProcess(); err != nil {
-		log.Printf("Failed to restart process: %v", err)
-	}
-	log.Println("Motor stop detected. Restart")
-	os.Exit(1)
 }
 
 func resetTimer(timer *time.Timer, duration time.Duration) {

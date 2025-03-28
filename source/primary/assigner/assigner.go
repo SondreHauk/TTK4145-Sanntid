@@ -65,7 +65,7 @@ func ChooseElevator(
 	bestTime := time.Hour //inf
 	var bestId string
 	for _, Id := range activeIds {
-		if !elevators[Id].Obstructed {
+		if !(elevators[Id].Obstructed || elevators[Id].MotorStop) {
 			pickupTime := fsm.TimeUntilPickup(elevators[Id], NewOrder)
 			if pickupTime < bestTime {
 				bestId = Id
