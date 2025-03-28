@@ -1,7 +1,6 @@
 package fsm
 
 import (
-	"fmt"
 	. "source/config"
 	"source/localElevator/elevio"
 	"source/localElevator/requests"
@@ -127,7 +126,6 @@ func Run(
 		case elev.Floor = <-atFloorChan:
 			if elev.MotorStop {
 				elev.MotorStop = false
-				fmt.Println("Motorstop: ", elev.MotorStop)
 			}
 			resetTimer(motorstopTimer, T_MOTOR_STOP)
 			elevio.SetFloorIndicator(elev.Floor)
@@ -181,9 +179,7 @@ func Run(
 
 		case <-motorstopTimer.C:
 			elev.MotorStop = true
-			fmt.Println("Motorstop: ", elev.MotorStop)
-			elevTXChan <- elev
-			time.Sleep(2*T_HEARTBEAT)
+			ackOrder(elev, elevTXChan)
 			for floor, floorOrders := range elev.Orders {
 				for btn, orderActive := range floorOrders {
 					if orderActive && btn != int(elevio.BT_Cab) {
