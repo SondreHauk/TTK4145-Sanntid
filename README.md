@@ -13,7 +13,7 @@ The approach: Primary Backup system. All elevators on the network are backups, *
 - Multiple elevators are more efficient than a single one
 
 ## Initialization of elevator
-An elevator can be initialized from the command line with: `go run main.go --port="..." --id="..."`
+An elevator can be initialized from the command line with: `go run main.go --port="..." --id="..."`.
 It is also possible to set the flag `floors`, but this is only relevant if testing on hardware or simulators that support it.
 
 Each elevator must be assigned an unique id at initialization.
