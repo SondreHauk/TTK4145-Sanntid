@@ -1,7 +1,6 @@
 package primary
 
 import (
-	"fmt"
 	. "source/config"
 	"source/localElevator/elevio"
 	"source/primary/assigner"
@@ -35,11 +34,11 @@ func checkforAcceptedOrders(
 
 func updateHallLights(
 	wv Worldview,
-	mapActionChan chan ElevatorsAccess,
+	mapActionChan chan FleetAccess,
 	lightsActionChan chan LightsAccess,
 ) {
 	lights := HallMatrixConstructor()
-	wv.FleetSnapshot = sync.ElevatorsRead(mapActionChan)
+	wv.FleetSnapshot = sync.FleetRead(mapActionChan)
 	for _, id := range wv.PeerInfo.Peers {
 		orderMatrix := wv.FleetSnapshot[id].Orders
 		for floor, floorOrders := range orderMatrix {
@@ -53,13 +52,15 @@ func updateHallLights(
 	sync.WriteHallLights(lightsActionChan, lights)
 }
 
+// We are fully aware that this function can be shortened down quite a bit.
+// There simply was not time left to prioritize this.
 func reassignHallOrders(
 	wv Worldview,
-	MapActionChan chan ElevatorsAccess,
+	MapActionChan chan FleetAccess,
 	ordersActionChan chan OrderAccess,
 	reassign Reassignment,
 ) {
-	wv.FleetSnapshot = sync.ElevatorsRead(MapActionChan)
+	wv.FleetSnapshot = sync.FleetRead(MapActionChan)
 	switch reassign.Cause {
 	case Disconnected:
 		for _, lostId := range wv.PeerInfo.Lost {
@@ -129,10 +130,9 @@ func rememberLostCabOrders(
 	lostElevators []string,
 	orderActionChan chan OrderAccess,
 	wv Worldview,
-	MapActionChan chan ElevatorsAccess,
+	MapActionChan chan FleetAccess,
 ) {
-	//HAR LAGT TIL SYNCING AV SNAPSHOT. TRUR DET BLIR RIKTIG?
-	wv.FleetSnapshot = sync.ElevatorsRead(MapActionChan)
+	wv.FleetSnapshot = sync.FleetRead(MapActionChan)
 	for _, id := range lostElevators {
 		for floor, orders := range wv.FleetSnapshot[id].Orders {
 			for btn, active := range orders {
@@ -148,7 +148,7 @@ func rememberLostCabOrders(
 func obstructionHandler(
 	elevUpdateObsChan chan Elevator,
 	wvObsChan chan Worldview,
-	mapActionChan chan ElevatorsAccess,
+	mapActionChan chan FleetAccess,
 	ordersActionChan chan OrderAccess,
 ) {
 	// This slice length can be generalized like NUM_FLOORS
@@ -205,44 +205,4 @@ func obstructionHandler(
 			}
 		}
 	}
-}
-
-// ----- DEBUG FUNCTIONS -----
-
-func printPeers(p PeerUpdate) {
-	fmt.Printf("Peer update:\n")
-	fmt.Printf("  Peers:    %q\n", p.Peers)
-	fmt.Printf("  New:      %q\n", p.New)
-	fmt.Printf("  Lost:     %q\n", p.Lost)
-}
-
-func PrintWorldview(wv Worldview) {
-	fmt.Println("--- Worldview Snapshot ---")
-	fmt.Println("PrimaryId:", wv.PrimaryId)
-	fmt.Println("Peers:", wv.PeerInfo.Peers)
-	fmt.Println("New Peer:", wv.PeerInfo.New)
-	fmt.Println("Lost Peers:", wv.PeerInfo.Lost)
-	fmt.Println("Fleet Snapshot:")
-	for id, elev := range wv.FleetSnapshot {
-		fmt.Printf("  Elevator ID: %s\n", id)
-		fmt.Printf("    Floor: %d, Direction: %d, PrevDirection: %d, State: %d\n",
-			elev.Floor, elev.Direction, elev.PrevDirection, elev.State)
-		fmt.Printf("    Obstructed: %t\n", elev.Obstructed)
-		fmt.Println("    Orders:")
-		for i := 0; i < NUM_FLOORS; i++ {
-			fmt.Printf("      Floor %d: %v\n", i, elev.Orders[i])
-		}
-	}
-	fmt.Println("Unaccepted Orders Snapshot:")
-	for id, orders := range wv.UnacceptedOrdersSnapshot {
-		fmt.Printf("  Orders for Elevator %s:\n", id)
-		for _, order := range orders {
-			fmt.Printf("    Floor: %d, Button: %d\n", order.Floor, order.Button)
-		}
-	}
-	fmt.Println("Hall Lights Snapshot:")
-	for i := 0; i < NUM_FLOORS; i++ {
-		fmt.Printf("  Floor %d: %v\n", i, wv.HallLightsSnapshot[i])
-	}
-	fmt.Println("-------------------------")
 }

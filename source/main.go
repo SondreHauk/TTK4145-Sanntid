@@ -5,7 +5,6 @@ import (
 	"source/backup"
 	. "source/config"
 	"source/localElevator/fsm"
-	misc "source/miscellaneous"
 	"source/network/bcast"
 	"source/network/peers"
 	"source/primary"
@@ -64,8 +63,7 @@ func main() {
 		requestsRXChan,
 		id,
 	)
-
-	// Terminates execution
-	go misc.Kill(stopChan)
+	
+	//Blockage
 	select {}
 }

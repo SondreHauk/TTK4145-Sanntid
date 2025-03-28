@@ -51,10 +51,10 @@ func AssignRequests(
 func containsOrder(orderSlice []Order, order Order) bool {
 	for _, orderIterate := range orderSlice {
 		if orderIterate == order {
-			return true // Found the order
+			return true
 		}
 	}
-	return false // Order not found
+	return false
 }
 
 func ChooseElevator(
@@ -62,7 +62,7 @@ func ChooseElevator(
 	activeIds []string,
 	NewOrder Order,
 ) string {
-	bestTime := time.Hour //inf
+	bestTime := time.Hour //Practical inf
 	var bestId string
 	for _, Id := range activeIds {
 		if !(elevators[Id].Obstructed || elevators[Id].MotorStop) {

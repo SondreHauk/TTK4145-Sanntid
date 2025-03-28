@@ -18,7 +18,7 @@ func Run(
 	myId string,
 ) {
 	// Syncronization channels
-	elevsAccessChan := make(chan ElevatorsAccess, 10)
+	fleetAccessChan := make(chan FleetAccess, 10)
 	orderActionChan := make(chan OrderAccess, 10)
 	lightsActionChan := make(chan LightsAccess, 10)
 	elevUpdateObsChan := make(chan Elevator, NUM_ELEVATORS)
@@ -29,11 +29,11 @@ func Run(
 	var latestPeerUpdate PeerUpdate
 
 	// Owns and handles access to shared data structures
-	go sync.ElevatorsAccessManager(elevsAccessChan)
+	go sync.FleetAccessManager(fleetAccessChan)
 	go sync.UnacceptedOrdersManager(orderActionChan)
 	go sync.HallLightsManager(lightsActionChan)
 
-	go obstructionHandler(elevUpdateObsChan, wvObsChan, elevsAccessChan, orderActionChan)
+	go obstructionHandler(elevUpdateObsChan, wvObsChan, fleetAccessChan, orderActionChan)
 
 	for {
 		select {
@@ -41,14 +41,12 @@ func Run(
 		case <-wvRXChan:
 		case <-elevRXChan:
 		case <-requestsRXChan:
-		// case latestPeerUpdate = <-peerUpdateChan:
 
 		// Primary activation
 		case wv = <-enablePrimaryChan:
 			fmt.Println("Taking over as Primary")
 			wv.PeerInfo = latestPeerUpdate
-			printPeers(wv.PeerInfo)
-			sync.AllElevatorsWrite(wv.FleetSnapshot, elevsAccessChan)
+			sync.FullFleetWrite(wv.FleetSnapshot, fleetAccessChan)
 			sync.WriteHallLights(lightsActionChan, wv.HallLightsSnapshot)
 			heartbeatTimer := time.NewTicker(T_HEARTBEAT)
 			defer heartbeatTimer.Stop()
@@ -60,13 +58,11 @@ func Run(
 				case <-enablePrimaryChan:
 
 				case wv.PeerInfo = <-peerUpdateChan:
-					printPeers(wv.PeerInfo)
 					lost := wv.PeerInfo.Lost
 					if len(lost) != 0 {
-						fmt.Println("Reassign and remember orders")
 						reassignHallOrders(
 							wv,
-							elevsAccessChan,
+							fleetAccessChan,
 							orderActionChan,
 							Reassignment{Cause: Disconnected},
 						)
@@ -74,15 +70,15 @@ func Run(
 							lost,
 							orderActionChan,
 							wv,
-							elevsAccessChan,
+							fleetAccessChan,
 						)
 					}
 
 				case elevUpdate := <-elevRXChan:
-					sync.SingleElevatorWrite(
+					sync.SingleElevFleetWrite(
 						elevUpdate.Id,
 						elevUpdate,
-						elevsAccessChan,
+						fleetAccessChan,
 					)
 					unacceptedOrders := sync.GetUnacceptedOrders(orderActionChan)[elevUpdate.Id]
 					checkforAcceptedOrders(
@@ -92,18 +88,18 @@ func Run(
 					)
 					updateHallLights(
 						wv,
-						elevsAccessChan,
+						fleetAccessChan,
 						lightsActionChan,
 					)
 					elevUpdateObsChan <- elevUpdate
 
 				case requests := <-requestsRXChan:
-					wv.FleetSnapshot = sync.ElevatorsRead(elevsAccessChan)
+					wv.FleetSnapshot = sync.FleetRead(fleetAccessChan)
 					wv.UnacceptedOrdersSnapshot = sync.GetUnacceptedOrders(orderActionChan)
 					assigner.AssignRequests(requests, wv, orderActionChan)
 
 				case <-heartbeatTimer.C:
-					wv.FleetSnapshot = sync.ElevatorsRead(elevsAccessChan)
+					wv.FleetSnapshot = sync.FleetRead(fleetAccessChan)
 					wv.UnacceptedOrdersSnapshot = sync.GetUnacceptedOrders(orderActionChan)
 					wv.HallLightsSnapshot = sync.ReadHallLights(lightsActionChan)
 					wvTXChan <- wv

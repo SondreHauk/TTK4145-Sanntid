@@ -128,12 +128,12 @@ func WorldviewConstructor(primaryId string) Worldview {
 	}
 }
 
-type ElevatorsAccess struct {
-	Cmd      string
-	Id       string
-	Elev     Elevator
-	ElevMap  map[string]Elevator
-	ReadChan chan map[string]Elevator
+type FleetAccess struct {
+	Cmd       string
+	Id        string
+	Elev      Elevator
+	FullFleet map[string]Elevator
+	ReadChan  chan map[string]Elevator
 }
 
 type OrderAccess struct {
